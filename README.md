@@ -3,6 +3,7 @@ BlastDown
 
 ## Overview
 
+Summer 2014 Rally Software Project.
 
 ## License
 
