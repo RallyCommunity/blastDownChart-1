@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BlastDown</title>
+
+    <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define("CustomApp",{extend:"Rally.app.App",componentCls:"app",items:[{xtype:"rallysolrartifactchooserdialog",id:"portfolioItemPicker",artifactTypes:["portfolioitem/initiative"],autoShow:!0,height:250,title:"Choose an Initiative",listeners:{artifactChosen:function(picker,selectedRecord){App._getArtifacts(selectedRecord)},scope:this}}],launch:function(){App=this},_passFn:function(result){console.log("success",result)},_failFn:function(result){console.log("fail",result)},_getArtifacts:function(scope){var hierarchy=scope.get("ObjectID");console.log("Querying lbAPI for artifacts under "+hierarchy),App.organizedData={initiative:scope,features:[],stories:[],tasks:[]},Ext.getBody().mask("Loading"),Ext.create("Rally.data.lookback.SnapshotStore",{listeners:{load:function(store,data,success){Ext.Array.each(features,function(feature){Ext.Array.push(App.organizedData.features,Ext.feature)}),console.log(App.organizedData)}},fetch:!0,hydrate:["ScheduleState","State","_TypeHierarchy"],findConfig:{_ItemHierarchy:hierarchy,__At:"current"}}).load()},_getStories:function(hierarchy){Ext.create("Rally.data.lookback.SnapshotStore",{listeners:{load:function(store,stories,success){Ext.Array.each(stories,function(story){Ext.Array.push(App.organizedData.stories,story)}),App._getTasks(hierarchy)}},fetch:["Name","FormattedID","State"],hydrate:["State"],findConfig:{_ItemHierarchy:hierarchy,_TypeHierarchy:"HierarchicalRequirement",__At:"current"}}).load()},_getTasks:function(hierarchy){Ext.create("Rally.data.lookback.SnapshotStore",{listeners:{load:function(store,tasks,success){Ext.getBody().unmask(),Ext.Array.each(tasks,function(task){Ext.Array.push(App.organizedData.tasks,task)}),console.log(App.organizedData)}},fetch:["Name","FormattedID","State"],hydrate:["State"],findConfig:{_ItemHierarchy:hierarchy,_TypeHierarchy:"Task",__At:"current"}}).load()},_processData:function(scope,data){console.log("processing",scope,data);var organizedData={initiative:{features:[]}};Ext.Array.each(data,function(one){console.log(one.get("FormattedID"))})}});
+
+            Rally.launchApp('CustomApp', {
+                name:"BlastDown",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+    <style type="text/css">
+        
+    </style>
+</head>
+<body></body>
+</html>
