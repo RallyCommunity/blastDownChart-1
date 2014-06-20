@@ -1,10 +1,29 @@
 {
-   "name": "BlastDown",
+   "name": "angular",
    "className": "CustomApp",
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0rc3",
    "javascript": [
-      "App.js"
+      "game/lib/melonJS-1.0.1-min.js",
+      "game/lib/plugins/debugPanel.js",
+      "game/js/game.js",
+      "game/js/resources.js",
+      "game/js/entities/playerEntity.js",
+      "game/js/entities/shipEntity.js",
+      "game/js/entities/explosionEntity.js",
+      "game/js/entities/bulletEntity.js",
+      "game/js/entities/HUD.js",
+      "game/js/screens/title.js",
+      "game/js/screens/play.js",
+      "game/js/onReady.js",
+      "bower_components/angular/angular.js",
+      "bower_components/jquery/dist/jquery.js",
+      "App.js",
+      "angularApp.js",
+      "DataService.js"
+   ],
+   "html": [
+      "body.html"
    ],
    "css": [
       "app.css"
