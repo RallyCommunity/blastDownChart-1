@@ -1,6 +1,9 @@
 /* Game namespace */
 var game = {
 
+  WINDOW_WIDTH: 960,
+  WINDOW_HEIGHT: 640,
+
 	ENEMY_ENTITY: 99,
 	PLAYER: 88,
 	BULLET: 77,
@@ -8,7 +11,7 @@ var game = {
 	// an object where to store game information
 	data : {
 		// score
-		score : 0
+		score : {}
 	},
 	
 	
@@ -88,7 +91,7 @@ var game = {
 			height: 16
 		};
 	    // reset the score
-		game.data.score = 0;
+		game.data.score = data.teamsPoints;
 
 		var zAxis = 8;
 
@@ -185,7 +188,7 @@ var game = {
 				var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
 					height: TASK_SHIP.height,
 					image: "small",
-					name: "[TASK] - " + tasks[j].Name,
+					name: "[TASK] - " + tasks[k].Name,
 					spriteheight: TASK_SHIP.height,
 					spritewidth: TASK_SHIP.width,
 					width: TASK_SHIP.width,
@@ -198,5 +201,8 @@ var game = {
 				// add the tasks together
 			}
 		}
+    // add our HUD to the game world
+    this.HUD = new game.HUD.Container();
+    me.game.world.addChild(this.HUD);
 	}
 };

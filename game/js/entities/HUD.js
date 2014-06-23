@@ -1,5 +1,3 @@
-
-
 /**
  * a HUD container and child items
  */
@@ -26,8 +24,29 @@ game.HUD.Container = me.ObjectContainer.extend({
 		this.name = "HUD";
 		
 		// add our child score object at the top left corner
-		this.addChild(new game.HUD.ScoreItem(5, 5));
-	}
+    var i = 0;
+    var container = this; 
+    console.log(game.data.score);
+    Ext.Object.each(game.data.score, function(key, value) {
+        var align = "left";
+        var x = 5;
+        var y = 5;
+        if (i % 3 == 1) { 
+            align = "center";
+            x = game.WINDOW_WIDTH / 2;
+        } else if (i % 3 == 2) {
+            align = "right";
+            x = game.WINDOW_WIDTH - 5;
+        } else if (i != 0) {
+            y += 25;
+        }
+
+        container.addChild(new game.HUD.ScoreItem(x, y, key, align));
+        i++;
+    });
+    
+    
+  }
 });
 
 
@@ -38,14 +57,18 @@ game.HUD.ScoreItem = me.Renderable.extend({
 	/** 
 	 * constructor
 	 */
-	init: function(x, y) {
+	init: function(x, y, key, alignment) {
 		
 		// call the parent constructor 
 		// (size does not matter here)
 		this.parent(new me.Vector2d(x, y), 10, 10); 
-		
+
+    this.font = new me.Font("Arial", 18, "white", alignment);
+
 		// local copy of the global score
 		this.score = -1;
+
+    this.key = key;
 
 		// make sure we use screen coordinates
 		this.floating = true;
@@ -57,8 +80,8 @@ game.HUD.ScoreItem = me.Renderable.extend({
 	update : function () {
 		// we don't do anything fancy here, so just
 		// return true if the score has been updated
-		if (this.score !== game.data.score) {	
-			this.score = game.data.score;
+		if (this.score !== game.data.score[this.key]) {	
+			this.score = game.data.score[this.key];
 			return true;
 		}
 		return false;
@@ -68,7 +91,7 @@ game.HUD.ScoreItem = me.Renderable.extend({
 	 * draw the score
 	 */
 	draw : function (context) {
-		// draw it baby !
+		  this.font.draw(context, this.key + ": " + this.score, this.pos.x, this.pos.y);
 	}
 
 });

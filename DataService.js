@@ -1,7 +1,7 @@
 module.service('RallyDataService', function() {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
         fetch: true,
-        hydrate: ["ScheduleState", "State", "_TypeHierarchy"],
+        hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project"],
         findConfig: {
             "_ItemHierarchy" : GLOBAL.itemHierarchy,
             "__At" : "current"
@@ -54,12 +54,18 @@ module.service('RallyDataService', function() {
                     //   |
                     //   +-->Initiative
                     //   +-->Features
-                    //       |
-                    //       +-->Stories/Defects
-                    //           |
-                    //           +-->Tasks
+                    //   |   |
+                    //   |   +-->Stories/Defects
+                    //   |       |
+                    //   |       +-->Tasks
+                    //   |
+                    //   +-->ClosedStories
+                    
+                    
                     var organizedData = {
-                        initiative: GLOBAL.initiative
+                        initiative: GLOBAL.initiative,
+                        closedStories: [],
+                        teamsPoints: {}
                     };
 
                     // Add tasks as children of their associated story/defect
@@ -80,6 +86,19 @@ module.service('RallyDataService', function() {
                         var parent;
                         console.log(object);
                         var types = object.artifact._TypeHierarchy;
+
+
+                        if (object.artifact.State === "Closed") {
+                            Ext.Array.push(organizedData.closedStories, object);
+                            console.log("Points: " + organizedData.teamsPoints[object.artifact.Project]);
+                            if (organizedData.teamsPoints[object.artifact.Project]) {
+                                organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
+                            } else {
+                                organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
+                            }
+                            return;
+                        }
+
 
                         if (types[types.length - 1] === "HierarchicalRequirement") {
                             // stories have an associated PortfolioItem/Feature
