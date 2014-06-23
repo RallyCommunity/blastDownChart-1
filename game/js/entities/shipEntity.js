@@ -11,11 +11,27 @@ game.Ship = me.ObjectEntity.extend({
         this.numSteps = 0;
         this.moveRight = true;
         this.collidable = true;
-        this.type = game.ENEMY_ENTITY;
     },
 
     update: function() {
-        // simple movement pattern
+      // TODO change the simple movement pattern (ships fly in when created and go to their spot?)
+
+      // ships randomly shoot at the player
+      if (Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
+            var x = this.pos.x + this.width / 2;
+    	    	var shot = me.pool.pull("bullet", x, this.pos.y, {
+                height: 16,
+                image: "bullet",
+                name: "shot",
+                spriteheight: 16,
+                spritewidth: 16,
+                width: 16,
+                shootDown: true
+            });
+            this.shootLeft = !this.shootLeft;
+            me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+      }
+
     	if (this.numSteps % 3 == 0) {
     		if (this.numSteps % (96 * 2) == 0) {
     			this.moveRight = !this.moveRight;

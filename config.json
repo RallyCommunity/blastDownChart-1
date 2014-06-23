@@ -10,7 +10,6 @@
       "game/js/resources.js",
       "game/js/entities/playerEntity.js",
       "game/js/entities/shipEntity.js",
-      "game/js/entities/explosionEntity.js",
       "game/js/entities/bulletEntity.js",
       "game/js/entities/HUD.js",
       "game/js/screens/title.js",
@@ -26,6 +25,7 @@
       "body.html"
    ],
    "css": [
+      "game/game.css",
       "app.css"
    ]
 }

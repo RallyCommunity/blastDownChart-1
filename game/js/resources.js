@@ -4,19 +4,23 @@ game.resources = [
 	{name: "player", type: "image", src: "game/data/img/player_ship.png"},
 
 	// ships
-	{name: "xlarge", type: "image", src: "game/data/img/xlarge_ship.png"},  // 320 x 160
-	{name: "large",  type: "image", src: "game/data/img/large_ship.png"},   // 64x64
-	{name: "medium", type: "image", src: "game/data/img/medium_ship.png"},  // 32x32
-	{name: "small",  type: "image", src: "game/data/img/small_ship.png"},   // 16x16
+	{name: "xlarge", type: "image", src: "game/data/img/shipSuper.png"},  // 320 x 160
+	{name: "large",  type: "image", src: "game/data/img/shipLarge.png"},   // 64x64
+	{name: "medium", type: "image", src: "game/data/img/shipMedium.png"},  // 32x32
+	{name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
 	
-	//bullet
+	// bullet
 	{name: "bullet", type: "image", src: "game/data/img/bullet_sprite.png"},
 
-  {name: "explosion", type:"image", src: "game/data/img/animations/explosionLarge.png"},
+  // explosions
+  {name: "explosionSmall", type:"image", src: "game/data/img/animations/explosionSmall.png"},
+  {name: "explosionMedium", type:"image", src: "game/data/img/animations/explosionMedium.png"},
+  {name: "explosionLarge", type:"image", src: "game/data/img/animations/explosionLarge.png"},
+  {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
 
-	/***********
-	 *   Maps  *
-	 ***********/
+  /*
+	 * Maps
+	 */
 
 	// background
 	{name: "background", type: "image", src: "game/data/img/background.png"},

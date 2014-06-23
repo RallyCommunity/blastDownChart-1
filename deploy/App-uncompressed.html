@@ -442,218 +442,267 @@ function(){var a={},b=null,c=!0,d=!1;try{"undefined"!=typeof AudioContext?b=new 
     /*---------------------------------------------------------*/
 })(window);
 
-                /* Game namespace */
+                // TODO need to track what features/stories/tasks are displayed on the screen
+// TODO destroy a given feature/story/task
+// TODO destroy a given feature/story/task that is not on the screen
+// TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
+// TODO animate the ships flying in at the beginning?
+/* Game namespace */
 var game = {
 
-	ENEMY_ENTITY: 99,
-	PLAYER: 88,
-	BULLET: 77,
-  EXPLOSION: 66,
-	// an object where to store game information
-	data : {
-		// score
-		score : 0
-	},
-	
-	
-	// Run on page load.
-"onload" : function () {
-		// Initialize the video.
-		if (!me.video.init("screen", 960, 640, true, 'auto')) {
-			alert("Your browser does not support HTML5 canvas.");
-			return;
-		}
+  // size of the game canvas
+  WINDOW_WIDTH: 960,
+  WINDOW_HEIGHT: 640,
 
-		// add "#debug" to the URL to enable the debug Panel
-		if (document.location.hash === "#debug") {
-			window.onReady(function () {
-				me.plugin.register.defer(this, debugPanel, "debug");
-			});
-		}
+  ENEMY_ENTITY_SMALL:  96, // small enemy type
+  ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
+  ENEMY_ENTITY_LARGE:  98, // large enemy type
+  ENEMY_ENTITY_SUPER:  99, // super enemy type
 
-		//me.sys.fps = 30; // probably okay
+  PLAYER: 88, // player type
+  BULLET: 77, // bullet type
+  EXPLOSION: 66, // explosion type
 
-		// Initialize the audio.
-		me.audio.init("mp3,ogg");
- 
-		// Set a callback to run when loading is complete.
-		me.loader.onload = this.loaded.bind(this);
+  // boolean - can the player shoot?
+  canShoot: true,
 
-		// Load the resources.
-		me.loader.preload(game.resources);
+  // probability that enemy ships will shoot
+  FIRE_PROBABILITY: 2000,
 
-		// Initialize melonJS and display a loading screen.
-		me.state.change(me.state.LOADING);
-	},
 
-	// Run on game resources loaded.
-	"loaded" : function () {
-		me.state.set(me.state.MENU, new game.TitleScreen());
-		me.state.set(me.state.PLAY, new game.PlayScreen());
+  // track the score
+  data : {
+    // score
+    score : {}
+  },
 
-		me.pool.register("mainPlayer", game.PlayerEntity);
-		me.pool.register("bullet", game.BulletEntity);
-		me.pool.register("enemyShip", game.Ship);
-    	me.pool.register("explosion", game.ExplosionEntity);
-		// TODO object POOLING?
-		
-		// TODO temporary enabling keyboard
-		me.input.bindKey(me.input.KEY.LEFT,  "left");
-   		me.input.bindKey(me.input.KEY.RIGHT, "right");
-   		me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
-		// Start the game.
-		me.state.change(me.state.PLAY);
-	},
+  // Run on page load.
+  "onload" : function () {
+    // Initialize the video.
+    if (!me.video.init("screen", 960, 640, true, 'auto')) {
+      alert("Your browser does not support HTML5 canvas.");
+      return;
+    }
 
-  	setupShips: function(data) {
-	    console.log("setting up with: ", data);
-		var CANVAS_WIDTH = 960;
-		var PADDING = 32;
-		var WIDTH = CANVAS_WIDTH - (PADDING * 2);
+    // add "#debug" to the URL to enable the debug Panel
+    if (document.location.hash === "#debug") {
+      window.onReady(function () {
+        me.plugin.register.defer(this, debugPanel, "debug");
+      });
+    }
 
-		var MOTHERSHIP = {
-			width: 320,
-			height: 160
-		};
+    // Initialize the audio.
+    me.audio.init("mp3,ogg");
 
-		var FEATURE_SHIP = {
-			width: 64,
-			height: 64
-		};
+    // Set a callback to run when loading is complete.
+    me.loader.onload = this.loaded.bind(this);
 
-		var STORY_SHIP = {
-			width: 32,
-			height: 32
-		};
+    // Load the resources.
+    me.loader.preload(game.resources);
 
-		var TASK_SHIP = {
-			width: 16,
-			height: 16
-		};
-	    // reset the score
-		game.data.score = 0;
+    // Initialize melonJS and display a loading screen.
+    me.state.change(me.state.LOADING);
+  },
 
-		var zAxis = 8;
+  // Run on game resources loaded.
+  "loaded" : function () {
+    me.state.set(me.state.MENU, new game.TitleScreen());
+    me.state.set(me.state.PLAY, new game.PlayScreen());
 
-		// TODO object pooling? https://github.com/melonjs/melonJS/wiki/Frequently-Asked-Questions
-		// TODO keep track of all of these for removal purposes?
-		/*
-		 * Draw the Mothership
-		 */
-		var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
-			height: MOTHERSHIP.height,
-			image: "xlarge",
-			name: "initiative",
-			spriteheight: MOTHERSHIP.height,
-			spritewidth: MOTHERSHIP.width,
-			width: MOTHERSHIP.width,
-			z: zAxis
-		});
+    me.pool.register("mainPlayer", game.PlayerEntity);
+    me.pool.register("bullet", game.BulletEntity);
+    me.pool.register("enemyShip", game.Ship);
+    me.pool.register("explosion", game.ExplosionEntity);
 
-		me.game.world.addChild(mothership, zAxis);
-		zAxis++;
-		var features = _.toArray(data.features);
-		var numFeatures = features.length;
-		var sectionWidth = WIDTH/numFeatures;
-			
-		for (var i = 0; i < numFeatures; i++) {
-			var xPosition = (i * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
-			var yPosition = 32 + 160;
-			var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
-				height: FEATURE_SHIP.height,
-				image: "large",
-<<<<<<< HEAD
-				name: "[FEATURE] - " + features[i].feature.Name,
-=======
-				name: features[i].feature.name,
->>>>>>> 3d91639cf12af68583c9288a297ad5135d88e2cd
-				spriteheight: FEATURE_SHIP.height,
-				spritewidth: FEATURE_SHIP.width,
-				width: FEATURE_SHIP.width,
-				z: zAxis
-			});
+    // TODO temporary enabling keyboard
+    me.input.bindKey(me.input.KEY.LEFT,  "left");
+    me.input.bindKey(me.input.KEY.RIGHT, "right");
+    me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
-			me.game.world.addChild(featureShip, zAxis++);
-			var stories = features[i].children;
-			var numStories = stories.length;
-			var storiesPerLine = Math.floor(sectionWidth / STORY_SHIP.width);
-			var storyLines = Math.floor(numStories / storiesPerLine) + 1;
+    // Start the game.
+    me.state.change(me.state.PLAY);
+  },
 
-			var tasks = [];
+  setupShips: function(data) {
+    var PADDING = 32;
+    var WIDTH = WINDOW_WIDTH - (PADDING * 2);
 
-			for (var j = 0; j < numStories; j++) {
-				var storyX, storyY;
-				var storiesOnThisLine = storiesPerLine;
-				if (Math.floor(j / storiesPerLine + 1) == storyLines) {
-					storiesOnThisLine = numStories % storiesPerLine;
-				}
-				storyY = 32 + 160 + 64 + 32 + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
-				storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+    var MAX_FEATURE_ROWS = 2;
+    var MAX_STORY_ROWS = 3;
+    var MAX_TASK_ROWS = 4;
 
-				var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
-					height: STORY_SHIP.height,
-					image: "medium",
-<<<<<<< HEAD
-					name: "[STORY/DEFECT] - " + stories[j].artifact.Name,
-=======
-					name: stories[j].FormattedID,
->>>>>>> 3d91639cf12af68583c9288a297ad5135d88e2cd
-					spriteheight: STORY_SHIP.height,
-					spritewidth: STORY_SHIP.width,
-					width: STORY_SHIP.width,
-					z: zAxis,
-					health: 2
-				});
-<<<<<<< HEAD
-				console.log('storyShip', storyShip, stories[j]);
-=======
->>>>>>> 3d91639cf12af68583c9288a297ad5135d88e2cd
+    var MOTHERSHIP = {
+      width: 320,
+      height: 160
+    };
 
-				me.game.world.addChild(storyShip, zAxis++);
+    var FEATURE_SHIP = {
+      width: 64,
+      height: 64
+    };
 
-				// add the tasks together
-				_.each(stories[j].children, function(oneTask) {
-					Ext.Array.push(tasks, oneTask);
-				});
-			}
-	    // 
-			// for proper task vertical alignment
-			if (numStories % storiesPerLine == 0) {
-				storyLines -= 1;
-			}
+    var STORY_SHIP = {
+      width: 32,
+      height: 32
+    };
 
-			// Add all tasks below stories
-			var numTasks = tasks.length;
-			var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
-			var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+    var TASK_SHIP = {
+      width: 16,
+      height: 16
+    };
+    // reset the score
+    game.data.score = data.teamsPoints;
 
-			for (var k = 0; k < numTasks; k++) {
-				var taskX, taskY;
-				var tasksOnThisLine = tasksPerLine;
-				if (Math.floor(k / tasksPerLine + 1) == taskLines) {
-					tasksOnThisLine = numTasks % tasksPerLine;
-				}
-				taskY = storyLines * STORY_SHIP.height + 32 + 160 + 64 + 32 + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
-				taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+    var zAxis = 8;
 
-				var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
-					height: TASK_SHIP.height,
-					image: "small",
-					name: "[TASK] - " + tasks[j].Name,
-					spriteheight: TASK_SHIP.height,
-					spritewidth: TASK_SHIP.width,
-					width: TASK_SHIP.width,
-					z: zAxis,
-					health: 2
-				});
+    // TODO keep track of all of these for removal purposes?
+    
+    // draw the mothership
+    var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
+      height: MOTHERSHIP.height,
+        image: "xlarge",
+        name: "[INITIATIVE] " + data.initiative.data.Name,
+        spriteheight: MOTHERSHIP.height,
+        spritewidth: MOTHERSHIP.width,
+        width: MOTHERSHIP.width,
+        z: zAxis,
+        type: game.ENEMY_ENTITY_SUPER
+    });
 
-				me.game.world.addChild(taskShip, zAxis++);
+    me.game.world.addChild(mothership, zAxis);
+    zAxis++;
+    var features = _.toArray(data.features);
+    var numFeatures = features.length;
+    var featuresPerLine = Math.floor(WIDTH / FEATURE_SHIP.width);
+    var featureLines = Math.floor(numFeatures / featuresPerLine) + 1;
+    var sectionWidth = numFeatures > featuresPerLine ? WIDTH/featuresPerLine : WIDTH / numFeatures;
 
-				// add the tasks together
-			}
-		}
-	}
+    var maxFeatures = featureLines > MAX_FEATURE_ROWS ? MAX_FEATURE_ROWS * featuresPerLine : numFeatures;
+
+    // draw all the features
+    for (var i = 0; i < maxFeatures; i++) {
+      var pos = i % featuresPerLine;
+      var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
+      var yPosition = 32 + 160 + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
+
+      var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
+          height: FEATURE_SHIP.height,
+          image: "large",
+          name: "[FEATURE] - " + features[i].feature.Name,
+          spriteheight: FEATURE_SHIP.height,
+          spritewidth: FEATURE_SHIP.width,
+          width: FEATURE_SHIP.width,
+          z: zAxis,
+          type: game.ENEMY_ENTITY_LARGE
+      });
+
+      me.game.world.addChild(featureShip, zAxis++);
+
+      if (i >= featuresPerLine) {
+        continue;
+      }
+
+      var stories = features[i].children;
+      
+      // aggregate all of the stories in this area
+      for (var rows = 1; rows < featureLines; rows++) {
+        var arr = features[rows * featuresPerLine + i];
+        if (arr) {
+          arr = arr.children;
+        } else {
+          break;
+        }
+        for (var el = 0; el < arr.length; el++) {
+          Ext.Array.push(stories, arr[el]); 
+        }
+      }
+
+      // for proper task vertical alignment
+      if (numFeatures % featuresPerLine == 0) {
+        featureLines -= 1;
+      }
+
+      var numStories = stories.length;
+      var storiesPerLine = Math.floor(sectionWidth / STORY_SHIP.width);
+      var storyLines = Math.floor(numStories / storiesPerLine) + 1;
+
+      var tasks = [];
+
+      var maxStories = storyLines > MAX_STORY_ROWS ? MAX_STORY_ROWS * storiesPerLine : numStories;
+
+      // draw all of the stories
+      for (var j = 0; j < maxStories; j++) {
+        var storyX, storyY;
+        var storiesOnThisLine = storiesPerLine;
+        if (Math.floor(j / storiesPerLine + 1) == storyLines) {
+          storiesOnThisLine = numStories % storiesPerLine;
+        }
+        storyY = 32 + 160 + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
+
+        storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+        var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
+          height: STORY_SHIP.height,
+            image: "medium",
+            name: "[STORY/DEFECT] - " + stories[j].artifact.Name,
+            spriteheight: STORY_SHIP.height,
+            spritewidth: STORY_SHIP.width,
+            width: STORY_SHIP.width,
+            z: zAxis,
+            health: 2,
+            type: game.ENEMY_ENTITY_MEDIUM
+
+        });
+
+        me.game.world.addChild(storyShip, zAxis++);
+
+        // add the tasks together
+        _.each(stories[j].children, function(oneTask) {
+          Ext.Array.push(tasks, oneTask);
+        });
+      }
+
+      // for proper task vertical alignment
+      if (numStories % storiesPerLine == 0) {
+        storyLines -= 1;
+      }
+
+      var numTasks = tasks.length;
+      var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
+      var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+      var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
+
+      // draw all of the tasks
+      for (var k = 0; k < maxTasks; k++) {
+        var taskX, taskY;
+        var tasksOnThisLine = tasksPerLine;
+        if (Math.floor(k / tasksPerLine + 1) == taskLines) {
+          tasksOnThisLine = numTasks % tasksPerLine;
+        }
+        // TODO test
+        taskY = 32 + 160 + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
+        taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+
+        var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
+          height: TASK_SHIP.height,
+            image: "small",
+            name: "[TASK] - " + tasks[k].Name,
+            spriteheight: TASK_SHIP.height,
+            spritewidth: TASK_SHIP.width,
+            width: TASK_SHIP.width,
+            z: zAxis,
+            health: 2,
+            type: game.ENEMY_ENTITY_SMALL
+        });
+
+        me.game.world.addChild(taskShip, zAxis++);
+      }
+    }
+
+    // add our HUD to the game world
+    this.HUD = new game.HUD.Container();
+    me.game.world.addChild(this.HUD);
+  }
 };
 
                 game.resources = [
@@ -662,19 +711,23 @@ var game = {
 	{name: "player", type: "image", src: "game/data/img/player_ship.png"},
 
 	// ships
-	{name: "xlarge", type: "image", src: "game/data/img/xlarge_ship.png"},  // 320 x 160
-	{name: "large",  type: "image", src: "game/data/img/large_ship.png"},   // 64x64
-	{name: "medium", type: "image", src: "game/data/img/medium_ship.png"},  // 32x32
-	{name: "small",  type: "image", src: "game/data/img/small_ship.png"},   // 16x16
+	{name: "xlarge", type: "image", src: "game/data/img/shipSuper.png"},  // 320 x 160
+	{name: "large",  type: "image", src: "game/data/img/shipLarge.png"},   // 64x64
+	{name: "medium", type: "image", src: "game/data/img/shipMedium.png"},  // 32x32
+	{name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
 	
-	//bullet
+	// bullet
 	{name: "bullet", type: "image", src: "game/data/img/bullet_sprite.png"},
 
-  {name: "explosion", type:"image", src: "game/data/img/animations/explosionLarge.png"},
+  // explosions
+  {name: "explosionSmall", type:"image", src: "game/data/img/animations/explosionSmall.png"},
+  {name: "explosionMedium", type:"image", src: "game/data/img/animations/explosionMedium.png"},
+  {name: "explosionLarge", type:"image", src: "game/data/img/animations/explosionLarge.png"},
+  {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
 
-	/***********
-	 *   Maps  *
-	 ***********/
+  /*
+	 * Maps
+	 */
 
 	// background
 	{name: "background", type: "image", src: "game/data/img/background.png"},
@@ -697,23 +750,19 @@ var game = {
         this.movesUntilShoot = 0;
         // set the default horizontal & vertical speed (accel vector)
         this.setVelocity(5, 0);
-        this.shootLeft = false;
     },
 
     // update position
     update: function(dt) {
         if (me.input.isKeyPressed('left')) {
-            //this.flipX(true);
             this.vel.x -= this.accel.x * me.timer.tick;
         } else if (me.input.isKeyPressed('right')) {
-            //this.flipX(false);
             this.vel.x += this.accel.x * me.timer.tick;
         } else {
             this.vel.x = 0;
         }
-        this.movesUntilShoot--;
 
-        if (this.movesUntilShoot < 0 && me.input.isKeyPressed('shoot')) {
+        if (game.canShoot && me.input.isKeyPressed('shoot')) {
             var x = this.shootLeft ? this.pos.x : this.pos.x + 16;
     	    	var shot = me.pool.pull("bullet", x, this.pos.y, {
                 height: 16,
@@ -721,9 +770,10 @@ var game = {
                 name: "shot",
                 spriteheight: 16,
                 spritewidth: 16,
-                width: 16
+                width: 16,
+                shootDown: false
             });
-            this.movesUntilShoot = 15; // 10 updates befre you can shoot again
+            game.canShoot = false;
             this.shootLeft = !this.shootLeft;
             me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     	}
@@ -739,7 +789,6 @@ var game = {
         }
         return true;
     }
-
 });
 
                 game.Ship = me.ObjectEntity.extend({
@@ -755,11 +804,27 @@ var game = {
         this.numSteps = 0;
         this.moveRight = true;
         this.collidable = true;
-        this.type = game.ENEMY_ENTITY;
     },
 
     update: function() {
-        // simple movement pattern
+      // TODO change the simple movement pattern (ships fly in when created and go to their spot?)
+
+      // ships randomly shoot at the player
+      if (Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
+            var x = this.pos.x + this.width / 2;
+    	    	var shot = me.pool.pull("bullet", x, this.pos.y, {
+                height: 16,
+                image: "bullet",
+                name: "shot",
+                spriteheight: 16,
+                spritewidth: 16,
+                width: 16,
+                shootDown: true
+            });
+            this.shootLeft = !this.shootLeft;
+            me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+      }
+
     	if (this.numSteps % 3 == 0) {
     		if (this.numSteps % (96 * 2) == 0) {
     			this.moveRight = !this.moveRight;
@@ -776,76 +841,120 @@ var game = {
     }
 });
 
-                game.ExplosionEntity = me.ObjectEntity.extend({
-
-	init: function(x, y, settings) {
-        // call the constructor
-        this.parent(x, y, settings);
-        this.gravity = 0.0;
-        // set the movement speed
-        this.setVelocity(0, 0);
-
-        this.numSteps = 0;
-        this.collidable = false;
-        this.type = game.EXPLOSION;
-    },
-
-    update: function() {
-      this.numSteps++;
-      if (this.numSteps > 3) {
-          me.game.world.removeChild(this);
-      }
-    }
-});
-
                 game.BulletEntity = me.ObjectEntity.extend({
 
-	// constructor
-	init: function(x, y, settings) {
-        // call the constructor
-        this.parent(x, y, settings);
-        this.gravity = 0.0;
-        // set the movement speed
-        this.setVelocity(0, 8);
-        this.type = game.BULLET;
-    },
+  // constructor
+  init: function(x, y, settings) {
+    // call the constructor
+    this.parent(x, y, settings);
+    this.gravity = 0.0;
+    // set the movement speed
+    this.setVelocity(0, 6);
+    this.type = game.BULLET;
+    this.shootDown = settings.shootDown;
+  },
 
-	update: function() {
-        // did we hit the top wall?
-        if (this.pos.y < 16) {
-            me.game.world.removeChild(this);
-        }
+update: function() {
+  // did we hit the top wall?
+  if (this.pos.y < 16) {
+    game.canShoot = true;
+    me.game.world.removeChild(this);
+  }
 
-        // did we hit an enemy?
-        var res = me.game.world.collide(this);
-        if (res) {
-            if (res.obj.type == game.ENEMY_ENTITY) {
-                me.game.world.removeChild(this);
-                
-                var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.pos.y, {
-                    image: "explosion",
-                    width: 32,
-                    height: 32,
-                    spritewidth: 32,
-                    spriteheight: 32,
-                    name: "explosion-" + res.obj.name
-                });
-                me.game.world.addChild(explosion, res.obj.z + 1);
-                console.log('Destroyed: ' + res.obj.name);
-                me.game.world.removeChild(res.obj);
-            }
-        }
+  // did we hit an enemy?
+  var res = me.game.world.collide(this);
+  if (res) {
+    var image = null;
+    console.log(res.obj.type, game.ENEMY_ENTITY_SUPER);
+    if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
+      image = me.loader.getImage('explosionSuper');
+    } else if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
+      image = me.loader.getImage('explosionLarge');
+    } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM) {
+      image = me.loader.getImage('explosionMedium');
+    } else if (res.obj.type == game.ENEMY_ENTITY_SMALL) {
+      image = me.loader.getImage('explosionSmall');
+    }
 
-        // keep going
-        this.vel.y -= this.accel.y * me.timer.tick;
-        this.updateMovement();
-        return true;
-      }
+    if (image && !this.shootDown) {
+      console.log(this);
+      game.canShoot = true;
+      me.game.world.removeChild(this);
+
+      var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+        image: image,
+          width: 4,
+          totalParticles: 12,
+          angle: 0.0856797996433583,
+          angleVariation: 3.14159265358979,
+          minLife: 400,
+          maxLife: 1800,
+          speed: 0.954545454545454,
+          speedVariation: 9.95454545454546,
+          minRotation: 1.34231686107927,
+          minStartScale: 1.43181818181818,
+          maxParticles: 17,
+          frequency: 19,
+          duration: 400,
+          framesToSkip: 1
+      });
+      emitter.name = 'fire';
+      emitter.z = res.obj.z + 1;
+      // TODO removeChild?
+      me.game.world.addChild(emitter);
+      me.game.world.addChild(emitter.container);
+      emitter.streamParticles();
+
+      console.log('Destroyed: ' + res.obj.name);
+      me.game.world.removeChild(res.obj);
+    }
+
+    if (res.obj.type == game.PLAYER && this.shootDown) {
+        // the player got hit
+        
+         me.game.world.removeChild(this);
+        image = me.loader.getImage('explosionSmall');
+      var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+          image: image,
+          width: 4,
+          totalParticles: 12,
+          angle: 0.0856797996433583,
+          angleVariation: 3.14159265358979,
+          minLife: 200,
+          maxLife: 400,
+          speed: 0.5,
+          speedVariation: 4,
+          minRotation: 1.34231686107927,
+          minStartScale: 1.43181818181818,
+          maxParticles: 17,
+          frequency: 19,
+          duration: 200,
+          framesToSkip: 1
+      });
+
+      res.obj.renderable.flicker(500);
+      emitter.name = 'fire';
+      emitter.z = res.obj.z + 1;
+      // TODO removeChild?
+      me.game.world.addChild(emitter);
+      me.game.world.addChild(emitter.container);
+      emitter.streamParticles();
+
+    }
+  }
+
+  // keep going
+  if (this.shootDown) {
+    this.vel.y += this.accel.y * me.timer.tick;
+  } else {
+    this.vel.y -= this.accel.y * me.timer.tick;
+  }
+  this.updateMovement();
+  return true;
+}
 });
 
-                
-
-/**
+                /**
  * a HUD container and child items
  */
 
@@ -871,8 +980,35 @@ game.HUD.Container = me.ObjectContainer.extend({
 		this.name = "HUD";
 		
 		// add our child score object at the top left corner
-		this.addChild(new game.HUD.ScoreItem(5, 5));
-	}
+    var i = 0;
+    var container = this; 
+    console.log(game.data.score);
+    // TODO don't fix the data like this
+    game.data.score = {
+        "Team 1": 17,
+        "Team 2": 13,
+        "Long team name number 3": 23
+    };
+    Ext.Object.each(game.data.score, function(key, value) {
+        var align = "left";
+        var x = 5;
+        var y = 5;
+        if (i % 3 == 1) { 
+            align = "center";
+            x = game.WINDOW_WIDTH / 2;
+        } else if (i % 3 == 2) {
+            align = "right";
+            x = game.WINDOW_WIDTH - 5;
+        } else if (i != 0) {
+            y += 25;
+        }
+
+        container.addChild(new game.HUD.ScoreItem(x, y, key, align));
+        i++;
+    });
+    
+    
+  }
 });
 
 
@@ -883,14 +1019,18 @@ game.HUD.ScoreItem = me.Renderable.extend({
 	/** 
 	 * constructor
 	 */
-	init: function(x, y) {
+	init: function(x, y, key, alignment) {
 		
 		// call the parent constructor 
 		// (size does not matter here)
 		this.parent(new me.Vector2d(x, y), 10, 10); 
-		
+
+    this.font = new me.Font("arcadeClassic", 24, "white", alignment);
+
 		// local copy of the global score
 		this.score = -1;
+
+    this.key = key;
 
 		// make sure we use screen coordinates
 		this.floating = true;
@@ -902,8 +1042,8 @@ game.HUD.ScoreItem = me.Renderable.extend({
 	update : function () {
 		// we don't do anything fancy here, so just
 		// return true if the score has been updated
-		if (this.score !== game.data.score) {	
-			this.score = game.data.score;
+		if (this.score !== game.data.score[this.key]) {	
+			this.score = game.data.score[this.key];
 			return true;
 		}
 		return false;
@@ -913,7 +1053,7 @@ game.HUD.ScoreItem = me.Renderable.extend({
 	 * draw the score
 	 */
 	draw : function (context) {
-		// draw it baby !
+		  this.font.draw(context, this.key + ": " + this.score, this.pos.x, this.pos.y);
 	}
 
 });
@@ -31887,217 +32027,7 @@ return jQuery;
 
 }));
 
-<<<<<<< HEAD
                 var GLOBAL = {};
-=======
-                /*
-Ext.define('CustomApp', {
-    extend: 'Rally.app.App',
-    componentCls: 'app',
-    items: [
-        {
-            xtype: 'rallysolrartifactchooserdialog',
-            id: 'portfolioItemPicker',
-            artifactTypes: ['portfolioitem/initiative'],
-            autoShow: true,
-            height: 250,
-            title: 'Choose an Initiative',
-            listeners: {
-                artifactChosen: function(picker, selectedRecord) {
-                    App._getArtifacts(selectedRecord);
-                },
-                scope: this
-            }
-        }
-    ],
-
-    launch: function() {
-        App = this;
-        //App.down('#angularDiv').hide();
-        console.log('launch');
-        module = angular.module('angularBlastdown', []);
-    },
-
-
-    _getArtifacts: function(scope) {
-        var hierarchy = scope.get('ObjectID');
-        console.log("Querying lbAPI for artifacts under " + hierarchy);
-
-        aggregateData = {
-            initiative: scope.data,
-            features: {},
-            storiesAndDefects: {},
-            parentless: []
-        };
-
-        var tasks = [];
-
-        Ext.getBody().mask('Loading');
-        Ext.create('Rally.data.lookback.SnapshotStore', {
-            listeners: {
-                load: function(store, data, success) {
-                    // Aggregate data
-                    _.each(data, function(artifact) {
-                        var types = artifact.raw._TypeHierarchy;
-                        switch (types[types.length - 1]) {
-                            case "Defect":
-                                aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
-                                    artifact: artifact.raw,
-                                    children: []
-                                };
-                                break;
-                            case "HierarchicalRequirement":
-                                aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
-                                    artifact: artifact.raw,
-                                    children: []
-                                };
-                                break;
-                            case "PortfolioItem/Feature":
-                                aggregateData.features[artifact.data.ObjectID] = {
-                                    feature: artifact.raw,
-                                    children: []
-                                };
-                                break;
-                            case "Task":
-                                Ext.Array.push(tasks, artifact.raw);
-                                break;
-                            default: // ignore
-                        }
-                    });
-
-                    var organizedData = App._organizeData(aggregateData, tasks);
-
-                    // assign order values to the features and stories so they can align
-
-                    // TODO order data differently to inidicate age?
-                    // var features = _.toArray(organizedData.features);
-                    // console.log(features);
-                    //
-                    // _.sortBy(features, function(artifact) {
-                    //     return parseInt(artifact.feature.ObjectID);
-                    // });
-                    //
-                    // for (var i = 0; i < features.length; i++) {
-                    //     console.log('feature[i]', features[i]);
-                    //     organizedData.features[features[i].feature.ObjectID].order = i + 1; // convert to 1 based for ordering
-                    // }
-                    //
-                    console.log(organizedData);
-                    Ext.getBody().unmask();
-                    App.down('#portfolioItemPicker').hide();
-
-                    App._goAngular(organizedData);
-                    // From here on out we want an angular/melon/js app
-                }
-            },
-            fetch: true,
-            hydrate: ["ScheduleState", "State", "_TypeHierarchy"],
-            findConfig: {
-                "_ItemHierarchy" : hierarchy,
-                "__At" : "current"
-            }
-        }).load();
-    },
-
-
-    _organizeData: function(aggregateData, tasks) {
-
-        // organizedData
-        //   |
-        //   +-->Initiative
-        //   +-->Features
-        //       |
-        //       +-->Stories/Defects
-        //           |
-        //           +-->Tasks
-        var organizedData = {
-            initiative: aggregateData.initiative
-        };
-
-        // Add tasks as children of their associated story/defect
-        _.each(tasks, function(task) {
-            var parent = task.WorkProduct;
-
-            if (aggregateData.storiesAndDefects[parent]) {
-                // add it to the list of children
-                Ext.Array.push(aggregateData.storiesAndDefects[parent].children, task);
-            } else {
-                // not parented to a story/defect
-                console.log('not parented to a story or defect', task);
-            }
-        });
-
-        // Add stories and tasks as children of their feature
-        _.each(aggregateData.storiesAndDefects, function(object, oid) {
-            var parent;
-            console.log(object);
-            var types = object.artifact._TypeHierarchy;
-
-            if (types[types.length - 1] === "HierarchicalRequirement") {
-                // stories have an associated PortfolioItem/Feature
-                parent = object.artifact.PortfolioItem;
-            } else {
-                // defects associate with a story or defect that will parent to a Feature
-                var requirement = aggregateData.storiesAndDefects[object.artifact.Requirement];
-                if (requirement) {
-                    parent = requirement.artifact.PortfolioItem;
-                } else {
-                    console.log('not found', object);
-                }
-            }
-
-            if (aggregateData.features[parent]) {
-                // add it to the list of children
-                Ext.Array.push(aggregateData.features[parent].children, object);
-            } else {
-                // not parented to a feature
-                console.log('not parented to a feature');
-            }
-        });
-
-        organizedData.features = aggregateData.features;
-        return organizedData;
-    },
-
-    _goAngular: function(organizedData) {
-        $('body').removeClass('x-body');
-        $('html').removeClass('x-viewport');
-        console.log(_.toArray(organizedData.features));
-
-        $($('.rally-app')[0]).hide();
-        $('#root').show();
-        // jQuery with canvas
-        // $('body').empty();
-        // $('body').append($('<canvas id="canvas"></canvas>'));
-        //
-        // var canvas = $('#canvas')[0];
-        // console.log(canvas);
-        // console.log(document.getElementById('canvas'));
-        // var context = canvas.getContext("2d");
-        // context.beginPath();
-        // context.arc(20, 20, 20, 0, 2 * Math.PI, false);
-        // context.fillStyle = 'red';
-        // context.fill();
-        // context.closePath();
-
-        module.controller('dataController', function($scope) {
-            $scope.age = 1234;
-            $scope.features = _.toArray(organizedData.features);
-            $scope.initiative = organizedData.initiative;
-        });
-
-        angular.bootstrap(document.body, ['angularBlastdown']);
-        var scope = angular.element(document.body).scope();
-
-        scope.app = App.getContext().map.map;
-        scope.$digest();
-    }
-});
-
-*/
-
-var GLOBAL = {};
->>>>>>> 3d91639cf12af68583c9288a297ad5135d88e2cd
 
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
@@ -32117,6 +32047,7 @@ Ext.define('CustomApp', {
                     GLOBAL.initiative = selectedRecord;
                     $($('.rally-app')[0]).hide();
 
+                    // TODO keep it as ext while the data loads and mask the body?
                     // change to angular app
                     angular.bootstrap(document.body, ['angularBlastdown']);
                     var scope = angular.element(document.body).scope();
@@ -32133,6 +32064,7 @@ Ext.define('CustomApp', {
     launch: function() {
         App = this;
     }
+    
 });
 
 
@@ -32164,7 +32096,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
                 module.service('RallyDataService', function() {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
         fetch: true,
-        hydrate: ["ScheduleState", "State", "_TypeHierarchy"],
+        hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project"],
         findConfig: {
             "_ItemHierarchy" : GLOBAL.itemHierarchy,
             "__At" : "current"
@@ -32217,12 +32149,18 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
                     //   |
                     //   +-->Initiative
                     //   +-->Features
-                    //       |
-                    //       +-->Stories/Defects
-                    //           |
-                    //           +-->Tasks
+                    //   |   |
+                    //   |   +-->Stories/Defects
+                    //   |       |
+                    //   |       +-->Tasks
+                    //   |
+                    //   +-->ClosedStories
+                    
+                    
                     var organizedData = {
-                        initiative: GLOBAL.initiative
+                        initiative: GLOBAL.initiative,
+                        closedStories: [],
+                        teamsPoints: {}
                     };
 
                     // Add tasks as children of their associated story/defect
@@ -32243,6 +32181,19 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
                         var parent;
                         console.log(object);
                         var types = object.artifact._TypeHierarchy;
+
+
+                        if (object.artifact.State === "Closed") {
+                            Ext.Array.push(organizedData.closedStories, object);
+                            console.log("Points: " + organizedData.teamsPoints[object.artifact.Project]);
+                            if (organizedData.teamsPoints[object.artifact.Project]) {
+                                organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
+                            } else {
+                                organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
+                            }
+                            return;
+                        }
+
 
                         if (types[types.length - 1] === "HierarchicalRequirement") {
                             // stories have an associated PortfolioItem/Feature
@@ -32288,6 +32239,73 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
 
 
     <style type="text/css">
+        body {
+  background-color: #000;
+  color: #fff;
+  /* Allow mouse dragging. */
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* disable touch panning/zooming */
+  -ms-touch-action: none;
+  touch-action: none;
+  /* Allow canvas to hit the edges of the browser viewport. */
+  margin: 0;
+}
+#screen canvas {
+  margin: auto;
+  /* Hide the gap for font descenders. */
+  display: block;
+  /* disable scaling interpolation */
+  image-rendering: optimizeSpeed;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -o-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimize-contrast;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+#screen {
+  width: 80%;
+}
+#screen,
+#gameLog {
+  float: left;
+}
+#gameLog {
+  width: 20%;
+  height: 100%;
+}
+#shipKey {
+  height: 100px;
+  width: 80%;
+  margin-right: 20%;
+  text-align: center;
+}
+#gameAndLog {
+  clear: both;
+}
+.shipContainer {
+  float: left;
+  font-family: arcadeClassic;
+  width: 25%;
+  text-align: center;
+}
+.shipContainer > img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: auto;
+  height: 64px;
+}
+@font-face {
+  font-family: arcadeClassic;
+  src: url(data/font/ARCADECLASSIC.ttf);
+}
+
+    </style>
+    <style type="text/css">
         .app {
   /* Add app styles here */
 }
@@ -32296,16 +32314,57 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
 </head>
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
-<!-- 	<h1>{{age}}</h1>
-	<ul>
-		<li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>
-	</ul> -->
-	<h1>Space Invaders Blast Down for {{initiativeName}}</h1>
-	<h2>Features: </h2>
-	<ul>
-		<li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>
-	</ul>
-	<div id="screen"></div>
+  <!-- 	<h1>{{age}}</h1>
+  <ul>
+    <li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>
+  </ul> -->
+  <h1>Space Invaders Blast Down for {{initiativeName}}</h1>
+  <h2>Features: </h2>
+  <ul>
+    <li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>
+  </ul>
+  <div id="spaceInvadersContainer">
+    <div id="gameAndLog">
+      <div id="screen"></div>
+      <div id="gameLog">
+        <ul>
+          <li>Event 1</li>
+          <li>Event 2</li>
+          <li>Event 3</li>
+          <li>Event 4</li>
+          <li>Event 5</li>
+          <li>Event 6</li>
+          <li>Event 7</li>
+          <li>Event 8</li>
+        </ul>
+      </div>
+    </div>
+    <div id="shipKey">
+      <fieldset>
+        <legend>Legend:</legend>
+        <div class="shipContainer">
+          Task
+          <br />
+          <img src="game/data/img/shipSmall.png">
+
+        </div>
+        <div class="shipContainer">
+          User Story / Defect
+          <img src="game/data/img/shipMedium.png">
+        </div>
+        <div class="shipContainer">
+          Feature
+          <br />
+          <img src="game/data/img/shipLarge.png">
+        </div>
+        <div class="shipContainer">
+          Initiative
+          <br />
+          <img src="game/data/img/shipSuper.png">
+        </div>
+      </fieldset>
+    </div>
+  </div>
 </div>
 
 </body>

@@ -20,13 +20,17 @@ game.HUD.Container = me.ObjectContainer.extend({
 		// make sure our object is always draw first
 		this.z = Infinity;
 
-		// give a name
 		this.name = "HUD";
 		
-		// add our child score object at the top left corner
     var i = 0;
     var container = this; 
     console.log(game.data.score);
+    // TODO don't fix the data like this
+    game.data.score = {
+        "Team 1": 17,
+        "Team 2": 13,
+        "Long team name number 3": 23
+    };
     Ext.Object.each(game.data.score, function(key, value) {
         var align = "left";
         var x = 5;
@@ -44,8 +48,6 @@ game.HUD.Container = me.ObjectContainer.extend({
         container.addChild(new game.HUD.ScoreItem(x, y, key, align));
         i++;
     });
-    
-    
   }
 });
 
@@ -63,7 +65,7 @@ game.HUD.ScoreItem = me.Renderable.extend({
 		// (size does not matter here)
 		this.parent(new me.Vector2d(x, y), 10, 10); 
 
-    this.font = new me.Font("Arial", 18, "white", alignment);
+    this.font = new me.Font("arcadeClassic", 24, "white", alignment);
 
 		// local copy of the global score
 		this.score = -1;

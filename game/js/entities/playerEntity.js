@@ -9,23 +9,19 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.movesUntilShoot = 0;
         // set the default horizontal & vertical speed (accel vector)
         this.setVelocity(5, 0);
-        this.shootLeft = false;
     },
 
     // update position
     update: function(dt) {
         if (me.input.isKeyPressed('left')) {
-            //this.flipX(true);
             this.vel.x -= this.accel.x * me.timer.tick;
         } else if (me.input.isKeyPressed('right')) {
-            //this.flipX(false);
             this.vel.x += this.accel.x * me.timer.tick;
         } else {
             this.vel.x = 0;
         }
-        this.movesUntilShoot--;
 
-        if (this.movesUntilShoot < 0 && me.input.isKeyPressed('shoot')) {
+        if (game.canShoot && me.input.isKeyPressed('shoot')) {
             var x = this.shootLeft ? this.pos.x : this.pos.x + 16;
     	    	var shot = me.pool.pull("bullet", x, this.pos.y, {
                 height: 16,
@@ -33,9 +29,10 @@ game.PlayerEntity = me.ObjectEntity.extend({
                 name: "shot",
                 spriteheight: 16,
                 spritewidth: 16,
-                width: 16
+                width: 16,
+                shootDown: false
             });
-            this.movesUntilShoot = 15; // 10 updates befre you can shoot again
+            game.canShoot = false;
             this.shootLeft = !this.shootLeft;
             me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     	}
@@ -51,5 +48,4 @@ game.PlayerEntity = me.ObjectEntity.extend({
         }
         return true;
     }
-
 });

@@ -18,6 +18,7 @@ Ext.define('CustomApp', {
                     GLOBAL.initiative = selectedRecord;
                     $($('.rally-app')[0]).hide();
 
+                    // TODO keep it as ext while the data loads and mask the body?
                     // change to angular app
                     angular.bootstrap(document.body, ['angularBlastdown']);
                     var scope = angular.element(document.body).scope();
@@ -34,6 +35,7 @@ Ext.define('CustomApp', {
     launch: function() {
         App = this;
     }
+    
 });
 
 
