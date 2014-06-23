@@ -1,3 +1,8 @@
+// TODO need to track what features/stories/tasks are displayed on the screen
+// TODO destroy a given feature/story/task
+// TODO destroy a given feature/story/task that is not on the screen
+// TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
+//
 /* Game namespace */
 var game = {
 
@@ -54,7 +59,6 @@ var game = {
 		me.pool.register("bullet", game.BulletEntity);
 		me.pool.register("enemyShip", game.Ship);
     	me.pool.register("explosion", game.ExplosionEntity);
-		// TODO object POOLING?
 		
 		// TODO temporary enabling keyboard
 		me.input.bindKey(me.input.KEY.LEFT,  "left");
@@ -70,6 +74,10 @@ var game = {
 		var CANVAS_WIDTH = 960;
 		var PADDING = 32;
 		var WIDTH = CANVAS_WIDTH - (PADDING * 2);
+
+    var MAX_FEATURE_ROWS = 2;
+    var MAX_STORY_ROWS = 3;
+    var MAX_TASK_ROWS = 4;
 
 		var MOTHERSHIP = {
 			width: 320,
@@ -95,15 +103,14 @@ var game = {
 
 		var zAxis = 8;
 
-		// TODO object pooling? https://github.com/melonjs/melonJS/wiki/Frequently-Asked-Questions
 		// TODO keep track of all of these for removal purposes?
 		/*
 		 * Draw the Mothership
 		 */
-		var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
+    var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
 			height: MOTHERSHIP.height,
 			image: "xlarge",
-			name: "initiative",
+			name: "[INITIATIVE] " + data.initiative.data.Name,
 			spriteheight: MOTHERSHIP.height,
 			spritewidth: MOTHERSHIP.width,
 			width: MOTHERSHIP.width,
@@ -114,11 +121,25 @@ var game = {
 		zAxis++;
 		var features = _.toArray(data.features);
 		var numFeatures = features.length;
-		var sectionWidth = WIDTH/numFeatures;
-			
-		for (var i = 0; i < numFeatures; i++) {
-			var xPosition = (i * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
-			var yPosition = 32 + 160;
+	  var featuresPerLine = Math.floor(WIDTH / FEATURE_SHIP.width);
+    var featureLines = Math.floor(numFeatures / featuresPerLine) + 1;
+    var sectionWidth = numFeatures > featuresPerLine ? WIDTH/featuresPerLine : WIDTH / numFeatures;
+
+    var maxFeatures = featureLines > MAX_FEATURE_ROWS ? MAX_FEATURE_ROWS * featuresPerLine : numFeatures;
+
+
+	  console.log("numFeatures, featuresPerLine, featureLines, sectionWidth", numFeatures, featuresPerLine, featureLines, sectionWidth);	
+		for (var i = 0; i < maxFeatures; i++) {
+      var pos = i % featuresPerLine;
+
+      /*
+       * storyY = 32 + 160 + FEATURE_SHIP.height * featureLines + 32 + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
+			 * storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+       */
+      var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
+			var yPosition = 32 + 160 + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
+      console.log("i, x, y", i, xPosition, yPosition);
+
 			var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
 				height: FEATURE_SHIP.height,
 				image: "large",
@@ -130,22 +151,49 @@ var game = {
 			});
 
 			me.game.world.addChild(featureShip, zAxis++);
-			var stories = features[i].children;
+
+      if (i >= featuresPerLine) {
+          continue;
+      }
+      
+
+      var stories = features[i].children;
+
+      for (var rows = 1; rows < featureLines; rows++) {
+          var arr = features[rows * featuresPerLine + i];
+          if (arr) {
+            arr = arr.children;
+          } else {
+            break;
+          }
+          for (var el = 0; el < arr.length; el++) {
+              Ext.Array.push(stories, arr[el]); 
+          }
+      }
+
+      // for proper task vertical alignment
+			if (numFeatures % featuresPerLine == 0) {
+          featureLines -= 1;
+			}
+
 			var numStories = stories.length;
 			var storiesPerLine = Math.floor(sectionWidth / STORY_SHIP.width);
 			var storyLines = Math.floor(numStories / storiesPerLine) + 1;
 
 			var tasks = [];
 
-			for (var j = 0; j < numStories; j++) {
+      var maxStories = storyLines > MAX_STORY_ROWS ? MAX_STORY_ROWS * storiesPerLine : numStories;
+
+      for (var j = 0; j < maxStories; j++) {
 				var storyX, storyY;
 				var storiesOnThisLine = storiesPerLine;
 				if (Math.floor(j / storiesPerLine + 1) == storyLines) {
 					storiesOnThisLine = numStories % storiesPerLine;
 				}
-				storyY = 32 + 160 + 64 + 32 + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
-				storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+				storyY = 32 + 160 + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
+         console.log("::STORY:: y - " + storyY);
 
+				storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
 				var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
 					height: STORY_SHIP.height,
 					image: "medium",
@@ -156,7 +204,6 @@ var game = {
 					z: zAxis,
 					health: 2
 				});
-				console.log('storyShip', storyShip, stories[j]);
 
 				me.game.world.addChild(storyShip, zAxis++);
 
@@ -165,7 +212,7 @@ var game = {
 					Ext.Array.push(tasks, oneTask);
 				});
 			}
-	    // 
+	    
 			// for proper task vertical alignment
 			if (numStories % storiesPerLine == 0) {
 				storyLines -= 1;
@@ -175,15 +222,18 @@ var game = {
 			var numTasks = tasks.length;
 			var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
 			var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+      var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
 
-			for (var k = 0; k < numTasks; k++) {
+			for (var k = 0; k < maxTasks; k++) {
 				var taskX, taskY;
 				var tasksOnThisLine = tasksPerLine;
 				if (Math.floor(k / tasksPerLine + 1) == taskLines) {
 					tasksOnThisLine = numTasks % tasksPerLine;
 				}
-				taskY = storyLines * STORY_SHIP.height + 32 + 160 + 64 + 32 + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
+        // TODO test
+       	taskY = 32 + 160 + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
 				taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+        console.log("::TASK:: y - " + taskY, storyLines, featureLines, tasksPerLine);
 
 				var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
 					height: TASK_SHIP.height,
