@@ -40,6 +40,13 @@ game.PlayScreen = me.ScreenObject.extend({
             width: 16,
             height: 16
         };
+
+        TASK_DELAY = 0;
+        STORY_DELAY = TASK_SHIP.height + 1;
+        FEATURE_DELAY = STORY_DELAY + STORY_SHIP.height;
+        MOTHERSHIP_DELAY = FEATURE_DELAY + FEATURE_SHIP.height;
+
+
         // reset the score
         game.data.score = data.teamsPoints;
 
@@ -53,6 +60,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
         /*
          * destroy ObjectID:
+         // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
          // TODO will you be able to shoot down a task? They are so small and they are moving!
          // features on the left: 12845746805
          // feature below initiative: 12845862527
@@ -68,7 +76,7 @@ game.PlayScreen = me.ScreenObject.extend({
             }
          */
 
-         game.shootMe = data.initiative.ObjectID;
+        game.shootMe = data.initiative.ObjectID;
 
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
@@ -80,7 +88,8 @@ game.PlayScreen = me.ScreenObject.extend({
             width: MOTHERSHIP.width,
             objectID: data.initiative.ObjectID,
             z: zAxis,
-            type: game.ENEMY_ENTITY_SUPER
+            type: game.ENEMY_ENTITY_SUPER,
+            delay: MOTHERSHIP_DELAY
         });
 
         me.game.world.addChild(mothership, zAxis);
@@ -108,7 +117,8 @@ game.PlayScreen = me.ScreenObject.extend({
                 width: FEATURE_SHIP.width,
                 objectID: features[i].feature.ObjectID,
                 z: zAxis,
-                type: game.ENEMY_ENTITY_LARGE
+                type: game.ENEMY_ENTITY_LARGE,
+                delay: FEATURE_DELAY
             });
 
             //game.shootMe = features[i].feature.ObjectID;
@@ -167,7 +177,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     objectID: stories[j].artifact.ObjectID,
                     z: zAxis,
                     health: 2,
-                    type: game.ENEMY_ENTITY_MEDIUM
+                    type: game.ENEMY_ENTITY_MEDIUM,
+                    delay: STORY_DELAY
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -209,7 +220,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     objectID: tasks[k].ObjectID,
                     z: zAxis,
                     health: 2,
-                    type: game.ENEMY_ENTITY_SMALL
+                    type: game.ENEMY_ENTITY_SMALL,
+                    delay: TASK_DELAY
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);
