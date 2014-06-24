@@ -14,7 +14,6 @@
       "game/js/entities/HUD.js",
       "game/js/screens/title.js",
       "game/js/screens/play.js",
-      "game/js/onReady.js",
       "bower_components/angular/angular.js",
       "bower_components/jquery/dist/jquery.js",
       "App.js",

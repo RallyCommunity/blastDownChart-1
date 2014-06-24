@@ -442,11 +442,8 @@ function(){var a={},b=null,c=!0,d=!1;try{"undefined"!=typeof AudioContext?b=new 
     /*---------------------------------------------------------*/
 })(window);
 
-                // TODO need to track what features/stories/tasks are displayed on the screen
-// TODO destroy a given feature/story/task
-// TODO destroy a given feature/story/task that is not on the screen
+                // TODO destroy a given feature/story/task that is not on the screen
 // TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
-// TODO animate the ships flying in at the beginning?
 /* Game namespace */
 var game = {
 
@@ -459,9 +456,9 @@ var game = {
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
 
-    PLAYER: 88, // player type
-    BULLET: 77, // bullet type
-    EXPLOSION: 66, // explosion type
+    PLAYER: 88,     // player type
+    BULLET: 77,     // bullet type
+    EXPLOSION: 66,  // explosion type
 
     // boolean - can the player shoot?
     canShoot: true,
@@ -480,7 +477,7 @@ var game = {
     // Run on page load.
     "onload" : function () {
         // Initialize the video.
-        if (!me.video.init("screen", 960, 640, true, 'auto')) {
+        if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
             alert("Your browser does not support HTML5 canvas.");
             return;
         }
@@ -515,16 +512,18 @@ var game = {
         me.pool.register("enemyShip", game.Ship);
         me.pool.register("explosion", game.ExplosionEntity);
 
-        // TODO temporary enabling keyboard
+        // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
+        // TODO - eventually this will not be controlled by a button - realtime data
         $("#completeFeature").click(function() {
-            console.log("clicked");
+            // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
+            // TODO will you be able to shoot down a task? They are so small and they are moving!
+
             var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
             if (destroy.length == 1) {
-                //me.game.world.removeChild(destroy[0]);
                 var players = me.game.world.getChildByProp('type', game.PLAYER);
                 if (players.length == 1) {
                     destroy[0].setVulnerable(true);
@@ -533,9 +532,14 @@ var game = {
             }
             $('#completeFeature').hide();
         });
-
-        // Start the game.
         me.state.change(me.state.MENU);
+
+        // Reveal the game
+        $($('.rally-app')[0]).hide();
+        $('#root').show();
+        $('body').removeClass('x-body');
+        $('html').removeClass('x-viewport');
+        Ext.getBody().unmask();
     }
 };
 
@@ -560,7 +564,7 @@ var game = {
     {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
 
     /*
-     * Maps
+     * Maps and backgrounds
      */
 
     {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},
@@ -582,9 +586,10 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.type = game.PLAYER;
-        // set the default horizontal & vertical speed (accel vector)
         this.setVelocity(5, 0);
+        
+        this.type = game.PLAYER;
+        
         this.targets = [];
         this.shootingOffset = 10;
     },
@@ -637,6 +642,9 @@ var game = {
         return true;
     },
 
+    /**
+     * Shoots a laser!  The player can only have 1 shot outstanding at a time
+     */
     shoot: function() {
         var x = this.pos.x + this.shootingOffset;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
@@ -652,39 +660,72 @@ var game = {
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
 
+    /**
+     * Adds the given target to the players list of targets
+     * @param target the ship object to target
+     */
     addTarget: function(target) {
         // keep track of a queue of targets
         Ext.Array.push(this.targets, target);
     },
 
+    /**
+     * Removes the target that was destroyed if it matches the players top target
+     * @param target the target to remove
+     */
     removeTarget: function(target) {
         if (this.targets.length > 0 && this.targets[0].objectID == target.objectID) {
-            this.targets.shift();
+            this.targets.shift(); // shifts the array 1 position to the left
         }
     }
 });
 
                 game.Ship = me.ObjectEntity.extend({
-    // constructor
+
     // pass the correct image, width/height and x, y for any type of ship that moves in the same pattern
     init: function(x, y, settings) {
         // call the constructor
-        this.parent(x, y, settings);
-        this.gravity = 0.0;
+        this.parent(x, -settings.height + 1, settings);
+
         // set the movement speed
+        this.gravity = 0.0;
         this.setVelocity(0, 0);
 
-        this.numSteps = 0;
-        this.moveRight = true;
-        this.collidable = true;
-        this.objectID = settings.objectID;
-        this.isVulnerable = false;
+        this.numSteps = 0;                  // how many steps have I gone - used to determine direction
+        this.moveRight = true;              // which direction to move
+        this.collidable = true;             // Can be hit by bullet entities
+        this.objectID = settings.objectID;  // ObjectID used for ship destruction and removal
+        this.isVulnerable = false;          // can this ship be destroyed
+        this.delay = settings.delay;        // Delay before moving to my y position
+        this.goToY = y;                     // final y position
+        this.setupComplete = false;         // I am in position
+
+        // wait for the others to get setup
+        this.waitFor = settings.waitFor;
     },
 
+    // ship behavior
     update: function() {
-        // TODO change the simple movement pattern (ships fly in when created and go to their spot?)
+        this.waitFor--;
+        if (!this.setupComplete && this.delay <= 0) {
+            this.pos.y++;
+            if (this.pos.y == this.goToY) {
+                this.setupComplete = true;
+            }
+            return true;
+        } else if (!this.setupComplete) {
+            this.delay--;
+            return true;
+        }
 
-        // ships randomly shoot at the player if you are not being targeted
+        // wait for the others to get setup
+        if (this.waitFor > 0) {
+            return true;
+        } else {
+            this.waitFor = 0; // dont let it wrap around
+        }
+
+        // ships randomly shoot at the player if it are not being targeted
         if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
             var x = this.pos.x + this.width / 2;
             var shot = me.pool.pull("bullet", x, this.pos.y, {
@@ -700,8 +741,9 @@ var game = {
             me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
         }
 
+        // movement pattern
         if (this.numSteps % 3 == 0) {
-            if (this.numSteps % (96 * 2) == 0) {
+            if (this.numSteps % (192) == 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
             }
@@ -715,10 +757,18 @@ var game = {
         this.numSteps++;
     },
 
+    /**
+     * Sets whether or not this ship is vulnerable to attack
+     * @param vulnerability true if this ship can be destroyed, else false
+     */
     setVulnerable: function(vulnerability) {
         this.isVulnerable = vulnerability;
     },
 
+    /**
+     * Returns whether or not this ship is vulnerable to attack
+     * @return true if this ship can be destroyed, else false
+     */
     isDestructable: function() {
         return this.isVulnerable;
     },
@@ -735,10 +785,11 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        // set the movement speed
         this.setVelocity(0, 6);
+        
         this.type = game.BULLET;
-        this.shootDown = settings.shootDown;
+
+        this.shootDown = settings.shootDown; // true if the bullet was shot by an enemy, false if shot by the player
     },
 
     update: function() {
@@ -762,57 +813,55 @@ var game = {
                 image = me.loader.getImage('explosionSmall');
             }
 
-            if (image && !this.shootDown) {
-                if (res.obj.isDestructable()) {
-                    console.log(this);
-                    game.canShoot = true;
-                    me.game.world.removeChild(this);
+            // Did the player shoot someone destructable
+            if (image && !this.shootDown && res.obj.isDestructable()) {
+                game.canShoot = true;
+                me.game.world.removeChild(this);
 
-                    var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                        image: image,
-                        width: 4,
-                        totalParticles: 12,
-                        angle: 0.0856797996433583,
-                        angleVariation: 3.14159265358979,
-                        minLife: 400,
-                        maxLife: 1800,
-                        speed: 0.954545454545454,
-                        speedVariation: 9.95454545454546,
-                        minRotation: 1.34231686107927,
-                        minStartScale: 1.43181818181818,
-                        maxParticles: 17,
-                        frequency: 19,
-                        duration: 400,
-                        framesToSkip: 1
-                    });
-                    emitter.name = 'fire'; // TODO use radial explosion instead?
- 
-                    
-                    emitter.z = res.obj.z + 1;
-                    // TODO removeChild?
-                    me.game.world.addChild(emitter);
-                    me.game.world.addChild(emitter.container);
-                    emitter.streamParticles();
+                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                    image: image,
+                    width: 4,
+                    totalParticles: 12,
+                    angle: 0.0856797996433583,
+                    angleVariation: 3.14159265358979,
+                    minLife: 400,
+                    maxLife: 1800,
+                    speed: 0.954545454545454,
+                    speedVariation: 9.95454545454546,
+                    minRotation: 1.34231686107927,
+                    minStartScale: 1.43181818181818,
+                    maxParticles: 17,
+                    frequency: 19,
+                    duration: 400,
+                    framesToSkip: 1
+                });
+                emitter.name = 'fire'; // TODO use radial explosion instead?
 
-                    $('#gameLog').append('<li>' + res.obj.name + '</li>');
+                
+                emitter.z = res.obj.z + 1;
+                // TODO removeChild?
+                me.game.world.addChild(emitter);
+                me.game.world.addChild(emitter.container);
+                emitter.streamParticles();
 
-                    var players = me.game.world.getChildByProp('type', game.PLAYER);
-                    if (players.length == 1) {
-                        players[0].removeTarget(res.obj);
-                    }
+                $('#gameLog').append('<li>' + res.obj.name + '</li>');
 
-                    me.game.world.removeChild(res.obj);
-                } else {
-                    res.obj.flashShields();
-                    // let it pass through for now
-                    //me.game.world.removeChild(this);
+                var players = me.game.world.getChildByProp('type', game.PLAYER);
+                if (players.length == 1) {
+                    players[0].removeTarget(res.obj);
                 }
+
+                me.game.world.removeChild(res.obj);
+            } else if (image && !this.shootDown && !res.obj.isDestructable()) {
+                // res.obj.flashShields();
+                // let it pass through for now
+                //me.game.world.removeChild(this);
             }
 
+            // Did the player get hit?
             if (res.obj.type == game.PLAYER && this.shootDown) {
-                    // the player got hit
-                     me.game.world.removeChild(this);
-                    image = me.loader.getImage('explosionSmall');
+                me.game.world.removeChild(this);
+                image = me.loader.getImage('explosionSmall');
                 var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
                     image: image,
                     width: 4,
@@ -876,8 +925,7 @@ game.HUD.Container = me.ObjectContainer.extend({
         this.name = "HUD";
         
         var i = 0;
-        var container = this; 
-        console.log(game.data.score);
+        var container = this;
         // TODO don't fix the data like this
         game.data.score = {
             "Team 1": 17,
@@ -969,20 +1017,20 @@ game.TitleScreen = me.ScreenObject.extend({
             init : function() {
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
-                this.font = new me.Font("Arial", 32, "white", "center");
+                this.font = new me.Font("arcadeClassic", 32, "white", "center");
                  
                  // a tween to animate the arrow
-                this.scrollertween = new me.Tween(this).to({scrollerpos: -2200 }, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
                 this.scroller = "A PORTFOLIO ITEM VISUALIZATION USING SPACE INVADERS";
-                this.scrollerpos = 900;
+                this.scrollerpos = 3000;
             },
              
             // some callback for the tween objects
             scrollover : function() {
                 // reset to default value
-                this.scrollerpos = 640;
-                this.scrollertween.to({scrollerpos: -2200 }, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollerpos = 1500;
+                this.scrollertween.to({scrollerpos: -600}, 10000).onComplete(this.scrollover.bind(this)).start();
             },
          
             update : function (dt) {
@@ -1031,12 +1079,25 @@ game.TitleScreen = me.ScreenObject.extend({
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
 
-        console.log('loaded area51');
         this.setupShips();
     },
 
+
+    /*
+     * Set up the enemy ships like this:
+     TEAM1: 3     Team2: 5     Team3: 7
+
+                [=========]                 Initiative
+        X--X X--X X--X X--X X--X X--X       Features
+        [][] [][] []   [][] [][]   []       Stories/Defects
+        + ++ + ++ +      ++ +               Tasks
+          ++   +
+    */
     setupShips: function() {
-        var data = GLOBAL.data;
+        var data;
+        var scope = angular.element($("#root")).scope();
+        //var scope = angular.element(document.body).scope();
+        data = scope.organizedData;
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
 
@@ -1044,6 +1105,7 @@ game.TitleScreen = me.ScreenObject.extend({
         var MAX_STORY_ROWS = 3;
         var MAX_TASK_ROWS = 4;
 
+        // Image asset sizes
         var MOTHERSHIP = {
             width: 320,
             height: 160
@@ -1063,38 +1125,24 @@ game.TitleScreen = me.ScreenObject.extend({
             width: 16,
             height: 16
         };
+
+        // Delay to fly onto the screen
+        var TASK_DELAY = 0;
+        var STORY_DELAY = MAX_TASK_ROWS * TASK_SHIP.height;
+        var FEATURE_DELAY = STORY_DELAY + MAX_STORY_ROWS * STORY_SHIP.height;
+        var MOTHERSHIP_DELAY = FEATURE_DELAY + MAX_FEATURE_ROWS * FEATURE_SHIP.height;
+        var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32;
+
         // reset the score
         game.data.score = data.teamsPoints;
 
         var zAxis = 8;
 
-        // TODO keep track of all of these for removal purposes?
-        // - Solution: store the objectID on each ship
-        // -           search using me.game.world.getChildByProp('objectID', id);
-        // -           find its location and go shoot at it! (calcualte where it will be and where you have to shoot?)
-        
-
-        /*
-         * destroy ObjectID:
-         // TODO will you be able to shoot down a task? They are so small and they are moving!
-         // features on the left: 12845746805
-         // feature below initiative: 12845862527
-         // initiative: 12767115539
-            var destroy = me.game.world.getChildByProp('objectID', 12767115539);
-            if (destroy.length == 1) {
-                //me.game.world.removeChild(destroy[0]);
-                var players = me.game.world.getChildByProp('type', game.PLAYER);
-                if (players.length == 1) {
-                    destroy[0].setVulnerable(true);
-                    players[0].addTarget(destroy[0]);
-                }
-            }
-         */
-
-         game.shootMe = data.initiative.ObjectID;
+        // TODO remove me!  temporary, for button click destruction demo
+        game.shootMe = data.initiative.ObjectID;
 
         // draw the mothership
-        var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
+        var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, PADDING, {
             height: MOTHERSHIP.height,
             image: "xlarge",
             name: "[INITIATIVE] " + data.initiative.Name,
@@ -1103,7 +1151,9 @@ game.TitleScreen = me.ScreenObject.extend({
             width: MOTHERSHIP.width,
             objectID: data.initiative.ObjectID,
             z: zAxis,
-            type: game.ENEMY_ENTITY_SUPER
+            type: game.ENEMY_ENTITY_SUPER,
+            delay: MOTHERSHIP_DELAY,
+            waitFor: TOTAL_DELAY
         });
 
         me.game.world.addChild(mothership, zAxis);
@@ -1120,7 +1170,7 @@ game.TitleScreen = me.ScreenObject.extend({
         for (var i = 0; i < maxFeatures; i++) {
             var pos = i % featuresPerLine;
             var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
-            var yPosition = 32 + 160 + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
+            var yPosition = PADDING + MOTHERSHIP.height + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
                 height: FEATURE_SHIP.height,
@@ -1131,13 +1181,14 @@ game.TitleScreen = me.ScreenObject.extend({
                 width: FEATURE_SHIP.width,
                 objectID: features[i].feature.ObjectID,
                 z: zAxis,
-                type: game.ENEMY_ENTITY_LARGE
+                type: game.ENEMY_ENTITY_LARGE,
+                delay: FEATURE_DELAY,
+                waitFor: TOTAL_DELAY
             });
-
-            //game.shootMe = features[i].feature.ObjectID;
 
             me.game.world.addChild(featureShip, zAxis++);
 
+            // aggregate all of the stories to draw by column, so if we are wrapping around, dont try to draw them again, just continue!
             if (i >= featuresPerLine) {
                 continue;
             }
@@ -1177,7 +1228,7 @@ game.TitleScreen = me.ScreenObject.extend({
                 if (Math.floor(j / storiesPerLine + 1) == storyLines) {
                     storiesOnThisLine = numStories % storiesPerLine;
                 }
-                storyY = 32 + 160 + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
+                storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
 
                 storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
@@ -1190,7 +1241,9 @@ game.TitleScreen = me.ScreenObject.extend({
                     objectID: stories[j].artifact.ObjectID,
                     z: zAxis,
                     health: 2,
-                    type: game.ENEMY_ENTITY_MEDIUM
+                    type: game.ENEMY_ENTITY_MEDIUM,
+                    delay: STORY_DELAY,
+                    waitFor: TOTAL_DELAY
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -1218,8 +1271,8 @@ game.TitleScreen = me.ScreenObject.extend({
                 if (Math.floor(k / tasksPerLine + 1) == taskLines) {
                     tasksOnThisLine = numTasks % tasksPerLine;
                 }
-                // TODO test
-                taskY = 32 + 160 + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
+
+                taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
 
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
@@ -1232,7 +1285,9 @@ game.TitleScreen = me.ScreenObject.extend({
                     objectID: tasks[k].ObjectID,
                     z: zAxis,
                     health: 2,
-                    type: game.ENEMY_ENTITY_SMALL
+                    type: game.ENEMY_ENTITY_SMALL,
+                    delay: TASK_DELAY,
+                    waitFor: TOTAL_DELAY
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);
@@ -1249,33 +1304,11 @@ game.TitleScreen = me.ScreenObject.extend({
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent: function() {
-
+        // TODO remove all ships?
+        me.game.world.removeChild(this.HUD);
     }
 });
 
-                window.onReady(function onReady() {
-	game.onload();
-
-	// Mobile browser hacks
-	if (me.device.isMobile && !navigator.isCocoonJS) {
-		// Prevent the webview from moving on a swipe
-		window.document.addEventListener("touchmove", function (e) {
-			e.preventDefault();
-			window.scroll(0, 0);
-			return false;
-		}, false);
-
-		// Scroll away mobile GUI
-		(function () {
-			window.scrollTo(0, 1);
-			me.video.onresize(null);
-		}).defer();
-
-		me.event.subscribe(me.event.WINDOW_ONRESIZE, function (e) {
-			window.scrollTo(0, 1);
-		});
-	}
-});
                 /**
  * @license AngularJS v1.2.18
  * (c) 2010-2014 Google, Inc. http://angularjs.org
@@ -32185,8 +32218,7 @@ return jQuery;
 
 }));
 
-                var GLOBAL = {};
-
+                GLOBAL = {}; // TODO how do you get around this?
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -32198,23 +32230,26 @@ Ext.define('CustomApp', {
             autoShow: true,
             height: 250,
             title: 'Choose an Initiative',
+            storeConfig: {
+                context: {
+                    //specify the workspace to search this.getContext().getWorkspace()
+                    workspace: Rally.util.Ref.getRelativeUri(),
+
+                    //all projects
+                    project: null
+                }
+            },
             listeners: {
                 scope: this,
-                artifactChosen: function(picker, selectedRecord) {
-                    GLOBAL.itemHierarchy = selectedRecord.get('ObjectID');
-                    GLOBAL.initiative = selectedRecord;
-                    $($('.rally-app')[0]).hide();
-
-                    // TODO keep it as ext while the data loads and mask the body?
-                    // change to angular app
+                artifactchosen: function(picker, selectedRecord) {
+                    Ext.getBody().mask("Loading");
+                    GLOBAL = selectedRecord.data;
                     angular.bootstrap(document.body, ['angularBlastdown']);
+                    
                     var scope = angular.element(document.body).scope();
-
                     scope.app = App.getContext().map.map;
-                    scope.$digest();
-                    $('#root').show();
-                    $('body').removeClass('x-body');
-                    $('html').removeClass('x-viewport');
+                    
+                    scope.$digest();                  
                 }
             }
         }
@@ -32222,32 +32257,21 @@ Ext.define('CustomApp', {
     launch: function() {
         App = this;
     }
-    
 });
 
 
 
                 module = angular.module('angularBlastdown', []);
 
-
 module.controller('dataController', ['$scope', 'RallyDataService', function($scope, RallyDataService) {
-    $scope.itemHierarchy = GLOBAL.itemHierarchy;
-    console.log('NAME: ', GLOBAL.initiative.raw.formattedID);
-    $scope.initiativeName = GLOBAL.initiative.raw.FormattedID;
+    $scope.organizedData = {};
 
-    $scope.organizedData = {
-        initiative: {},
-        features: []
-    };
-    $scope.$watch('organizedData.features', function () {
-        console.log('data updated');
-        console.log($scope.organizedData);
-    });
     RallyDataService.getData(function(data) {
-        console.log('data returned', data);
-        $scope.organizedData.features = _.toArray(data.features);
+        $scope.organizedData = data;
         $scope.$apply();
-        GLOBAL.data = data;
+
+        // Start the game
+        game.onload();
     });
 }]);
 
@@ -32256,7 +32280,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
         fetch: true,
         hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project"],
         findConfig: {
-            "_ItemHierarchy" : GLOBAL.itemHierarchy,
+            "_ItemHierarchy" : GLOBAL.ObjectID,
             "__At" : "current"
         }
     });
@@ -32266,7 +32290,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
             lookbackStore.load({
                 scope: this,
                 callback: function(records, operation, success) {
-
+                    // aggreate data first, then organize it
                     aggregateData = {
                         initiative: {},
                         features: {},
@@ -32316,7 +32340,8 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
                     
                     
                     var organizedData = {
-                        initiative: GLOBAL.initiative.raw,
+                        initiative: angular.element(document.body).scope().initiative,
+                        features: [],
                         closedStories: [],
                         teamsPoints: {}
                     };
@@ -32328,22 +32353,17 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
                         if (aggregateData.storiesAndDefects[parent]) {
                             // add it to the list of children
                             Ext.Array.push(aggregateData.storiesAndDefects[parent].children, task);
-                        } else {
-                            // not parented to a story/defect
-                            console.log('not parented to a story or defect', task);
-                        }
+                        } // else not parented to a story/defect
                     });
 
                     // Add stories and tasks as children of their feature
                     _.each(aggregateData.storiesAndDefects, function(object, oid) {
                         var parent;
-                        console.log(object);
                         var types = object.artifact._TypeHierarchy;
 
 
                         if (object.artifact.State === "Closed") {
                             Ext.Array.push(organizedData.closedStories, object);
-                            console.log("Points: " + organizedData.teamsPoints[object.artifact.Project]);
                             if (organizedData.teamsPoints[object.artifact.Project]) {
                                 organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
                             } else {
@@ -32361,22 +32381,17 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
                             var requirement = aggregateData.storiesAndDefects[object.artifact.Requirement];
                             if (requirement) {
                                 parent = requirement.artifact.PortfolioItem;
-                            } else {
-                                console.log('not found', object);
-                            }
+                            }// else no parent requirement
                         }
 
                         if (aggregateData.features[parent]) {
                             // add it to the list of children
                             Ext.Array.push(aggregateData.features[parent].children, object);
-                        } else {
-                            // not parented to a feature
-                            console.log('not parented to a feature');
-                        }
+                        } // else not parented to a feature
                     });
-                    console.log('aggreate', aggregateData);
-                    organizedData.features = aggregateData.features;
-                    console.log(organizedData);
+
+                    organizedData.features = _.toArray(aggregateData.features);
+                    organizedData.initiative = GLOBAL;
                     callbackData(organizedData);
                 }
             });
@@ -32472,7 +32487,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
 </head>
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
-    <h1>Space Invaders Blast Down for {{initiativeName}}</h1>
+    <h1>Space Invaders Blast Down for {{organizedData.initiative.Name}}</h1>
 <!--     <h2>Features: </h2>
     <ul>
         <li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>

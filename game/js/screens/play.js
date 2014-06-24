@@ -8,12 +8,25 @@ game.PlayScreen = me.ScreenObject.extend({
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
 
-        console.log('loaded area51');
         this.setupShips();
     },
 
+
+    /*
+     * Set up the enemy ships like this:
+     TEAM1: 3     Team2: 5     Team3: 7
+
+                [=========]                 Initiative
+        X--X X--X X--X X--X X--X X--X       Features
+        [][] [][] []   [][] [][]   []       Stories/Defects
+        + ++ + ++ +      ++ +               Tasks
+          ++   +
+    */
     setupShips: function() {
-        var data = GLOBAL.data;
+        var data;
+        var scope = angular.element($("#root")).scope();
+        //var scope = angular.element(document.body).scope();
+        data = scope.organizedData;
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
 
@@ -21,6 +34,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var MAX_STORY_ROWS = 3;
         var MAX_TASK_ROWS = 4;
 
+        // Image asset sizes
         var MOTHERSHIP = {
             width: 320,
             height: 160
@@ -41,45 +55,23 @@ game.PlayScreen = me.ScreenObject.extend({
             height: 16
         };
 
-        TASK_DELAY = 0;
-        STORY_DELAY = TASK_SHIP.height + 1;
-        FEATURE_DELAY = STORY_DELAY + STORY_SHIP.height;
-        MOTHERSHIP_DELAY = FEATURE_DELAY + FEATURE_SHIP.height;
-
+        // Delay to fly onto the screen
+        var TASK_DELAY = 0;
+        var STORY_DELAY = MAX_TASK_ROWS * TASK_SHIP.height;
+        var FEATURE_DELAY = STORY_DELAY + MAX_STORY_ROWS * STORY_SHIP.height;
+        var MOTHERSHIP_DELAY = FEATURE_DELAY + MAX_FEATURE_ROWS * FEATURE_SHIP.height;
+        var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32;
 
         // reset the score
         game.data.score = data.teamsPoints;
 
         var zAxis = 8;
 
-        // TODO keep track of all of these for removal purposes?
-        // - Solution: store the objectID on each ship
-        // -           search using me.game.world.getChildByProp('objectID', id);
-        // -           find its location and go shoot at it! (calcualte where it will be and where you have to shoot?)
-        
-
-        /*
-         * destroy ObjectID:
-         // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
-         // TODO will you be able to shoot down a task? They are so small and they are moving!
-         // features on the left: 12845746805
-         // feature below initiative: 12845862527
-         // initiative: 12767115539
-            var destroy = me.game.world.getChildByProp('objectID', 12767115539);
-            if (destroy.length == 1) {
-                //me.game.world.removeChild(destroy[0]);
-                var players = me.game.world.getChildByProp('type', game.PLAYER);
-                if (players.length == 1) {
-                    destroy[0].setVulnerable(true);
-                    players[0].addTarget(destroy[0]);
-                }
-            }
-         */
-
+        // TODO remove me!  temporary, for button click destruction demo
         game.shootMe = data.initiative.ObjectID;
 
         // draw the mothership
-        var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
+        var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, PADDING, {
             height: MOTHERSHIP.height,
             image: "xlarge",
             name: "[INITIATIVE] " + data.initiative.Name,
@@ -89,7 +81,8 @@ game.PlayScreen = me.ScreenObject.extend({
             objectID: data.initiative.ObjectID,
             z: zAxis,
             type: game.ENEMY_ENTITY_SUPER,
-            delay: MOTHERSHIP_DELAY
+            delay: MOTHERSHIP_DELAY,
+            waitFor: TOTAL_DELAY
         });
 
         me.game.world.addChild(mothership, zAxis);
@@ -106,7 +99,7 @@ game.PlayScreen = me.ScreenObject.extend({
         for (var i = 0; i < maxFeatures; i++) {
             var pos = i % featuresPerLine;
             var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
-            var yPosition = 32 + 160 + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
+            var yPosition = PADDING + MOTHERSHIP.height + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
                 height: FEATURE_SHIP.height,
@@ -118,13 +111,13 @@ game.PlayScreen = me.ScreenObject.extend({
                 objectID: features[i].feature.ObjectID,
                 z: zAxis,
                 type: game.ENEMY_ENTITY_LARGE,
-                delay: FEATURE_DELAY
+                delay: FEATURE_DELAY,
+                waitFor: TOTAL_DELAY
             });
-
-            //game.shootMe = features[i].feature.ObjectID;
 
             me.game.world.addChild(featureShip, zAxis++);
 
+            // aggregate all of the stories to draw by column, so if we are wrapping around, dont try to draw them again, just continue!
             if (i >= featuresPerLine) {
                 continue;
             }
@@ -164,7 +157,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (Math.floor(j / storiesPerLine + 1) == storyLines) {
                     storiesOnThisLine = numStories % storiesPerLine;
                 }
-                storyY = 32 + 160 + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
+                storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
 
                 storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
@@ -178,7 +171,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
-                    delay: STORY_DELAY
+                    delay: STORY_DELAY,
+                    waitFor: TOTAL_DELAY
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -206,8 +200,8 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (Math.floor(k / tasksPerLine + 1) == taskLines) {
                     tasksOnThisLine = numTasks % tasksPerLine;
                 }
-                // TODO test
-                taskY = 32 + 160 + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
+
+                taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
 
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
@@ -221,7 +215,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
-                    delay: TASK_DELAY
+                    delay: TASK_DELAY,
+                    waitFor: TOTAL_DELAY
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);
@@ -238,6 +233,7 @@ game.PlayScreen = me.ScreenObject.extend({
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent: function() {
-
+        // TODO remove all ships?
+        me.game.world.removeChild(this.HUD);
     }
 });

@@ -1,5 +1,4 @@
-var GLOBAL = {};
-
+GLOBAL = {}; // TODO how do you get around this?
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -11,23 +10,26 @@ Ext.define('CustomApp', {
             autoShow: true,
             height: 250,
             title: 'Choose an Initiative',
+            storeConfig: {
+                context: {
+                    //specify the workspace to search this.getContext().getWorkspace()
+                    workspace: Rally.util.Ref.getRelativeUri(),
+
+                    //all projects
+                    project: null
+                }
+            },
             listeners: {
                 scope: this,
-                artifactChosen: function(picker, selectedRecord) {
-                    GLOBAL.itemHierarchy = selectedRecord.get('ObjectID');
-                    GLOBAL.initiative = selectedRecord;
-                    $($('.rally-app')[0]).hide();
-
-                    // TODO keep it as ext while the data loads and mask the body?
-                    // change to angular app
+                artifactchosen: function(picker, selectedRecord) {
+                    Ext.getBody().mask("Loading");
+                    GLOBAL = selectedRecord.data;
                     angular.bootstrap(document.body, ['angularBlastdown']);
+                    
                     var scope = angular.element(document.body).scope();
-
                     scope.app = App.getContext().map.map;
-                    scope.$digest();
-                    $('#root').show();
-                    $('body').removeClass('x-body');
-                    $('html').removeClass('x-viewport');
+                    
+                    scope.$digest();                  
                 }
             }
         }
@@ -35,7 +37,6 @@ Ext.define('CustomApp', {
     launch: function() {
         App = this;
     }
-    
 });
 
 

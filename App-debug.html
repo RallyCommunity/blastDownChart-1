@@ -20,7 +20,6 @@
                       "game/js/entities/HUD.js",
                       "game/js/screens/title.js",
                       "game/js/screens/play.js",
-                      "game/js/onReady.js",
                       "bower_components/angular/angular.js",
                       "bower_components/jquery/dist/jquery.js",
                       "App.js",
@@ -39,7 +38,7 @@
 </head>
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
-    <h1>Space Invaders Blast Down for {{initiativeName}}</h1>
+    <h1>Space Invaders Blast Down for {{organizedData.initiative.Name}}</h1>
 <!--     <h2>Features: </h2>
     <ul>
         <li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>

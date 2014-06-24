@@ -5,9 +5,10 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.type = game.PLAYER;
-        // set the default horizontal & vertical speed (accel vector)
         this.setVelocity(5, 0);
+        
+        this.type = game.PLAYER;
+        
         this.targets = [];
         this.shootingOffset = 10;
     },
@@ -60,6 +61,9 @@ game.PlayerEntity = me.ObjectEntity.extend({
         return true;
     },
 
+    /**
+     * Shoots a laser!  The player can only have 1 shot outstanding at a time
+     */
     shoot: function() {
         var x = this.pos.x + this.shootingOffset;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
@@ -75,14 +79,22 @@ game.PlayerEntity = me.ObjectEntity.extend({
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
 
+    /**
+     * Adds the given target to the players list of targets
+     * @param target the ship object to target
+     */
     addTarget: function(target) {
         // keep track of a queue of targets
         Ext.Array.push(this.targets, target);
     },
 
+    /**
+     * Removes the target that was destroyed if it matches the players top target
+     * @param target the target to remove
+     */
     removeTarget: function(target) {
         if (this.targets.length > 0 && this.targets[0].objectID == target.objectID) {
-            this.targets.shift();
+            this.targets.shift(); // shifts the array 1 position to the left
         }
     }
 });

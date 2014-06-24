@@ -5,10 +5,11 @@ game.BulletEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        // set the movement speed
         this.setVelocity(0, 6);
+        
         this.type = game.BULLET;
-        this.shootDown = settings.shootDown;
+
+        this.shootDown = settings.shootDown; // true if the bullet was shot by an enemy, false if shot by the player
     },
 
     update: function() {
@@ -32,57 +33,55 @@ game.BulletEntity = me.ObjectEntity.extend({
                 image = me.loader.getImage('explosionSmall');
             }
 
-            if (image && !this.shootDown) {
-                if (res.obj.isDestructable()) {
-                    console.log(this);
-                    game.canShoot = true;
-                    me.game.world.removeChild(this);
+            // Did the player shoot someone destructable
+            if (image && !this.shootDown && res.obj.isDestructable()) {
+                game.canShoot = true;
+                me.game.world.removeChild(this);
 
-                    var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                        image: image,
-                        width: 4,
-                        totalParticles: 12,
-                        angle: 0.0856797996433583,
-                        angleVariation: 3.14159265358979,
-                        minLife: 400,
-                        maxLife: 1800,
-                        speed: 0.954545454545454,
-                        speedVariation: 9.95454545454546,
-                        minRotation: 1.34231686107927,
-                        minStartScale: 1.43181818181818,
-                        maxParticles: 17,
-                        frequency: 19,
-                        duration: 400,
-                        framesToSkip: 1
-                    });
-                    emitter.name = 'fire'; // TODO use radial explosion instead?
- 
-                    
-                    emitter.z = res.obj.z + 1;
-                    // TODO removeChild?
-                    me.game.world.addChild(emitter);
-                    me.game.world.addChild(emitter.container);
-                    emitter.streamParticles();
+                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                    image: image,
+                    width: 4,
+                    totalParticles: 12,
+                    angle: 0.0856797996433583,
+                    angleVariation: 3.14159265358979,
+                    minLife: 400,
+                    maxLife: 1800,
+                    speed: 0.954545454545454,
+                    speedVariation: 9.95454545454546,
+                    minRotation: 1.34231686107927,
+                    minStartScale: 1.43181818181818,
+                    maxParticles: 17,
+                    frequency: 19,
+                    duration: 400,
+                    framesToSkip: 1
+                });
+                emitter.name = 'fire'; // TODO use radial explosion instead?
 
-                    $('#gameLog').append('<li>' + res.obj.name + '</li>');
+                
+                emitter.z = res.obj.z + 1;
+                // TODO removeChild?
+                me.game.world.addChild(emitter);
+                me.game.world.addChild(emitter.container);
+                emitter.streamParticles();
 
-                    var players = me.game.world.getChildByProp('type', game.PLAYER);
-                    if (players.length == 1) {
-                        players[0].removeTarget(res.obj);
-                    }
+                $('#gameLog').append('<li>' + res.obj.name + '</li>');
 
-                    me.game.world.removeChild(res.obj);
-                } else {
-                    res.obj.flashShields();
-                    // let it pass through for now
-                    //me.game.world.removeChild(this);
+                var players = me.game.world.getChildByProp('type', game.PLAYER);
+                if (players.length == 1) {
+                    players[0].removeTarget(res.obj);
                 }
+
+                me.game.world.removeChild(res.obj);
+            } else if (image && !this.shootDown && !res.obj.isDestructable()) {
+                // res.obj.flashShields();
+                // let it pass through for now
+                //me.game.world.removeChild(this);
             }
 
+            // Did the player get hit?
             if (res.obj.type == game.PLAYER && this.shootDown) {
-                    // the player got hit
-                     me.game.world.removeChild(this);
-                    image = me.loader.getImage('explosionSmall');
+                me.game.world.removeChild(this);
+                image = me.loader.getImage('explosionSmall');
                 var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
                     image: image,
                     width: 4,

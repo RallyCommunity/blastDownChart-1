@@ -1,8 +1,5 @@
-// TODO need to track what features/stories/tasks are displayed on the screen
-// TODO destroy a given feature/story/task
 // TODO destroy a given feature/story/task that is not on the screen
 // TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
-// TODO animate the ships flying in at the beginning?
 /* Game namespace */
 var game = {
 
@@ -15,9 +12,9 @@ var game = {
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
 
-    PLAYER: 88, // player type
-    BULLET: 77, // bullet type
-    EXPLOSION: 66, // explosion type
+    PLAYER: 88,     // player type
+    BULLET: 77,     // bullet type
+    EXPLOSION: 66,  // explosion type
 
     // boolean - can the player shoot?
     canShoot: true,
@@ -36,7 +33,7 @@ var game = {
     // Run on page load.
     "onload" : function () {
         // Initialize the video.
-        if (!me.video.init("screen", 960, 640, true, 'auto')) {
+        if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
             alert("Your browser does not support HTML5 canvas.");
             return;
         }
@@ -71,16 +68,18 @@ var game = {
         me.pool.register("enemyShip", game.Ship);
         me.pool.register("explosion", game.ExplosionEntity);
 
-        // TODO temporary enabling keyboard
+        // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
+        // TODO - eventually this will not be controlled by a button - realtime data
         $("#completeFeature").click(function() {
-            console.log("clicked");
+            // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
+            // TODO will you be able to shoot down a task? They are so small and they are moving!
+
             var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
             if (destroy.length == 1) {
-                //me.game.world.removeChild(destroy[0]);
                 var players = me.game.world.getChildByProp('type', game.PLAYER);
                 if (players.length == 1) {
                     destroy[0].setVulnerable(true);
@@ -89,8 +88,13 @@ var game = {
             }
             $('#completeFeature').hide();
         });
-
-        // Start the game.
         me.state.change(me.state.MENU);
+
+        // Reveal the game
+        $($('.rally-app')[0]).hide();
+        $('#root').show();
+        $('body').removeClass('x-body');
+        $('html').removeClass('x-viewport');
+        Ext.getBody().unmask();
     }
 };

@@ -19,18 +19,17 @@ game.TitleScreen = me.ScreenObject.extend({
                 this.font = new me.Font("arcadeClassic", 32, "white", "center");
                  
                  // a tween to animate the arrow
-                this.scrollertween = new me.Tween(this).to({scrollerpos: -1500 }, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
                 this.scroller = "A PORTFOLIO ITEM VISUALIZATION USING SPACE INVADERS";
-                this.scrollerpos = 960;
+                this.scrollerpos = 3000;
             },
              
             // some callback for the tween objects
             scrollover : function() {
-            	console.log("scrollover");
                 // reset to default value
                 this.scrollerpos = 1500;
-                this.scrollertween.to({scrollerpos: -1500 }, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollertween.to({scrollerpos: -600}, 10000).onComplete(this.scrollover.bind(this)).start();
             },
          
             update : function (dt) {

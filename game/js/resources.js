@@ -19,7 +19,7 @@ game.resources = [
     {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
 
     /*
-     * Maps
+     * Maps and backgrounds
      */
 
     {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},

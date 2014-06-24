@@ -22,8 +22,7 @@ game.HUD.Container = me.ObjectContainer.extend({
         this.name = "HUD";
         
         var i = 0;
-        var container = this; 
-        console.log(game.data.score);
+        var container = this;
         // TODO don't fix the data like this
         game.data.score = {
             "Team 1": 17,

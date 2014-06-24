@@ -3,7 +3,7 @@ module.service('RallyDataService', function() {
         fetch: true,
         hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project"],
         findConfig: {
-            "_ItemHierarchy" : GLOBAL.itemHierarchy,
+            "_ItemHierarchy" : GLOBAL.ObjectID,
             "__At" : "current"
         }
     });
@@ -13,7 +13,7 @@ module.service('RallyDataService', function() {
             lookbackStore.load({
                 scope: this,
                 callback: function(records, operation, success) {
-
+                    // aggreate data first, then organize it
                     aggregateData = {
                         initiative: {},
                         features: {},
@@ -63,7 +63,8 @@ module.service('RallyDataService', function() {
                     
                     
                     var organizedData = {
-                        initiative: GLOBAL.initiative.raw,
+                        initiative: angular.element(document.body).scope().initiative,
+                        features: [],
                         closedStories: [],
                         teamsPoints: {}
                     };
@@ -75,22 +76,17 @@ module.service('RallyDataService', function() {
                         if (aggregateData.storiesAndDefects[parent]) {
                             // add it to the list of children
                             Ext.Array.push(aggregateData.storiesAndDefects[parent].children, task);
-                        } else {
-                            // not parented to a story/defect
-                            console.log('not parented to a story or defect', task);
-                        }
+                        } // else not parented to a story/defect
                     });
 
                     // Add stories and tasks as children of their feature
                     _.each(aggregateData.storiesAndDefects, function(object, oid) {
                         var parent;
-                        console.log(object);
                         var types = object.artifact._TypeHierarchy;
 
 
                         if (object.artifact.State === "Closed") {
                             Ext.Array.push(organizedData.closedStories, object);
-                            console.log("Points: " + organizedData.teamsPoints[object.artifact.Project]);
                             if (organizedData.teamsPoints[object.artifact.Project]) {
                                 organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
                             } else {
@@ -108,22 +104,17 @@ module.service('RallyDataService', function() {
                             var requirement = aggregateData.storiesAndDefects[object.artifact.Requirement];
                             if (requirement) {
                                 parent = requirement.artifact.PortfolioItem;
-                            } else {
-                                console.log('not found', object);
-                            }
+                            }// else no parent requirement
                         }
 
                         if (aggregateData.features[parent]) {
                             // add it to the list of children
                             Ext.Array.push(aggregateData.features[parent].children, object);
-                        } else {
-                            // not parented to a feature
-                            console.log('not parented to a feature');
-                        }
+                        } // else not parented to a feature
                     });
-                    console.log('aggreate', aggregateData);
-                    organizedData.features = aggregateData.features;
-                    console.log(organizedData);
+
+                    organizedData.features = _.toArray(aggregateData.features);
+                    organizedData.initiative = GLOBAL;
                     callbackData(organizedData);
                 }
             });
