@@ -63,7 +63,7 @@ module.service('RallyDataService', function() {
                     
                     
                     var organizedData = {
-                        initiative: GLOBAL.initiative,
+                        initiative: GLOBAL.initiative.raw,
                         closedStories: [],
                         teamsPoints: {}
                     };

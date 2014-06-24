@@ -11,13 +11,15 @@ game.Ship = me.ObjectEntity.extend({
         this.numSteps = 0;
         this.moveRight = true;
         this.collidable = true;
+        this.objectID = settings.objectID;
+        this.isVulnerable = false;
     },
 
     update: function() {
-      // TODO change the simple movement pattern (ships fly in when created and go to their spot?)
+        // TODO change the simple movement pattern (ships fly in when created and go to their spot?)
 
-      // ships randomly shoot at the player
-        if (Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
+        // ships randomly shoot at the player if you are not being targeted
+        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
             var x = this.pos.x + this.width / 2;
             var shot = me.pool.pull("bullet", x, this.pos.y, {
                 height: 16,
@@ -45,5 +47,17 @@ game.Ship = me.ObjectEntity.extend({
             }
         }
         this.numSteps++;
+    },
+
+    setVulnerable: function(vulnerability) {
+        this.isVulnerable = vulnerability;
+    },
+
+    isDestructable: function() {
+        return this.isVulnerable;
+    },
+
+    flashShields: function() {
+        // TODO
     }
 });

@@ -76,6 +76,19 @@ var game = {
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
+        $("#completeFeature").click(function() {
+            console.log("clicked");
+            var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
+            if (destroy.length == 1) {
+                //me.game.world.removeChild(destroy[0]);
+                var players = me.game.world.getChildByProp('type', game.PLAYER);
+                if (players.length == 1) {
+                    destroy[0].setVulnerable(true);
+                    players[0].addTarget(destroy[0]);
+                }
+            }
+        });
+
         // Start the game.
         me.state.change(me.state.PLAY);
     },
@@ -113,17 +126,41 @@ var game = {
         var zAxis = 8;
 
         // TODO keep track of all of these for removal purposes?
+        // - Solution: store the objectID on each ship
+        // -           search using me.game.world.getChildByProp('objectID', id);
+        // -           find its location and go shoot at it! (calcualte where it will be and where you have to shoot?)
         
+
+        /*
+         * destroy ObjectID:
+         // TODO will you be able to shoot down a task? They are so small and they are moving!
+         // features on the left: 12845746805
+         // feature below initiative: 12845862527
+         // initiative: 12767115539
+            var destroy = me.game.world.getChildByProp('objectID', 12767115539);
+            if (destroy.length == 1) {
+                //me.game.world.removeChild(destroy[0]);
+                var players = me.game.world.getChildByProp('type', game.PLAYER);
+                if (players.length == 1) {
+                    destroy[0].setVulnerable(true);
+                    players[0].addTarget(destroy[0]);
+                }
+            }
+         */
+
+         game.shootMe = data.initiative.ObjectID;
+
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, 32, {
             height: MOTHERSHIP.height,
-                image: "xlarge",
-                name: "[INITIATIVE] " + data.initiative.data.Name,
-                spriteheight: MOTHERSHIP.height,
-                spritewidth: MOTHERSHIP.width,
-                width: MOTHERSHIP.width,
-                z: zAxis,
-                type: game.ENEMY_ENTITY_SUPER
+            image: "xlarge",
+            name: "[INITIATIVE] " + data.initiative.Name,
+            spriteheight: MOTHERSHIP.height,
+            spritewidth: MOTHERSHIP.width,
+            width: MOTHERSHIP.width,
+            objectID: data.initiative.ObjectID,
+            z: zAxis,
+            type: game.ENEMY_ENTITY_SUPER
         });
 
         me.game.world.addChild(mothership, zAxis);
@@ -143,15 +180,18 @@ var game = {
             var yPosition = 32 + 160 + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
-                    height: FEATURE_SHIP.height,
-                    image: "large",
-                    name: "[FEATURE] - " + features[i].feature.Name,
-                    spriteheight: FEATURE_SHIP.height,
-                    spritewidth: FEATURE_SHIP.width,
-                    width: FEATURE_SHIP.width,
-                    z: zAxis,
-                    type: game.ENEMY_ENTITY_LARGE
+                height: FEATURE_SHIP.height,
+                image: "large",
+                name: "[FEATURE] - " + features[i].feature.Name,
+                spriteheight: FEATURE_SHIP.height,
+                spritewidth: FEATURE_SHIP.width,
+                width: FEATURE_SHIP.width,
+                objectID: features[i].feature.ObjectID,
+                z: zAxis,
+                type: game.ENEMY_ENTITY_LARGE
             });
+
+            game.shootMe = features[i].feature.ObjectID;
 
             me.game.world.addChild(featureShip, zAxis++);
 
@@ -199,15 +239,15 @@ var game = {
                 storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
                     height: STORY_SHIP.height,
-                        image: "medium",
-                        name: "[STORY/DEFECT] - " + stories[j].artifact.Name,
-                        spriteheight: STORY_SHIP.height,
-                        spritewidth: STORY_SHIP.width,
-                        width: STORY_SHIP.width,
-                        z: zAxis,
-                        health: 2,
-                        type: game.ENEMY_ENTITY_MEDIUM
-
+                    image: "medium",
+                    name: "[STORY/DEFECT] - " + stories[j].artifact.Name,
+                    spriteheight: STORY_SHIP.height,
+                    spritewidth: STORY_SHIP.width,
+                    width: STORY_SHIP.width,
+                    objectID: stories[j].artifact.ObjectID,
+                    z: zAxis,
+                    health: 2,
+                    type: game.ENEMY_ENTITY_MEDIUM
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -241,14 +281,15 @@ var game = {
 
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
                     height: TASK_SHIP.height,
-                        image: "small",
-                        name: "[TASK] - " + tasks[k].Name,
-                        spriteheight: TASK_SHIP.height,
-                        spritewidth: TASK_SHIP.width,
-                        width: TASK_SHIP.width,
-                        z: zAxis,
-                        health: 2,
-                        type: game.ENEMY_ENTITY_SMALL
+                    image: "small",
+                    name: "[TASK] - " + tasks[k].Name,
+                    spriteheight: TASK_SHIP.height,
+                    spritewidth: TASK_SHIP.width,
+                    width: TASK_SHIP.width,
+                    objectID: tasks[k].ObjectID,
+                    z: zAxis,
+                    health: 2,
+                    type: game.ENEMY_ENTITY_SMALL
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);

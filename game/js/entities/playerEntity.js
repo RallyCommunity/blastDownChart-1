@@ -6,13 +6,36 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.parent(x, y, settings);
         this.gravity = 0.0;
         this.type = game.PLAYER;
-        this.movesUntilShoot = 0;
         // set the default horizontal & vertical speed (accel vector)
         this.setVelocity(5, 0);
+        this.targets = [];
+        this.shootingOffset = 10;
     },
 
     // update position
     update: function(dt) {
+        if (this.targets.length != 0) {
+            // there is a target to shoot at!
+            // line em up and shoot em down
+            var myPos = (this.pos.x + this.shootingOffset);
+            var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
+            if (Math.abs(myPos - targetPos) > 3 && game.canShoot) {
+                if (myPos > targetPos) {
+                    this.vel.x -= this.accel.x * me.timer.tick;
+                } else {
+                    this.vel.x += this.accel.x * me.timer.tick;
+                }
+            } else if (game.canShoot) {
+                this.vel.x = 0;
+                this.shoot();
+            } else {
+                this.vel.x = 0;
+            }
+
+            this.updateMovement();
+            return true;
+        }
+
         if (me.input.isKeyPressed('left')) {
             this.vel.x -= this.accel.x * me.timer.tick;
         } else if (me.input.isKeyPressed('right')) {
@@ -22,19 +45,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         }
 
         if (game.canShoot && me.input.isKeyPressed('shoot')) {
-            var x = this.shootLeft ? this.pos.x : this.pos.x + 16;
-                var shot = me.pool.pull("bullet", x, this.pos.y, {
-                height: 16,
-                image: "bullet",
-                name: "shot",
-                spriteheight: 16,
-                spritewidth: 16,
-                width: 16,
-                shootDown: false
-            });
-            game.canShoot = false;
-            this.shootLeft = !this.shootLeft;
-            me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+            this.shoot();
         }
 
         // check & update player movement
@@ -47,5 +58,31 @@ game.PlayerEntity = me.ObjectEntity.extend({
             return true;
         }
         return true;
+    },
+
+    shoot: function() {
+        var x = this.pos.x + this.shootingOffset;
+        var shot = me.pool.pull("bullet", x, this.pos.y, {
+            height: 16,
+            image: "bullet",
+            name: "shot",
+            spriteheight: 16,
+            spritewidth: 16,
+            width: 16,
+            shootDown: false
+        });
+        game.canShoot = false;
+        me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+    },
+
+    addTarget: function(target) {
+        // keep track of a queue of targets
+        Ext.Array.push(this.targets, target);
+    },
+
+    removeTarget: function(target) {
+        if (this.targets.length > 0 && this.targets[0].objectID == target.objectID) {
+            this.targets.shift();
+        }
     }
 });
