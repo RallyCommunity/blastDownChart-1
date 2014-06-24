@@ -22,7 +22,6 @@ game.BulletEntity = me.ObjectEntity.extend({
         var res = me.game.world.collide(this);
         if (res) {
             var image = null;
-            console.log(res.obj.type, game.ENEMY_ENTITY_SUPER);
             if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                 image = me.loader.getImage('explosionSuper');
             } else if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
@@ -56,7 +55,9 @@ game.BulletEntity = me.ObjectEntity.extend({
                         duration: 400,
                         framesToSkip: 1
                     });
-                    emitter.name = 'fire';
+                    emitter.name = 'fire'; // TODO use radial explosion instead?
+ 
+                    
                     emitter.z = res.obj.z + 1;
                     // TODO removeChild?
                     me.game.world.addChild(emitter);
@@ -69,7 +70,6 @@ game.BulletEntity = me.ObjectEntity.extend({
                     if (players.length == 1) {
                         players[0].removeTarget(res.obj);
                     }
-
 
                     me.game.world.removeChild(res.obj);
                 } else {
@@ -101,10 +101,10 @@ game.BulletEntity = me.ObjectEntity.extend({
                     framesToSkip: 1
                 });
 
-                res.obj.renderable.flicker(500);
+                // res.obj.renderable.flicker(500);
                 emitter.name = 'fire';
                 emitter.z = res.obj.z + 1;
-                // TODO removeChild?
+                // TODO remove the emitter?
                 me.game.world.addChild(emitter);
                 me.game.world.addChild(emitter.container);
                 emitter.streamParticles();

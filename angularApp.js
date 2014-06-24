@@ -18,6 +18,6 @@ module.controller('dataController', ['$scope', 'RallyDataService', function($sco
         console.log('data returned', data);
         $scope.organizedData.features = _.toArray(data.features);
         $scope.$apply();
-        game.setupShips(data);
+        GLOBAL.data = data;
     });
 }]);

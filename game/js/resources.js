@@ -22,6 +22,8 @@ game.resources = [
      * Maps
      */
 
+    {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},
+
     // background
     {name: "background", type: "image", src: "game/data/img/background.png"},
     
