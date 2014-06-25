@@ -4,6 +4,8 @@
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0rc3",
    "javascript": [
+      "realtime/reconnecting-websocket.js",
+      "realtime/alm-realtime.js",
       "game/lib/melonJS-1.0.1-min.js",
       "game/lib/plugins/debugPanel.js",
       "game/js/game.js",

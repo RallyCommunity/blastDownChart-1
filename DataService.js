@@ -66,8 +66,10 @@ module.service('RallyDataService', function() {
                         initiative: angular.element(document.body).scope().initiative,
                         features: [],
                         closedStories: [],
-                        teamsPoints: {}
+                        teamsPoints: {},
+                        projectUUIDs: []
                     };
+                    var projects = [];
 
                     // Add tasks as children of their associated story/defect
                     _.each(tasks, function(task) {
@@ -84,14 +86,14 @@ module.service('RallyDataService', function() {
                         var parent;
                         var types = object.artifact._TypeHierarchy;
 
+                        Ext.Array.include(projects, object.artifact.Project);
 
-                        if (object.artifact.State === "Closed") {
+                        if (organizedData.teamsPoints[object.artifact.Project] && object.artifact.State === "Closed") {
                             Ext.Array.push(organizedData.closedStories, object);
-                            if (organizedData.teamsPoints[object.artifact.Project]) {
-                                organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
-                            } else {
-                                organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
-                            }
+                            organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
+                            return;
+                        } else if (organizedData.teamsPoints[object.artifact.Project]) {
+                            organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
                             return;
                         }
 
@@ -113,9 +115,37 @@ module.service('RallyDataService', function() {
                         } // else not parented to a feature
                     });
 
-                    organizedData.features = _.toArray(aggregateData.features);
-                    organizedData.initiative = GLOBAL;
-                    callbackData(organizedData);
+                    console.log('projects', projects);
+
+                    // TODO optimize
+                    Ext.create('Rally.data.WsapiDataStore', {
+                        model: 'Project',
+                        fetch: ['Name'],
+                        limit: Infinity
+/*
+                        filters: [
+                            {
+                                property: 'ObjectID',
+                                operator: 'in',
+                                value: projects
+                            }
+                        ]*/
+                    }).load( {
+                         scope: this,
+                         callback: function(records, operation, success) {
+                             console.log("records", records);
+                             var i = 0;
+                             Ext.Array.each(records, function(record) {
+                                 if (Ext.Array.indexOf(projects, record.get('ObjectID')) >= 0) {
+                                     Ext.Array.push(organizedData.projectUUIDs, record.get('_refObjectUUID'));
+                                 }
+                             });
+                             organizedData.features = _.toArray(aggregateData.features);
+                             organizedData.initiative = GLOBAL;
+                             callbackData(organizedData);
+                         }
+                    });
+
                 }
             });
         }

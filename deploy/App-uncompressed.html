@@ -7,6 +7,312 @@
 
     <script type="text/javascript">
         Rally.onReady(function () {
+                // MIT License:
+//
+// Copyright (c) 2010-2012, Joe Walnes
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+/**
+ * This behaves like a WebSocket in every way, except if it fails to connect,
+ * or it gets disconnected, it will repeatedly poll until it succesfully connects
+ * again.
+ *
+ * It is API compatible, so when you have:
+ *   ws = new WebSocket('ws://....');
+ * you can replace with:
+ *   ws = new ReconnectingWebSocket('ws://....');
+ *
+ * The event stream will typically look like:
+ *  onconnecting
+ *  onopen
+ *  onmessage
+ *  onmessage
+ *  onclose // lost connection
+ *  onconnecting
+ *  onopen  // sometime later...
+ *  onmessage
+ *  onmessage
+ *  etc... 
+ *
+ * It is API compatible with the standard WebSocket API.
+ *
+ * Latest version: https://github.com/joewalnes/reconnecting-websocket/
+ * - Joe Walnes
+ */
+function ReconnectingWebSocket(url, protocols) {
+    protocols = protocols || [];
+
+    // These can be altered by calling code.
+    this.debug = false;
+    this.reconnectInterval = 1000;
+    this.timeoutInterval = 2000;
+
+    var self = this;
+    var ws;
+    var forcedClose = false;
+    var timedOut = false;
+    
+    this.url = url;
+    this.protocols = protocols;
+    this.readyState = WebSocket.CONNECTING;
+    this.URL = url; // Public API
+
+    this.onopen = function(event) {
+    };
+
+    this.onclose = function(event) {
+    };
+
+    this.onconnecting = function(event) {
+    };
+
+    this.onmessage = function(event) {
+    };
+
+    this.onerror = function(event) {
+    };
+
+    function connect(reconnectAttempt) {
+        ws = new WebSocket(url, protocols);
+        
+        self.onconnecting();
+        if (self.debug || ReconnectingWebSocket.debugAll) {
+            console.debug('ReconnectingWebSocket', 'attempt-connect', url);
+        }
+        
+        var localWs = ws;
+        var timeout = setTimeout(function() {
+                if (self.debug || ReconnectingWebSocket.debugAll) {
+                    console.debug('ReconnectingWebSocket', 'connection-timeout', url);
+                }
+                timedOut = true;
+                localWs.close();
+                timedOut = false;
+            }, self.timeoutInterval);
+        
+        ws.onopen = function(event) {
+            clearTimeout(timeout);
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'onopen', url);
+            }
+            self.readyState = WebSocket.OPEN;
+            reconnectAttempt = false;
+            self.onopen(event);
+        };
+        
+        ws.onclose = function(event) {
+            clearTimeout(timeout);
+            ws = null;
+            if (forcedClose) {
+                self.readyState = WebSocket.CLOSED;
+                self.onclose(event);
+            } else {
+                self.readyState = WebSocket.CONNECTING;
+                self.onconnecting();
+                if (!reconnectAttempt && !timedOut) {
+                    if (self.debug || ReconnectingWebSocket.debugAll) {
+                        console.debug('ReconnectingWebSocket', 'onclose', url);
+                    }
+                    self.onclose(event);
+                }
+                setTimeout(function() {
+                        connect(true);
+                    }, self.reconnectInterval);
+            }
+        };
+        ws.onmessage = function(event) {
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'onmessage', url, event.data);
+            }
+            self.onmessage(event);
+        };
+        ws.onerror = function(event) {
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'onerror', url, event);
+            }
+            self.onerror(event);
+        };
+    }
+    connect(url);
+
+    this.send = function(data) {
+        if (ws) {
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'send', url, data);
+            }
+            return ws.send(data);
+        } else {
+            throw 'INVALID_STATE_ERR : Pausing to reconnect websocket';
+        }
+    };
+
+    this.close = function() {
+        if (ws) {
+            forcedClose = true;
+            ws.close();
+        }
+    };
+
+    /**
+     * Additional public API method to refresh the connection if still open (close, re-open).
+     * For example, if the app suspects bad data / missed heart beats, it can try to refresh.
+     */
+    this.refresh = function() {
+        if (ws) {
+            ws.close();
+        }
+    };
+}
+
+/**
+ * Setting this to true is the equivalent of setting all instances of ReconnectingWebSocket.debug to true.
+ */
+ReconnectingWebSocket.debugAll = false;
+
+                Realtime = function() {
+    var ENDPOINT = "wss://realtime.rally1.rallydev.com/_websocket";
+
+    function getSubscribeMessage() {
+        var projectUuid = Rally.environment.getContext().getProject()._refObjectUUID;
+        return JSON.stringify({
+                uri: '/_subscribe',
+                    "request-method": "post",
+                    body: { topic: projectUuid }
+            });
+    }
+
+    function getStateFieldValue(data, name) {
+        var field = _.find(_.values(data.data.state), { name: name });
+
+        return field && field.value;
+    }
+
+    function getExtCompatibleRecordData(data, Model, useOldValue) {
+        var values = _.values(data.data.state).concat(_.values(data.data.changes));
+
+        var recordData = _.reduce(values, function(rd, v) {
+                rd[v.name] = useOldValue ? v.old_value : v.value;
+                return rd;
+            }, {});
+
+        recordData._type = Model.typePath;
+
+        return recordData;
+    }
+
+    function getTypeFromScope(data) {
+        if(!data || !data.data || !data.data.scope) {
+            return;
+        }
+
+        // pull type out of "/alm-prod/<type>"
+        var match = data.data.scope.match(/([^\/]*)$/);
+
+        if(!match) {
+            return;
+        }
+
+        var typeString = match.pop();
+
+        var typeMap = {
+            'user-story': 'UserStory'
+        };
+
+        return typeMap[typeString] || typeString;
+    }
+
+    function buildRecord(data, callback) {
+        var recordType = getStateFieldValue(data, 'object_type') || getTypeFromScope(data);
+
+        if(!recordType) {
+            console.log("failed to get the type of artifact that changed", data);
+            return;
+        }
+
+        Rally.data.WsapiModelFactory.getModel({
+                type: recordType,
+                    success: function(Model) {
+                    var record = new Model(getExtCompatibleRecordData(data, Model, data.data.action === 'Recycled'));
+                    callback(record);
+                }
+            });
+    }
+
+    function getChangedFields(data) {
+        return _.pluck(_.values(data.data.changes), 'name');
+    }
+
+    function getMessageToPublish(data) {
+        if (!data || !data.data || !data.data.action) {
+            return;
+        }
+
+        var action = data.data.action;
+
+        console.log('action: ', action);
+
+        var actionMap = {
+            Updated: Rally.Message.objectUpdate,
+            Created: Rally.Message.objectCreate,
+            Recycled: Rally.Message.objectDestroy
+        };
+
+        return actionMap[action];
+    }
+
+    function getArgsForMessage(message, record, changedFields, cmp) {
+        if(message === Rally.Message.objectUpdate || message === Rally.Message.objectCreate) {
+            return [message, record, changedFields, cmp];
+        }
+        return [message, record, cmp, []];
+    }
+
+    function publishObjectChanged(data, cmp) {
+        var message = getMessageToPublish(data);
+        if(message) {
+            buildRecord(data, function(record) {
+                    var changedFields = getChangedFields(data);
+                    var args = getArgsForMessage(message, record, changedFields, cmp);
+                    var mb = Rally.environment.getMessageBus();
+                    mb.publish.apply(mb, args);
+                });
+        }
+    }
+
+    function connect() {
+        console.log('realtime: connecting');
+        var connection = new ReconnectingWebSocket(ENDPOINT);
+        connection.onopen = function() {
+            console.log("realtime: connected");
+            connection.send(getSubscribeMessage());
+        };
+        connection.onerror = function(e) {
+            console.log('realtime: error', arguments);
+        };
+
+        return connection;
+    }
+};
+
+
+
                 /**
  * @license MelonJS Game Engine
  * @copyright (C) 2011 - 2014 Olivier Biot, Jason Oster, Aaron McLeod
@@ -1094,10 +1400,22 @@ game.TitleScreen = me.ScreenObject.extend({
           ++   +
     */
     setupShips: function() {
+
+        // subscribe to the realtime data service
+        var websocket = Realtime.connect();
+        
+        websocket.onmessage = Ext.bind(function(e) {
+            var data = JSON.parse(e.data);
+            console.log('realtime message', data);
+            publishObjectChanged(data, this);
+            
+        }, this);
+
         var data;
         var scope = angular.element($("#root")).scope();
         //var scope = angular.element(document.body).scope();
         data = scope.organizedData;
+	console.log(data);
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
 
@@ -1259,10 +1577,10 @@ game.TitleScreen = me.ScreenObject.extend({
                 storyLines -= 1;
             }
 
-            var numTasks = tasks.length;
-            var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
-            var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
-            var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
+	    var numTasks = tasks.length;
+	    var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
+	    var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+	    var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
 
             // draw all of the tasks
             for (var k = 0; k < maxTasks; k++) {
@@ -1274,7 +1592,7 @@ game.TitleScreen = me.ScreenObject.extend({
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
-
+		game.shootMe = tasks[k].ObjectID;
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
                     height: TASK_SHIP.height,
                     image: "small",
@@ -32233,7 +32551,7 @@ Ext.define('CustomApp', {
             storeConfig: {
                 context: {
                     //specify the workspace to search this.getContext().getWorkspace()
-                    workspace: Rally.util.Ref.getRelativeUri(),
+                    workspace: Rally.util.Ref.getRelativeUri(), //Rally.Environment.getContext().getWorkspace(),
 
                     //all projects
                     project: null
@@ -32256,6 +32574,7 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
+        console.log(Rally);
     }
 });
 

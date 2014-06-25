@@ -23,10 +23,33 @@ game.PlayScreen = me.ScreenObject.extend({
           ++   +
     */
     setupShips: function() {
+        // subscribe to the realtime data service
+
+        var realtime = new Realtime();
+
+
         var data;
         var scope = angular.element($("#root")).scope();
         //var scope = angular.element(document.body).scope();
         data = scope.organizedData;
+	console.log(data);
+
+        // Subscribe to realtime information from all projects
+        Ext.Array.each(data.projectUUIDs, function(key, value) {
+            var websocket = realtime.connectTo(key);
+            console.log(realtime);        
+            websocket.onmessage = Ext.bind(function(e) {
+                var data = JSON.parse(e.data);
+                console.log('realtime message', data);
+                realtime.publishObjectChanged(data, this);
+                if (data.type) { // events (update, create, etc have a type (delete = recycled)
+                    
+                }
+            }, this);
+        });
+
+
+
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
 
@@ -188,10 +211,10 @@ game.PlayScreen = me.ScreenObject.extend({
                 storyLines -= 1;
             }
 
-            var numTasks = tasks.length;
-            var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
-            var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
-            var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
+	    var numTasks = tasks.length;
+	    var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
+	    var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+	    var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
 
             // draw all of the tasks
             for (var k = 0; k < maxTasks; k++) {
@@ -203,7 +226,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
-
+		game.shootMe = tasks[k].ObjectID;
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
                     height: TASK_SHIP.height,
                     image: "small",

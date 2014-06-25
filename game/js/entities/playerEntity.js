@@ -11,6 +11,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         
         this.targets = [];
         this.shootingOffset = 10;
+        this.stepNum = 0;
     },
 
     // update position
@@ -48,6 +49,16 @@ game.PlayerEntity = me.ObjectEntity.extend({
         if (game.canShoot && me.input.isKeyPressed('shoot')) {
             this.shoot();
         }
+
+        // player movement pattern
+
+        if (this.stepNum % 3 == 0) {
+
+        }
+
+
+
+
 
         // check & update player movement
         this.updateMovement();

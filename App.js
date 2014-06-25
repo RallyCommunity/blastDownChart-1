@@ -13,7 +13,7 @@ Ext.define('CustomApp', {
             storeConfig: {
                 context: {
                     //specify the workspace to search this.getContext().getWorkspace()
-                    workspace: Rally.util.Ref.getRelativeUri(),
+                    workspace: Rally.util.Ref.getRelativeUri(), //Rally.Environment.getContext().getWorkspace(),
 
                     //all projects
                     project: null
@@ -36,6 +36,7 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
+        console.log(Rally);
     }
 });
 
