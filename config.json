@@ -4,8 +4,11 @@
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0rc3",
    "javascript": [
+      "bower_components/angular/angular.js",
+      "bower_components/jquery/dist/jquery.js",
       "realtime/reconnecting-websocket.js",
       "realtime/alm-realtime.js",
+      "game/ui.js",
       "game/lib/melonJS-1.0.1-min.js",
       "game/lib/plugins/debugPanel.js",
       "game/js/game.js",
@@ -16,8 +19,6 @@
       "game/js/entities/HUD.js",
       "game/js/screens/title.js",
       "game/js/screens/play.js",
-      "bower_components/angular/angular.js",
-      "bower_components/jquery/dist/jquery.js",
       "App.js",
       "angularApp.js",
       "DataService.js"

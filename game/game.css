@@ -75,3 +75,37 @@ body {
     font-family: arcadeClassic;
     src: url(data/font/ARCADECLASSIC.ttf);
 }
+
+.button {
+    font-family: "NotoSans";
+    font-size: .9em;
+    line-height: 1.1em;
+}
+
+.button.selected {
+    font-family: "NotoSansBold";
+    color: #444;
+    background: #E6E6E6;
+}
+
+.button:hover  {
+    background: #E6E6E6;   /* $grey2 */
+    color: #444; 
+    text-decoration: none;
+}
+
+.button {
+    float: left;
+    width: 50%;
+    text-align: center;
+}
+
+#logToggle {
+    display: block;
+    border-radius: 2px;
+    border: 1px solid #C0C0C0;
+}
+
+#realtimeLog {
+    display: none;
+}
