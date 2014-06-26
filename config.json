@@ -21,6 +21,7 @@
       "game/js/screens/play.js",
       "App.js",
       "angularApp.js",
+      "RealTimeDataService.js",
       "DataService.js"
    ],
    "html": [

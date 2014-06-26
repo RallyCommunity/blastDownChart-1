@@ -1,4 +1,4 @@
-module.service('RallyDataService', function() {
+module.service('RallyDataService', function(RealtimeService) {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
         fetch: true,
         hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project"],
@@ -66,8 +66,7 @@ module.service('RallyDataService', function() {
                         initiative: angular.element(document.body).scope().initiative,
                         features: [],
                         closedStories: [],
-                        teamsPoints: {},
-                        projectUUIDs: []
+                        teamsPoints: {}
                     };
                     var projects = [];
 
@@ -122,26 +121,36 @@ module.service('RallyDataService', function() {
                         model: 'Project',
                         fetch: ['Name'],
                         limit: Infinity
-/*
+                        /*
+                        
                         filters: [
                             {
                                 property: 'ObjectID',
                                 operator: 'in',
                                 value: projects
                             }
-                        ]*/
+                        ]
+                        */
                     }).load( {
                          scope: this,
                          callback: function(records, operation, success) {
                              console.log("records", records);
                              var i = 0;
+                             projectUUIDs = [];
                              Ext.Array.each(records, function(record) {
                                  if (Ext.Array.indexOf(projects, record.get('ObjectID')) >= 0) {
-                                     Ext.Array.push(organizedData.projectUUIDs, record.get('_refObjectUUID'));
+                                     Ext.Array.push(projectUUIDs, record.get('_refObjectUUID'));
                                  }
                              });
                              organizedData.features = _.toArray(aggregateData.features);
                              organizedData.initiative = GLOBAL;
+
+                             var scope = angular.element($("#root")).scope();
+                             scope.realtimeConnection = function() {
+                                 RealtimeService.connect(projectUUIDs);
+                             }
+                             scope.realtimeConnection();
+
                              callbackData(organizedData);
                          }
                     });

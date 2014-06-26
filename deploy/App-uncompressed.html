@@ -31253,16 +31253,25 @@ ReconnectingWebSocket.debugAll = false;
     $('.unselected').click(function() {
         $(this).parent().find('.selected').removeClass('selected').addClass('unselected');
         $(this).removeClass('unselected').addClass('selected');
-
+        console.log($(this).text());
         if ($(this).text() === "History") {
             $('#historyLog').show();
+            $('#realtimeLog').hide();
         } else {
             $('#realtimeLog').show();
+            $('#historyLog').hide();
         }
 
         $('.unselected').click(function() {
             $(this).parent().find('.selected').removeClass('selected').addClass('unselected');
             $(this).removeClass('unselected').addClass('selected');
+            if ($(this).text() === "History") {
+                $('#historyLog').show();
+                $('#realtimeLog').hide();
+            } else {
+                $('#realtimeLog').show();
+                $('#historyLog').hide();
+            }
         });
     });
 });
@@ -32369,15 +32378,20 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var realtime = new Realtime();
 
-
         var data;
         var scope = angular.element($("#root")).scope();
         //var scope = angular.element(document.body).scope();
         data = scope.organizedData;
 	console.log(data);
 
+        scope.realtimeConnection = function() {
+            RealtimeService.connect(data.projectUUIDs);
+        }
+
+        scope.realtimeConnection();
         // Subscribe to realtime information from all projects
-        Ext.Array.each(data.projectUUIDs, function(key, value) {
+        /*
+        Ext.Array.each(data.projectUUIDs, function(key) {
             var websocket = realtime.connectTo(key);
             console.log(realtime);        
             websocket.onmessage = Ext.bind(function(e) {
@@ -32389,8 +32403,7 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
             }, this);
         });
-
-
+        */
 
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
@@ -32649,17 +32662,36 @@ Ext.define('CustomApp', {
 
                 module = angular.module('angularBlastdown', []);
 
-module.controller('dataController', ['$scope', 'RallyDataService', function($scope, RallyDataService) {
+module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeService', function($scope, RallyDataService, RealtimeService) {
     $scope.organizedData = {};
 
     RallyDataService.getData(function(data) {
         $scope.organizedData = data;
         $scope.$apply();
-
         // Start the game
         game.onload();
     });
 }]);
+
+                module.factory('RealtimeService', function ($q) {
+        var realtime = new Realtime();
+        return {
+            connect: function(uuids) {
+                Ext.Array.each(uuids, function(id) {
+                    var websocket = realtime.connectTo(id);
+                    console.log(realtime);        
+                    websocket.onmessage = Ext.bind(function(e) {
+                            var data = JSON.parse(e.data);
+                            console.log('realtime message', data);
+                            realtime.publishObjectChanged(data, this);
+                            if (data.type) { // events (update, create, etc have a type (delete = recycled)
+                                
+                            }
+                    }, this);
+                });
+            }
+        }
+});
 
                 module.service('RallyDataService', function() {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {

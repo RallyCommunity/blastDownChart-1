@@ -27,28 +27,10 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var realtime = new Realtime();
 
-
         var data;
         var scope = angular.element($("#root")).scope();
-        //var scope = angular.element(document.body).scope();
         data = scope.organizedData;
 	console.log(data);
-
-        // Subscribe to realtime information from all projects
-        Ext.Array.each(data.projectUUIDs, function(key, value) {
-            var websocket = realtime.connectTo(key);
-            console.log(realtime);        
-            websocket.onmessage = Ext.bind(function(e) {
-                var data = JSON.parse(e.data);
-                console.log('realtime message', data);
-                realtime.publishObjectChanged(data, this);
-                if (data.type) { // events (update, create, etc have a type (delete = recycled)
-                    
-                }
-            }, this);
-        });
-
-
 
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
