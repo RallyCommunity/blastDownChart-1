@@ -13,6 +13,10 @@ game.Ship = me.ObjectEntity.extend({
         this.moveRight = true;              // which direction to move
         this.collidable = true;             // Can be hit by bullet entities
         this.objectID = settings.objectID;  // ObjectID used for ship destruction and removal
+        if (settings.formattedId) {
+            this.formattedId = settings.formattedId;
+        }
+        
         this.isVulnerable = false;          // can this ship be destroyed
         this.delay = settings.delay;        // Delay before moving to my y position
         this.goToY = y;                     // final y position
@@ -43,7 +47,7 @@ game.Ship = me.ObjectEntity.extend({
             this.waitFor = 0; // dont let it wrap around
         }
 
-        // ships randomly shoot at the player if it are not being targeted
+        // ships randomly shoot at the player if they are not being targeted
         if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
             var x = this.pos.x + this.width / 2;
             var shot = me.pool.pull("bullet", x, this.pos.y, {
@@ -67,6 +71,14 @@ game.Ship = me.ObjectEntity.extend({
             }
 
             if (this.moveRight) {
+                if (this.formattedId) {
+                    var label = me.pool.pull("label", this.pos.x, this.pos.y, {
+                        formattedId: this.formattedId,
+                        height: this.height,
+                        width: this.width
+                    });
+                    me.game.world.addChild(label, Number.POSITIVE_INFINITY);
+                }
                 this.pos.x -= 1;
             } else {
                 this.pos.x += 1;

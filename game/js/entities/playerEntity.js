@@ -12,6 +12,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.targets = [];
         this.shootingOffset = 10;
         this.stepNum = 0;
+        this.steps = 0;
     },
 
     // update position
@@ -38,6 +39,32 @@ game.PlayerEntity = me.ObjectEntity.extend({
             return true;
         }
 
+        // player movement pattern
+        this.stepNum++;
+        var step = Math.floor(this.stepNum / (game.WINDOW_WIDTH / 11));
+        if (step == 0) {
+            // move right halfway
+            this.vel.x += this.accel.x * me.timer.tick;
+        } else if (step == 1) {
+            // move left halfway
+            this.vel.x -= this.accel.x * me.timer.tick;
+        } else if (step < 4) {
+            // move all the way across (right)
+            this.vel.x += this.accel.x * me.timer.tick;
+        } else if (step == 4) {
+            this.vel.x -= this.accel.x * me.timer.tick;
+        } else if (step == 5) {
+            this.vel.x += this.accel.x * me.timer.tick;
+        } else if (step < 8) {
+            // move all the way across the screen (left)
+            this.vel.x -= this.accel.x * me.timer.tick;
+        } else {
+            this.stepNum = 0;
+            this.vel.x = 0;
+        }
+
+        // are we accepting keyboard controls?
+        /*
         if (me.input.isKeyPressed('left')) {
             this.vel.x -= this.accel.x * me.timer.tick;
         } else if (me.input.isKeyPressed('right')) {
@@ -45,19 +72,10 @@ game.PlayerEntity = me.ObjectEntity.extend({
         } else {
             this.vel.x = 0;
         }
-
+        */
         if (game.canShoot && me.input.isKeyPressed('shoot')) {
             this.shoot();
         }
-
-        // player movement pattern
-
-        if (this.stepNum % 3 == 0) {
-
-        }
-
-
-
 
 
         // check & update player movement

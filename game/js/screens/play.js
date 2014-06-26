@@ -24,13 +24,14 @@ game.PlayScreen = me.ScreenObject.extend({
     */
     setupShips: function() {
         // subscribe to the realtime data service
+        var playScreen = this;
 
         var realtime = new Realtime();
 
         var data;
         var scope = angular.element($("#root")).scope();
         data = scope.organizedData;
-	console.log(data);
+	    console.log(data);
 
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
@@ -85,6 +86,7 @@ game.PlayScreen = me.ScreenObject.extend({
             width: MOTHERSHIP.width,
             objectID: data.initiative.ObjectID,
             z: zAxis,
+            formattedId: data.initiative.FormattedID,
             type: game.ENEMY_ENTITY_SUPER,
             delay: MOTHERSHIP_DELAY,
             waitFor: TOTAL_DELAY
@@ -114,6 +116,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 spritewidth: FEATURE_SHIP.width,
                 width: FEATURE_SHIP.width,
                 objectID: features[i].feature.ObjectID,
+                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
                 z: zAxis,
                 type: game.ENEMY_ENTITY_LARGE,
                 delay: FEATURE_DELAY,
@@ -173,6 +176,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     spritewidth: STORY_SHIP.width,
                     width: STORY_SHIP.width,
                     objectID: stories[j].artifact.ObjectID,
+                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
@@ -208,7 +212,8 @@ game.PlayScreen = me.ScreenObject.extend({
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
-		game.shootMe = tasks[k].ObjectID;
+		        game.shootMe = tasks[k].ObjectID;
+                console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
                     height: TASK_SHIP.height,
                     image: "small",
@@ -217,6 +222,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     spritewidth: TASK_SHIP.width,
                     width: TASK_SHIP.width,
                     objectID: tasks[k].ObjectID,
+                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
@@ -240,5 +246,23 @@ game.PlayScreen = me.ScreenObject.extend({
     onDestroyEvent: function() {
         // TODO remove all ships?
         me.game.world.removeChild(this.HUD);
+    },
+
+    getFormattedId: function(unformattedID, typeHierarchy) {
+        var ret = "";
+        var typeHierarchy = typeHierarchy[typeHierarchy.length - 1].toLowerCase();
+        if (typeHierarchy === "hierarchicalrequirement") {
+            ret += "US";
+        } else if (typeHierarchy === "defect") {
+            ret += "DE";
+        } else if (typeHierarchy === "portfolioitem/feature") {
+            ret += "F";
+        } else if (typeHierarchy == "task") {
+            ret += "T";
+        } else {
+            console.log("not found", typeHierarchy);
+        }
+        ret += unformattedID;
+        return ret;
     }
 });

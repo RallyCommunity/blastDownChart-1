@@ -67,6 +67,7 @@ var game = {
         me.pool.register("bullet", game.BulletEntity);
         me.pool.register("enemyShip", game.Ship);
         me.pool.register("explosion", game.ExplosionEntity);
+        me.pool.register("label", game.LabelEntity);
 
         // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
