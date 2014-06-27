@@ -13,7 +13,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
 
     /*
-     * Set up the enemy ships like this:
+     * Set up the enemy ships and scoreboard like this:
      TEAM1: 3     Team2: 5     Team3: 7
 
                 [=========]                 Initiative
@@ -31,7 +31,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var data;
         var scope = angular.element($("#root")).scope();
         data = scope.organizedData;
-	    console.log(data);
+        console.log(data);
 
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
@@ -66,7 +66,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var STORY_DELAY = MAX_TASK_ROWS * TASK_SHIP.height;
         var FEATURE_DELAY = STORY_DELAY + MAX_STORY_ROWS * STORY_SHIP.height;
         var MOTHERSHIP_DELAY = FEATURE_DELAY + MAX_FEATURE_ROWS * FEATURE_SHIP.height;
-        var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32;
+        var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32 + 256;
 
         // reset the score
         game.data.score = data.teamsPoints;
@@ -76,6 +76,11 @@ game.PlayScreen = me.ScreenObject.extend({
         // TODO remove me!  temporary, for button click destruction demo
         game.shootMe = data.initiative.ObjectID;
 
+
+        game.OID_MAP[data.initiative.ObjectID] = {
+            displayed: true,
+            formattedId: data.initiative.FormattedID
+        };
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, PADDING, {
             height: MOTHERSHIP.height,
@@ -107,6 +112,11 @@ game.PlayScreen = me.ScreenObject.extend({
             var pos = i % featuresPerLine;
             var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
             var yPosition = PADDING + MOTHERSHIP.height + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
+
+            game.OID_MAP[features[i].feature.ObjectID] = {
+                displayed: true,
+                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy)
+            };
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
                 height: FEATURE_SHIP.height,
@@ -146,7 +156,7 @@ game.PlayScreen = me.ScreenObject.extend({
             }
 
             // for proper task vertical alignment
-            if (numFeatures % featuresPerLine == 0) {
+            if (numFeatures % featuresPerLine === 0) {
                 featureLines -= 1;
             }
 
@@ -168,6 +178,12 @@ game.PlayScreen = me.ScreenObject.extend({
                 storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
 
                 storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+
+                game.OID_MAP[stories[j].artifact.ObjectID] = {
+                    displayed: true,
+                    formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy)
+                };
+
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
                     height: STORY_SHIP.height,
                     image: "medium",
@@ -192,15 +208,19 @@ game.PlayScreen = me.ScreenObject.extend({
                 });
             }
 
+            // add the stories not shown to the map
+            this.addExtraToMap(maxStories, stories, 'artifact');
+
+
             // for proper task vertical alignment
-            if (numStories % storiesPerLine == 0) {
+            if (numStories % storiesPerLine === 0) {
                 storyLines -= 1;
             }
 
-	    var numTasks = tasks.length;
-	    var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
-	    var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
-	    var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
+            var numTasks = tasks.length;
+            var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
+            var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+            var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
 
             // draw all of the tasks
             for (var k = 0; k < maxTasks; k++) {
@@ -212,8 +232,14 @@ game.PlayScreen = me.ScreenObject.extend({
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
-		        game.shootMe = tasks[k].ObjectID;
+                game.shootMe = tasks[k].ObjectID;
                 console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
+
+                game.OID_MAP[tasks[k].ObjectID] = {
+                    displayed: true,
+                    formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy)
+                };
+
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
                     height: TASK_SHIP.height,
                     image: "small",
@@ -232,7 +258,13 @@ game.PlayScreen = me.ScreenObject.extend({
 
                 me.game.world.addChild(taskShip, zAxis++);
             }
+
+            // add the tasks that are not shown to the map
+            this.addExtraToMap(maxTasks, tasks);
         }
+
+        // add the features that are not shown to the map
+        this.addExtraToMap(maxFeatures, features, 'feature');
 
         // add our HUD to the game world
         this.HUD = new game.HUD.Container();
@@ -241,16 +273,52 @@ game.PlayScreen = me.ScreenObject.extend({
 
 
     /**
+     * Adds the given values to the OID_MAP as not shown
+     * @param start the starting index in the values array
+     * @param values the array of items to add
+     * @param property the property offset of the object in the array to access ObjectID (if any)
+     */
+    addExtraToMap: function(start, values, property) {
+        // add all not shown tasks OIDs to the map
+        for (var extra = start; extra < values.length; extra++) {
+            if (property) {
+                game.OID_MAP[values[extra][property].ObjectID] = {
+                    displayed: false,
+                    formattedId: playScreen.getFormattedId(values[extra][property]._UnformattedID, values[extra][property]._TypeHierarchy)
+                };
+            } else {
+                game.OID_MAP[values[extra].ObjectID] = {
+                    displayed: false,
+                    formattedId: playScreen.getFormattedId(values[extra]._UnformattedID, values[extra]._TypeHierarchy)
+                };
+            }
+        }
+    },
+
+
+    /**
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent: function() {
         // TODO remove all ships?
+
+        _.each(game.OID_MAP, function(element, index, list) {
+            var destroy = me.game.world.getChildByProp('objectID', index);
+            me.game.world.removeChild(destroy);
+        });
+
         me.game.world.removeChild(this.HUD);
     },
 
+    /**
+     * Determines and returns the formatted id
+     * @param unformattedID the unformattedID of the object
+     * @param typeHierarchy the typeHierarchy array of the object
+     * @return the corresponding FormattedId
+     */
     getFormattedId: function(unformattedID, typeHierarchy) {
         var ret = "";
-        var typeHierarchy = typeHierarchy[typeHierarchy.length - 1].toLowerCase();
+        typeHierarchy = typeHierarchy[typeHierarchy.length - 1].toLowerCase();
         if (typeHierarchy === "hierarchicalrequirement") {
             ret += "US";
         } else if (typeHierarchy === "defect") {

@@ -12,6 +12,8 @@ var game = {
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
 
+    SHOW_LABEL: true,
+
     PLAYER: 88,     // player type
     BULLET: 77,     // bullet type
     EXPLOSION: 66,  // explosion type
@@ -22,6 +24,7 @@ var game = {
     // probability that enemy ships will shoot
     FIRE_PROBABILITY: 2000,
 
+    OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
 
     // track the score
     data : {
@@ -29,6 +32,11 @@ var game = {
         score : {}
     },
 
+    log : {
+        addItem: function(logEvent) {
+            angular.element($("#root")).scope().addLogItem(logEvent);
+        }
+    },
 
     // Run on page load.
     "onload" : function () {
@@ -89,6 +97,7 @@ var game = {
             }
             $('#completeFeature').hide();
         });
+
         me.state.change(me.state.MENU);
 
         // Reveal the game
@@ -97,5 +106,43 @@ var game = {
         $('body').removeClass('x-body');
         $('html').removeClass('x-viewport');
         Ext.getBody().unmask();
+    },
+
+    addStory: function(oid) {
+        // TODO gather more info
+        Ext.create('Rally.data.WsapiDataStore', {
+            model: 'User Story',
+            fetch: ['Parent', 'ObjectID'],
+            filters: [
+                {
+                    property: 'ObjectID',
+                    operator: '=',
+                    value: oid
+                }
+            ]
+        }).load({
+            scope: this,
+            callback: function(records, operation, success) {
+                console.log(records);
+                game.log.addItem(oid + " created");
+            }
+        });
+        
+    },
+
+    removeStory: function(oid) {
+        var item = game.OID_MAP[oid];
+        if (item && game.OID_MAP[oid].displayed) {
+            // currently displayed - have it fly off
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            if (pendingRemove) {
+                pendingRemove.flyOff();
+            }
+            game.log.addItem(item.formattedId + " recycled");
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
     }
 };

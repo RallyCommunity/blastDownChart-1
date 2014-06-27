@@ -36,7 +36,41 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
-        console.log(Rally);
+        var oid = 20185829601;
+
+
+        // TODO why can't I get the exact same data using WSAPI?
+
+        Ext.create('Rally.data.WsapiDataStore', {
+            model: 'User Story',
+            fetch: true,
+            filters: [
+                {
+                    property: 'ObjectID',
+                    operator: "=",
+                    value: oid
+                }
+            ]
+        }).load({
+            scope: this,
+            callback: function(records, operation, success) {
+                console.log('wsapi', oid, records, operation, success);
+            }
+        });
+
+        Ext.create('Rally.data.lookback.SnapshotStore', {
+            fetch: true,
+            findConfig: {
+                "_TypeHierarchy": "HierarchicalRequirement",
+                "__At": "current",
+                "ObjectID": oid
+            }
+        }).load({
+            scope: this,
+            callback: function(records, operation, success) {
+                console.log('lbapi', oid, records, operation, success);
+            }
+        });
     }
 });
 

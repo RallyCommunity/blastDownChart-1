@@ -39,7 +39,7 @@ game.HUD.Container = me.ObjectContainer.extend({
             } else if (i % 3 == 2) {
                 align = "right";
                 x = game.WINDOW_WIDTH - 5;
-            } else if (i != 0) {
+            } else if (i !== 0) {
                 y += 25;
             }
 

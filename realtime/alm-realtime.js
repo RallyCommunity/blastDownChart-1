@@ -119,28 +119,30 @@ function Realtime() {
         }
     }
 
-    this.connect = function() {
+    // this.connect = function() {
+    //     console.log('realtime: connecting');
+    //     var connection = new ReconnectingWebSocket(this.ENDPOINT);
+    //     var me = this;
+    //     connection.onopen = function() {
+    //         console.log("realtime: connected");
+    //         connection.send(me.getSubscribeMessage());
+    //     };
+    //     connection.onerror = function(e) {
+    //         console.log('realtime: error', arguments);
+    //     };
+
+    //     return connection;
+    // }
+
+    this.connectTo = function(uuids) {
         console.log('realtime: connecting');
         var connection = new ReconnectingWebSocket(this.ENDPOINT);
         var me = this;
         connection.onopen = function() {
             console.log("realtime: connected");
-            connection.send(me.getSubscribeMessage());
-        };
-        connection.onerror = function(e) {
-            console.log('realtime: error', arguments);
-        };
-
-        return connection;
-    }
-
-    this.connectTo = function(uuid) {
-        console.log('realtime: connecting');
-        var connection = new ReconnectingWebSocket(this.ENDPOINT);
-        var me = this;
-        connection.onopen = function() {
-            console.log("realtime: connected");
-            connection.send(me.getSubscribeMessageByUuid(uuid));
+            _.each(uuids, function(uuid) {
+                connection.send(me.getSubscribeMessageByUuid(uuid));
+            });
         };
         connection.onerror = function(e) {
             console.log('realtime: error', arguments);

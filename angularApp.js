@@ -20,4 +20,19 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         game.onload();
         $scope.redraw = true; // now when it changes the game will recognize it
     });
+
+    $scope.logItems = [{
+        date: new Date(),
+        note: "Space Invaders Initialized",
+        style: "italic" // TODO use this
+    }];
+
+    $scope.addLogItem = function(logItem, style) {
+        $scope.logItems.push({
+            date: new Date(),
+            note: logItem,
+            style: style
+        });
+        $scope.$apply();
+    };
 }]);

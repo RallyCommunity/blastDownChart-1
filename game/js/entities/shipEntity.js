@@ -40,6 +40,16 @@ game.Ship = me.ObjectEntity.extend({
             return true;
         }
 
+        if (game.SHOW_LABEL && this.formattedId) {
+            var label = me.pool.pull("label", this.pos.x, this.pos.y, {
+                formattedId: this.formattedId,
+                height: this.height,
+                width: this.width
+            });
+            me.game.world.addChild(label, Number.POSITIVE_INFINITY);
+            this.formattedId = false; // dont draw it again
+        }
+
         // wait for the others to get setup
         if (this.waitFor > 0) {
             return true;
@@ -47,8 +57,10 @@ game.Ship = me.ObjectEntity.extend({
             this.waitFor = 0; // dont let it wrap around
         }
 
+        game.SHOW_LABEL = false;
+
         // ships randomly shoot at the player if they are not being targeted
-        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
+        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
             var x = this.pos.x + this.width / 2;
             var shot = me.pool.pull("bullet", x, this.pos.y, {
                 height: 16,
@@ -64,21 +76,17 @@ game.Ship = me.ObjectEntity.extend({
         }
 
         // movement pattern
-        if (this.numSteps % 3 == 0) {
-            if (this.numSteps % (192) == 0) {
+        if (this.numSteps % 3 === 0) {
+            if (this.numSteps % (192) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
             }
 
+            if (this.numSteps % (192 / 2) === 0) {
+
+            }
+
             if (this.moveRight) {
-                if (this.formattedId) {
-                    var label = me.pool.pull("label", this.pos.x, this.pos.y, {
-                        formattedId: this.formattedId,
-                        height: this.height,
-                        width: this.width
-                    });
-                    me.game.world.addChild(label, Number.POSITIVE_INFINITY);
-                }
                 this.pos.x -= 1;
             } else {
                 this.pos.x += 1;

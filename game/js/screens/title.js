@@ -11,7 +11,7 @@ game.TitleScreen = me.ScreenObject.extend({
         me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('titleScreen')), 1);
      
         // add a new renderable component with the scrolling text
-        me.game.world.addChild(new (me.Renderable.extend ({
+        me.game.world.addChild(new (me.Renderable.extend({
             // constructor
             init : function() {
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
@@ -44,7 +44,7 @@ game.TitleScreen = me.ScreenObject.extend({
                 //just in case
                 this.scrollertween.stop();
             }
-        })), 2);
+        }))(), 2);
          
         // change to play state on press Enter or click/tap
         me.input.bindKey(me.input.KEY.ENTER, "enter", true);

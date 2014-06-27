@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>angular</title>
+    <title>Space Invaders</title>
 
     <script type="text/javascript" src="/apps/2.0rc3/sdk.js"></script>
 
@@ -31216,28 +31216,30 @@ ReconnectingWebSocket.debugAll = false;
         }
     }
 
-    this.connect = function() {
+    // this.connect = function() {
+    //     console.log('realtime: connecting');
+    //     var connection = new ReconnectingWebSocket(this.ENDPOINT);
+    //     var me = this;
+    //     connection.onopen = function() {
+    //         console.log("realtime: connected");
+    //         connection.send(me.getSubscribeMessage());
+    //     };
+    //     connection.onerror = function(e) {
+    //         console.log('realtime: error', arguments);
+    //     };
+
+    //     return connection;
+    // }
+
+    this.connectTo = function(uuids) {
         console.log('realtime: connecting');
         var connection = new ReconnectingWebSocket(this.ENDPOINT);
         var me = this;
         connection.onopen = function() {
             console.log("realtime: connected");
-            connection.send(me.getSubscribeMessage());
-        };
-        connection.onerror = function(e) {
-            console.log('realtime: error', arguments);
-        };
-
-        return connection;
-    }
-
-    this.connectTo = function(uuid) {
-        console.log('realtime: connecting');
-        var connection = new ReconnectingWebSocket(this.ENDPOINT);
-        var me = this;
-        connection.onopen = function() {
-            console.log("realtime: connected");
-            connection.send(me.getSubscribeMessageByUuid(uuid));
+            _.each(uuids, function(uuid) {
+                connection.send(me.getSubscribeMessageByUuid(uuid));
+            });
         };
         connection.onerror = function(e) {
             console.log('realtime: error', arguments);
@@ -50836,6 +50838,7 @@ var game = {
     // probability that enemy ships will shoot
     FIRE_PROBABILITY: 2000,
 
+    OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
 
     // track the score
     data : {
@@ -50843,6 +50846,11 @@ var game = {
         score : {}
     },
 
+    log : {
+        addItem: function(logEvent) {
+            angular.element($("#root")).scope().addLogItem(logEvent);
+        }
+    },
 
     // Run on page load.
     "onload" : function () {
@@ -50911,6 +50919,44 @@ var game = {
         $('body').removeClass('x-body');
         $('html').removeClass('x-viewport');
         Ext.getBody().unmask();
+    },
+
+    addStory: function(oid) {
+        // TODO gather more info
+        Ext.create('Rally.data.WsapiDataStore', {
+            model: 'User Story',
+            fetch: ['Parent', 'ObjectID'],
+            filters: [
+                {
+                    property: 'ObjectID',
+                    operator: '=',
+                    value: oid
+                }
+            ]
+        }).load({
+            scope: this,
+            callback: function(records, operation, success) {
+                console.log(records);
+                game.log.addItem(oid + " created");
+            }
+        });
+        
+    },
+
+    removeStory: function(oid) {
+        var item = game.OID_MAP[oid];
+        if (item && game.OID_MAP[oid].displayed) {
+            // currently displayed - have it fly off
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            if (pendingRemove) {
+                pendingRemove.flyOff();
+            }
+            game.log.addItem(item.formattedId + " recycled");
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
     }
 };
 
@@ -50957,13 +51003,23 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
 
-        this.font = new me.Font("Arial", settings.fontSize || 8, "white", "left");
-        this.parent = settings.parent;
+        this.font = new me.Font("Arial", settings.fontSize || 24, "white", "left");
+        this.formattedId = settings.formattedId;
+        this.displayed = false;
+        console.log("this", this);
     },
 
-    // ship behavior
     update: function() {
-        this.font.draw(context, this.parent, this.pos.x, this.pos.y);
+        return true;
+    },
+
+    draw: function(context) {
+        if (!this.displayed) {
+            console.log('id', this);
+            this.font.draw(context,this.formattedId, this.pos.x, this.pos.y);
+            this.displayed = true;
+        }
+        
     }
 });
                 game.PlayerEntity = me.ObjectEntity.extend({
@@ -50985,7 +51041,7 @@ var game = {
 
     // update position
     update: function(dt) {
-        if (this.targets.length != 0) {
+        if (this.targets.length !== 0) {
             // there is a target to shoot at!
             // line em up and shoot em down
             var myPos = (this.pos.x + this.shootingOffset);
@@ -51010,7 +51066,7 @@ var game = {
         // player movement pattern
         this.stepNum++;
         var step = Math.floor(this.stepNum / (game.WINDOW_WIDTH / 11));
-        if (step == 0) {
+        if (step === 0) {
             // move right halfway
             this.vel.x += this.accel.x * me.timer.tick;
         } else if (step == 1) {
@@ -51050,7 +51106,7 @@ var game = {
         this.updateMovement();
 
         // update animation if necessary
-        if (this.vel.x != 0 || this.vel.y != 0) {
+        if (this.vel.x !== 0 || this.vel.y !== 0) {
             // update object animation
             this.parent(dt);
             return true;
@@ -51111,7 +51167,10 @@ var game = {
         this.moveRight = true;              // which direction to move
         this.collidable = true;             // Can be hit by bullet entities
         this.objectID = settings.objectID;  // ObjectID used for ship destruction and removal
-        this.formattedId = settings.formattedId;
+        if (settings.formattedId) {
+            this.formattedId = settings.formattedId;
+        }
+        
         this.isVulnerable = false;          // can this ship be destroyed
         this.delay = settings.delay;        // Delay before moving to my y position
         this.goToY = y;                     // final y position
@@ -51142,13 +51201,8 @@ var game = {
             this.waitFor = 0; // dont let it wrap around
         }
 
-        var label = me.pool.pull("label", this.pos.x, this.pos.y, {
-            parent: this.formattedId,
-        });
-        me.game.world.addChild(label, Number.POSITIVE_INFINITY);
-
         // ships randomly shoot at the player if they are not being targeted
-        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) == 0) {
+        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
             var x = this.pos.x + this.width / 2;
             var shot = me.pool.pull("bullet", x, this.pos.y, {
                 height: 16,
@@ -51164,13 +51218,21 @@ var game = {
         }
 
         // movement pattern
-        if (this.numSteps % 3 == 0) {
-            if (this.numSteps % (192) == 0) {
+        if (this.numSteps % 3 === 0) {
+            if (this.numSteps % (192) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
             }
 
             if (this.moveRight) {
+                // if (this.formattedId) {
+                //     var label = me.pool.pull("label", this.pos.x, this.pos.y, {
+                //         formattedId: this.formattedId,
+                //         height: this.height,
+                //         width: this.width
+                //     });
+                //     me.game.world.addChild(label, Number.POSITIVE_INFINITY);
+                // }
                 this.pos.x -= 1;
             } else {
                 this.pos.x += 1;
@@ -51364,7 +51426,7 @@ game.HUD.Container = me.ObjectContainer.extend({
             } else if (i % 3 == 2) {
                 align = "right";
                 x = game.WINDOW_WIDTH - 5;
-            } else if (i != 0) {
+            } else if (i !== 0) {
                 y += 25;
             }
 
@@ -51434,7 +51496,7 @@ game.TitleScreen = me.ScreenObject.extend({
         me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('titleScreen')), 1);
      
         // add a new renderable component with the scrolling text
-        me.game.world.addChild(new (me.Renderable.extend ({
+        me.game.world.addChild(new (me.Renderable.extend({
             // constructor
             init : function() {
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
@@ -51467,7 +51529,7 @@ game.TitleScreen = me.ScreenObject.extend({
                 //just in case
                 this.scrollertween.stop();
             }
-        })), 2);
+        }))(), 2);
          
         // change to play state on press Enter or click/tap
         me.input.bindKey(me.input.KEY.ENTER, "enter", true);
@@ -51506,7 +51568,7 @@ game.TitleScreen = me.ScreenObject.extend({
 
 
     /*
-     * Set up the enemy ships like this:
+     * Set up the enemy ships and scoreboard like this:
      TEAM1: 3     Team2: 5     Team3: 7
 
                 [=========]                 Initiative
@@ -51517,13 +51579,14 @@ game.TitleScreen = me.ScreenObject.extend({
     */
     setupShips: function() {
         // subscribe to the realtime data service
+        var playScreen = this;
 
         var realtime = new Realtime();
 
         var data;
         var scope = angular.element($("#root")).scope();
         data = scope.organizedData;
-	    console.log(data);
+        console.log(data);
 
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
@@ -51568,6 +51631,11 @@ game.TitleScreen = me.ScreenObject.extend({
         // TODO remove me!  temporary, for button click destruction demo
         game.shootMe = data.initiative.ObjectID;
 
+
+        game.OID_MAP[data.initiative.ObjectID] = {
+            displayed: true,
+            formattedId: data.initiative.FormattedID
+        };
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, PADDING, {
             height: MOTHERSHIP.height,
@@ -51600,6 +51668,11 @@ game.TitleScreen = me.ScreenObject.extend({
             var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
             var yPosition = PADDING + MOTHERSHIP.height + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
 
+            game.OID_MAP[features[i].feature.ObjectID] = {
+                displayed: true,
+                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy)
+            };
+
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
                 height: FEATURE_SHIP.height,
                 image: "large",
@@ -51608,7 +51681,7 @@ game.TitleScreen = me.ScreenObject.extend({
                 spritewidth: FEATURE_SHIP.width,
                 width: FEATURE_SHIP.width,
                 objectID: features[i].feature.ObjectID,
-                formattedId: features[i].feature.FormattedID,
+                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
                 z: zAxis,
                 type: game.ENEMY_ENTITY_LARGE,
                 delay: FEATURE_DELAY,
@@ -51638,7 +51711,7 @@ game.TitleScreen = me.ScreenObject.extend({
             }
 
             // for proper task vertical alignment
-            if (numFeatures % featuresPerLine == 0) {
+            if (numFeatures % featuresPerLine === 0) {
                 featureLines -= 1;
             }
 
@@ -51660,6 +51733,12 @@ game.TitleScreen = me.ScreenObject.extend({
                 storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
 
                 storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+
+                game.OID_MAP[stories[j].artifact.ObjectID] = {
+                    displayed: true,
+                    formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy)
+                };
+
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
                     height: STORY_SHIP.height,
                     image: "medium",
@@ -51668,7 +51747,7 @@ game.TitleScreen = me.ScreenObject.extend({
                     spritewidth: STORY_SHIP.width,
                     width: STORY_SHIP.width,
                     objectID: stories[j].artifact.ObjectID,
-                    formattedId: stories[j].artifact.FormattedID,
+                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
@@ -51684,15 +51763,19 @@ game.TitleScreen = me.ScreenObject.extend({
                 });
             }
 
+            // add the stories not shown to the map
+            this.addExtraToMap(maxStories, stories, 'artifact');
+
+
             // for proper task vertical alignment
-            if (numStories % storiesPerLine == 0) {
+            if (numStories % storiesPerLine === 0) {
                 storyLines -= 1;
             }
 
-	    var numTasks = tasks.length;
-	    var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
-	    var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
-	    var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
+            var numTasks = tasks.length;
+            var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
+            var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
+            var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
 
             // draw all of the tasks
             for (var k = 0; k < maxTasks; k++) {
@@ -51704,7 +51787,14 @@ game.TitleScreen = me.ScreenObject.extend({
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
-		        game.shootMe = tasks[k].ObjectID;
+                game.shootMe = tasks[k].ObjectID;
+                console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
+
+                game.OID_MAP[tasks[k].ObjectID] = {
+                    displayed: true,
+                    formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy)
+                };
+
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
                     height: TASK_SHIP.height,
                     image: "small",
@@ -51713,7 +51803,7 @@ game.TitleScreen = me.ScreenObject.extend({
                     spritewidth: TASK_SHIP.width,
                     width: TASK_SHIP.width,
                     objectID: tasks[k].ObjectID,
-                    formattedId: tasks[k].FormattedID,
+                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
@@ -51723,7 +51813,13 @@ game.TitleScreen = me.ScreenObject.extend({
 
                 me.game.world.addChild(taskShip, zAxis++);
             }
+
+            // add the tasks that are not shown to the map
+            this.addExtraToMap(maxTasks, tasks);
         }
+
+        // add the features that are not shown to the map
+        this.addExtraToMap(maxFeatures, features, 'feature');
 
         // add our HUD to the game world
         this.HUD = new game.HUD.Container();
@@ -51732,11 +51828,65 @@ game.TitleScreen = me.ScreenObject.extend({
 
 
     /**
+     * Adds the given values to the OID_MAP as not shown
+     * @param start the starting index in the values array
+     * @param values the array of items to add
+     * @param property the property offset of the object in the array to access ObjectID (if any)
+     */
+    addExtraToMap: function(start, values, property) {
+        // add all not shown tasks OIDs to the map
+        for (var extra = start; extra < values.length; extra++) {
+            if (property) {
+                game.OID_MAP[values[extra][property].ObjectID] = {
+                    displayed: false,
+                    formattedId: playScreen.getFormattedId(values[extra][property]._UnformattedID, values[extra][property]._TypeHierarchy)
+                };
+            } else {
+                game.OID_MAP[values[extra].ObjectID] = {
+                    displayed: false,
+                    formattedId: playScreen.getFormattedId(values[extra]._UnformattedID, values[extra]._TypeHierarchy)
+                };
+            }
+        }
+    },
+
+
+    /**
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent: function() {
         // TODO remove all ships?
+
+        _.each(game.OID_MAP, function(element, index, list) {
+            var destroy = me.game.world.getChildByProp('objectID', index);
+            me.game.world.removeChild(destroy);
+        });
+
         me.game.world.removeChild(this.HUD);
+    },
+
+    /**
+     * Determines and returns the formatted id
+     * @param unformattedID the unformattedID of the object
+     * @param typeHierarchy the typeHierarchy array of the object
+     * @return the corresponding FormattedId
+     */
+    getFormattedId: function(unformattedID, typeHierarchy) {
+        var ret = "";
+        typeHierarchy = typeHierarchy[typeHierarchy.length - 1].toLowerCase();
+        if (typeHierarchy === "hierarchicalrequirement") {
+            ret += "US";
+        } else if (typeHierarchy === "defect") {
+            ret += "DE";
+        } else if (typeHierarchy === "portfolioitem/feature") {
+            ret += "F";
+        } else if (typeHierarchy == "task") {
+            ret += "T";
+        } else {
+            console.log("not found", typeHierarchy);
+        }
+        ret += unformattedID;
+        return ret;
     }
 });
 
@@ -51778,7 +51928,41 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
-        console.log(Rally);
+        var oid = 20185829601;
+
+
+        // TODO why can't I get the exact same data using WSAPI?
+
+        Ext.create('Rally.data.WsapiDataStore', {
+            model: 'User Story',
+            fetch: true,
+            filters: [
+                {
+                    property: 'ObjectID',
+                    operator: "=",
+                    value: oid
+                }
+            ]
+        }).load({
+            scope: this,
+            callback: function(records, operation, success) {
+                console.log('wsapi', oid, records, operation, success);
+            }
+        });
+
+        Ext.create('Rally.data.lookback.SnapshotStore', {
+            fetch: true,
+            findConfig: {
+                "_TypeHierarchy": "HierarchicalRequirement",
+                "__At": "current",
+                "ObjectID": oid
+            }
+        }).load({
+            scope: this,
+            callback: function(records, operation, success) {
+                console.log('lbapi', oid, records, operation, success);
+            }
+        });
     }
 });
 
@@ -51806,76 +51990,71 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         game.onload();
         $scope.redraw = true; // now when it changes the game will recognize it
     });
+
+    $scope.logItems = [{
+        date: new Date(),
+        note: "Space Invaders Initialized",
+        style: "italic" // TODO use this
+    }];
+
+    $scope.addLogItem = function(logItem, style) {
+        $scope.logItems.push({
+            date: new Date(),
+            note: logItem,
+            style: style
+        });
+        $scope.$apply();
+    };
 }]);
 
                 module.factory('RealtimeService', function () {
         var realtime = new Realtime();
+        var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
+        var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
         return {
-            connect: function(uuids, dataHandler) {
-                Ext.Array.each(uuids, function(id) {
-                    var websocket = realtime.connectTo(id);
-                    console.log(realtime);        
-                    websocket.onmessage = Ext.bind(function(e) {
-                            var data = JSON.parse(e.data);
-                            //                        console.log('realtime message', data);
-                            realtime.publishObjectChanged(data, this);
-                            if (data.type) { // events (update, create, etc have a type (delete = recycled)
-                                // TODO handle these cases in the game realm
-                                // update - only need to handle this if something is reparented
-                                // recycled - ship flies off
-                                
-                                console.log(data.data.action + "", data);
+            connect: function(uuids) {
+                var websocket = realtime.connectTo(uuids);
+                console.log(realtime);        
+                websocket.onmessage = Ext.bind(function(e) {
+                    var data = JSON.parse(e.data);
 
+                    realtime.publishObjectChanged(data, this);
+                    if (data.type && data.type == "event" && data.data && data.data.action) {
+                        // TODO handle these cases in the game realm
 
-
-                                Ext.create('Rally.data.wsapi.Store', {
-                                    model: 'PortfolioItem/Initiative',
-                                    filters: [
-                                        {
-                                          property: "_refObjectUUID",
-                                          operator: "=",
-                                          value: GLOBAL._refObjectUUID
-                                        }
-                                    ]
-                                }).load({
-                                    scope: this,
-                                    callback: function(records, operation, success) {
-                                        console.log('for ' + GLOBAL._refObjectUUID + ' got', records);
-                                        callbackData(organizedData);
-                                    }
-                                });  
-                                dataHandler();
-
-                                // switch(data.data.action) {
-                                //     case 'recycled':
-                                //         break;
-                                //     case 'updated':
-                                        
-                                //         break;
-                                //     default: break;
-                                // }
-                            }
-                    }, this);
-                });
+                        // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
+                        //      Create - User Story created
+                        //      Recycle - User Story recycled
+                        // A defect has been filed to make sure that these events are propagating correctly
+                        // Here's to hoping that it gets fixed sometime soon.
+                        if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
+                            game.addStory(data.data.state[oidUUID].value); // send OID to game side
+                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.state[typeUUID].old_value == "UserStory") {
+                            game.removeStory(data.data.changes[oidUUID].old_value);
+                        } else {
+                            // ignore all other cases for now
+                        }
+                    }
+                }, this);
             }
-        }
+        };
 });
 
-                module.service('RallyDataService', function(RealtimeService) {
+                module.service('RallyDataService', function (RealtimeService) {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
         fetch: true,
-        hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project"],
+        hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID"],
         findConfig: {
-            "_ItemHierarchy" : GLOBAL.ObjectID,
-            "__At" : "current"
+            "_ItemHierarchy": GLOBAL.ObjectID,
+            "__At": "current"
         }
     });
 
     return {
-        getData: function(connect, callbackData) {
+        getData: function (connect, callbackData) {
             lookbackStore.load({
                 scope: this,
-                callback: function(records, operation, success) {
+                callback: function (records, operation, success) {
                     // aggreate data first, then organize it
                     aggregateData = {
                         initiative: {},
@@ -51885,31 +52064,32 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                     };
 
                     var tasks = [];
-                    _.each(records, function(artifact) {
+                    _.each(records, function (artifact) {
                         var types = artifact.raw._TypeHierarchy;
+                        console.log(artifact);
                         switch (types[types.length - 1]) {
-                            case "Defect":
-                                aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
-                                    artifact: artifact.raw,
-                                    children: []
-                                };
-                                break;
-                            case "HierarchicalRequirement":
-                                aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
-                                    artifact: artifact.raw,
-                                    children: []
-                                };
-                                break;
-                            case "PortfolioItem/Feature":
-                                aggregateData.features[artifact.data.ObjectID] = {
-                                    feature: artifact.raw,
-                                    children: []
-                                };
-                                break;
-                            case "Task":
-                                Ext.Array.push(tasks, artifact.raw);
-                                break;
-                            default: // ignore
+                        case "Defect":
+                            aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
+                                artifact: artifact.raw,
+                                children: []
+                            };
+                            break;
+                        case "HierarchicalRequirement":
+                            aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
+                                artifact: artifact.raw,
+                                children: []
+                            };
+                            break;
+                        case "PortfolioItem/Feature":
+                            aggregateData.features[artifact.data.ObjectID] = {
+                                feature: artifact.raw,
+                                children: []
+                            };
+                            break;
+                        case "Task":
+                            Ext.Array.push(tasks, artifact.raw);
+                            break;
+                        default: // ignore
                         }
                     });
 
@@ -51923,8 +52103,8 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                     //   |       +-->Tasks
                     //   |
                     //   +-->ClosedStories
-                    
-                    
+
+
                     var organizedData = {
                         initiative: angular.element(document.body).scope().initiative,
                         features: [],
@@ -51934,7 +52114,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                     var projects = [];
 
                     // Add tasks as children of their associated story/defect
-                    _.each(tasks, function(task) {
+                    _.each(tasks, function (task) {
                         var parent = task.WorkProduct;
 
                         if (aggregateData.storiesAndDefects[parent]) {
@@ -51944,7 +52124,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                     });
 
                     // Add stories and tasks as children of their feature
-                    _.each(aggregateData.storiesAndDefects, function(object, oid) {
+                    _.each(aggregateData.storiesAndDefects, function (object, oid) {
                         var parent;
                         var types = object.artifact._TypeHierarchy;
 
@@ -51968,7 +52148,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                             var requirement = aggregateData.storiesAndDefects[object.artifact.Requirement];
                             if (requirement) {
                                 parent = requirement.artifact.PortfolioItem;
-                            }// else no parent requirement
+                            } // else no parent requirement
                         }
 
                         if (aggregateData.features[parent]) {
@@ -51977,106 +52157,47 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                         } // else not parented to a feature
                     });
 
-                    console.log('projects', projects);
+                    Ext.create('Rally.data.WsapiDataStore', {
+                        model: 'Project',
+                        fetch: ['Name'],
+                        limit: Infinity
+                            /*
+                                                TODO optimize
+                                                filters: [
+                                                        {
+                                                                property: 'ObjectID',
+                                                                operator: 'in',
+                                                                value: projects
+                                                        }
+                                                ]
+                                                */
+                    }).load({
+                        scope: this,
+                        callback: function (records, operation, success) {
+                            console.log("records", records);
+                            console.log(GLOBAL);
 
-                    // TODO optimize
-
-                    if (connect) {
-                      Ext.create('Rally.data.WsapiDataStore', {
-                          model: 'Project',
-                          fetch: ['Name'],
-                          limit: Infinity
-                          /*
-                          
-                          filters: [
-                              {
-                                  property: 'ObjectID',
-                                  operator: 'in',
-                                  value: projects
-                              }
-                          ]
-                          */
-                      }).load( {
-                          scope: this,
-                          callback: function(records, operation, success) {
-                              console.log("records", records);
-                              console.log(GLOBAL);
-
-                              var i = 0;
-                              projectUUIDs = [];
-                              Ext.Array.each(records, function(record) {
-                                 if (Ext.Array.indexOf(projects, record.get('ObjectID')) >= 0) {
-                                     Ext.Array.push(projectUUIDs, record.get('_refObjectUUID'));
-                                 }
-                              });
-                              organizedData.features = _.toArray(aggregateData.features);
-                              organizedData.initiative = GLOBAL;
-
-                              console.log("initiative UUID", GLOBAL._refObjectUUID);
-
-                              var scope = angular.element($("#root")).scope();
-                              scope.realtimeConnection = function() {
-                                 RealtimeService.connect(projectUUIDs, function() {
-                                    setTimeout(function(){
-                                      scope.RallyDataService.getData(false, function(data) {
-                                        scope.organizedData = data;
-                                        scope.$apply();
-                                        // Start the game
-                                        console.log("changes - ", data);
-                                      });
-                                    }, 30000); // wait 30s for lbapi to reflect changes
-                                    // PROBLEM - you get multiple "update" messages
-                                    
-                                 });
-                              }
-                              scope.realtimeConnection();
-
-                              callbackData(organizedData);
-                              // Cross Origin Request error.  But this does return the correct data!  can convert from _refObjectUUID to ObjectID this way
-                              /*
-                              $.ajax({
-                                url: 'http://rally1.rallydev.com/slm/webservice/v2.0/portfolioitem/' + GLOBAL._refObjectUUID +'?fetch=ObjectID&compact=true',
-                                dataType: 'json',
-                                success: function(result) {
-                                  console.log(result);
+                            var i = 0;
+                            projectUUIDs = [];
+                            Ext.Array.each(records, function (record) {
+                                if (Ext.Array.indexOf(projects, record.get('ObjectID')) >= 0) {
+                                    Ext.Array.push(projectUUIDs, record.get('_refObjectUUID'));
                                 }
-                              });
+                            });
+                            organizedData.features = _.toArray(aggregateData.features);
+                            organizedData.initiative = GLOBAL;
 
-                              // convert from OID to UUID
-                              $.ajax({
-                                url: 'http://rally1.rallydev.com/slm/webservice/v2.0/portfolioitem/' + GLOBAL.ObjectID +'?fetch=uuid&compact=true',
-                                dataType: 'json',
-                                success: function(result) {
-                                  console.log(result);
-                                }
-                              });
-*/
+                            console.log("initiative UUID", GLOBAL._refObjectUUID);
 
-                              // Ext.create('Rally.data.wsapi.Store', {
-                              //    model: 'PortfolioItem/Initiative',
-                              //    filters: [
-                              //       {
-                              //         property: "_refObjectUUID",
-                              //         operator: "=",
-                              //         value: GLOBAL._refObjectUUID
-                              //       }
-                              //    ]
-                              // }).load({
-                              //     scope: this,
-                              //     callback: function(records, operation, success) {
-                              //       console.log('for ' + GLOBAL._refObjectUUID + ' got', records);
-                              //       callbackData(organizedData);
-                              //     }
-                              // });  
-                           }
-                      });
-                    } else {
-                      organizedData.features = _.toArray(aggregateData.features);
-                      organizedData.initiative = GLOBAL;
-                      callbackData(organizedData);
-                    }
+                            var scope = angular.element($("#root")).scope();
+                            scope.realtimeConnection = function () {
+                                RealtimeService.connect(projectUUIDs);
+                            };
+                            scope.realtimeConnection(); // listen for changes in realtime
 
-
+                            callbackData(organizedData);
+                        }
+                    });
                 }
             });
         }
@@ -52084,69 +52205,119 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 });
 
 /*
-                             Ext.create('Rally.data.wsapi.Store', {
-                                 model: 'PortfolioItem/Feature',
-                                 limit: Infinity,
-                                 fetch: ['Parent'],
-                                 context: {
-                                     project: '/project/' + projects[0], // TODO this only does one project
-                                     projectScopeUp: false,
-                                     projectScopeDown: false
-                                 }
-                             }).load({
-                                  scope: this,
-                                  callback: function(records, operation, success) {
-                                      console.log('records', records);
-                                      console.log(organizedData.initiative._refObjectUUID);
-                                      var features = [];
-                                      Ext.Array.each(records, function(record) {
-                                              if (record.data && record.data.Parent && record.data.Parent._refObjectUUID == GLOBAL._refObjectUUID) {
-                                                  Ext.Array.push(features, record);
-                                              }
-                                      });
-                                      console.log(features);
+                                                         Ext.create('Rally.data.wsapi.Store', {
+                                                                 model: 'PortfolioItem/Feature',
+                                                                 limit: Infinity,
+                                                                 fetch: ['Parent'],
+                                                                 context: {
+                                                                         project: '/project/' + projects[0], // TODO this only does one project
+                                                                         projectScopeUp: false,
+                                                                         projectScopeDown: false
+                                                                 }
+                                                         }).load({
+                                                                    scope: this,
+                                                                    callback: function(records, operation, success) {
+                                                                            console.log('records', records);
+                                                                            console.log(organizedData.initiative._refObjectUUID);
+                                                                            var features = [];
+                                                                            Ext.Array.each(records, function(record) {
+                                                                                            if (record.data && record.data.Parent && record.data.Parent._refObjectUUID == GLOBAL._refObjectUUID) {
+                                                                                                    Ext.Array.push(features, record);
+                                                                                            }
+                                                                            });
+                                                                            console.log(features);
 
 
 
-                                      Ext.create('Rally.data.wsapi.Store', {
-                                           model: 'PortfolioItem/Feature',
-                                           limit: Infinity,
-                                           fetch: ['Parent'],
-                                           context: {
-                                               project: '/project/' + projects[0], // TODO this only does one project
-                                               projectScopeUp: false,
-                                               projectScopeDown: false
-                                           }
-                                       }).load({
-                                            scope: this,
-                                            callback: function(records, operation, success) {
-                                                console.log('records', records);
-                                                console.log(organizedData.initiative._refObjectUUID);
-                                                var features = [];
-                                                Ext.Array.each(records, function(record) {
-                                                        if (record.data && record.data.Parent && record.data.Parent._refObjectUUID == GLOBAL._refObjectUUID) {
-                                                            Ext.Array.push(features, record);
-                                                        }
-                                                });
-                                                console.log(features);
+                                                                            Ext.create('Rally.data.wsapi.Store', {
+                                                                                     model: 'PortfolioItem/Feature',
+                                                                                     limit: Infinity,
+                                                                                     fetch: ['Parent'],
+                                                                                     context: {
+                                                                                             project: '/project/' + projects[0], // TODO this only does one project
+                                                                                             projectScopeUp: false,
+                                                                                             projectScopeDown: false
+                                                                                     }
+                                                                             }).load({
+                                                                                        scope: this,
+                                                                                        callback: function(records, operation, success) {
+                                                                                                console.log('records', records);
+                                                                                                console.log(organizedData.initiative._refObjectUUID);
+                                                                                                var features = [];
+                                                                                                Ext.Array.each(records, function(record) {
+                                                                                                                if (record.data && record.data.Parent && record.data.Parent._refObjectUUID == GLOBAL._refObjectUUID) {
+                                                                                                                        Ext.Array.push(features, record);
+                                                                                                                }
+                                                                                                });
+                                                                                                console.log(features);
 
-                                                _.pluck(features, 'data.ObjectID');
+                                                                                                _.pluck(features, 'data.ObjectID');
 
-                                                console.log(features);
+                                                                                                console.log(features);
 
-                                                Ext.create
-                                            }
-                                       });
-                                  }
-                             });
+                                                                                                Ext.create
+                                                                                        }
+                                                                             });
+                                                                    }
+                                                         });
 
 */
 
 
+// Cross Origin Request error.  But this does return the correct data!  can convert from _refObjectUUID to ObjectID this way
+/*
+                                                            $.ajax({
+                                                                url: 'http://rally1.rallydev.com/slm/webservice/v2.0/portfolioitem/' + GLOBAL._refObjectUUID +'?fetch=ObjectID&compact=true',
+                                                                dataType: 'json',
+                                                                success: function(result) {
+                                                                    console.log(result);
+                                                                }
+                                                            });
 
+                                                            // convert from OID to UUID
+                                                            $.ajax({
+                                                                url: 'http://rally1.rallydev.com/slm/webservice/v2.0/portfolioitem/' + GLOBAL.ObjectID +'?fetch=uuid&compact=true',
+                                                                dataType: 'json',
+                                                                success: function(result) {
+                                                                    console.log(result);
+                                                                }
+                                                            });
+*/
+
+// Ext.create('Rally.data.wsapi.Store', {
+//    model: 'PortfolioItem/Initiative',
+//    filters: [
+//       {
+//         property: "_refObjectUUID",
+//         operator: "=",
+//         value: GLOBAL._refObjectUUID
+//       }
+//    ]
+// }).load({
+//     scope: this,
+//     callback: function(records, operation, success) {
+//       console.log('for ' + GLOBAL._refObjectUUID + ' got', records);
+//       callbackData(organizedData);
+//     }
+// });  
+
+
+/*
+
+                                                                 setTimeout(function(){
+                                                                            scope.RallyDataService.getData(false, function(data) {
+                                                                                scope.organizedData = data;
+                                                                                scope.$apply();
+                                                                                // Start the game
+                                                                                console.log("changes - ", data);
+                                                                            });
+                                                                        }, 30000); // wait 30s for lbapi to reflect changes
+                                                                        // PROBLEM - you get multiple "update" messages
+                                                                        
+                                                                        */
 
             Rally.launchApp('CustomApp', {
-                name:"angular",
+                name:"Space Invaders",
 	            parentRepos:""
             });
 
@@ -52275,15 +52446,10 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 
                 <h3>Ships Destroyed</h3>
                 <ul id="historyLog">
-                  <li>History 1</li>
-                  <li>History 2</li>
-                  <li>History 3</li>
+                  <li ng-repeat="logItem in logItems">[{{logItem.date.getMonth() + 1}}/{{logItem.date.getDate()}} {{logItem.date.getHours()}}:{{logItem.date.getMinutes()}}:{{logItem.date.getSeconds()}}] - {{logItem.note}}</li>
                 </ul>
                 <ul id="realtimeLog">
-                  <li>Realtime 1</li>
-                  <li>Realtime 2</li>
-                  <li>Realtime 3</li>
-                  <li>Realtime 4</li>
+
                 </ul>
             </div>
             <button type="button" id="completeFeature">Complete a feature</button>

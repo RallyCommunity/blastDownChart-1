@@ -17,7 +17,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
     // update position
     update: function(dt) {
-        if (this.targets.length != 0) {
+        if (this.targets.length !== 0) {
             // there is a target to shoot at!
             // line em up and shoot em down
             var myPos = (this.pos.x + this.shootingOffset);
@@ -42,7 +42,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // player movement pattern
         this.stepNum++;
         var step = Math.floor(this.stepNum / (game.WINDOW_WIDTH / 11));
-        if (step == 0) {
+        if (step === 0) {
             // move right halfway
             this.vel.x += this.accel.x * me.timer.tick;
         } else if (step == 1) {
@@ -82,7 +82,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.updateMovement();
 
         // update animation if necessary
-        if (this.vel.x != 0 || this.vel.y != 0) {
+        if (this.vel.x !== 0 || this.vel.y !== 0) {
             // update object animation
             this.parent(dt);
             return true;

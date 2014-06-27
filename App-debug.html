@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>angular</title>
+    <title>Space Invaders</title>
 
 
     <script type="text/javascript" src="https://rally1.rallydev.com/apps/2.0rc3/sdk-debug.js"></script>
@@ -33,7 +33,7 @@
                 ],
         function() {
             Rally.launchApp('CustomApp', {
-                name:"angular"
+                name:"Space Invaders"
             });
         }, true);
     </script>
@@ -59,15 +59,10 @@
 
                 <h3>Ships Destroyed</h3>
                 <ul id="historyLog">
-                  <li>History 1</li>
-                  <li>History 2</li>
-                  <li>History 3</li>
+                  <li ng-repeat="logItem in logItems">[{{logItem.date.getMonth() + 1}}/{{logItem.date.getDate()}} {{logItem.date.getHours()}}:{{logItem.date.getMinutes()}}:{{logItem.date.getSeconds()}}] - {{logItem.note}}</li>
                 </ul>
                 <ul id="realtimeLog">
-                  <li>Realtime 1</li>
-                  <li>Realtime 2</li>
-                  <li>Realtime 3</li>
-                  <li>Realtime 4</li>
+
                 </ul>
             </div>
             <button type="button" id="completeFeature">Complete a feature</button>

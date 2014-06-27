@@ -1,52 +1,32 @@
 module.factory('RealtimeService', function () {
         var realtime = new Realtime();
+        var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
+        var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
         return {
-            connect: function(uuids, dataHandler) {
-                Ext.Array.each(uuids, function(id) {
-                    var websocket = realtime.connectTo(id);
-                    console.log(realtime);        
-                    websocket.onmessage = Ext.bind(function(e) {
-                            var data = JSON.parse(e.data);
-                            //                        console.log('realtime message', data);
-                            realtime.publishObjectChanged(data, this);
-                            if (data.type) { // events (update, create, etc have a type (delete = recycled)
-                                // TODO handle these cases in the game realm
-                                // update - only need to handle this if something is reparented
-                                // recycled - ship flies off
-                                
-                                console.log(data.data.action + "", data);
+            connect: function(uuids) {
+                var websocket = realtime.connectTo(uuids);
+                console.log(realtime);        
+                websocket.onmessage = Ext.bind(function(e) {
+                    var data = JSON.parse(e.data);
 
+                    realtime.publishObjectChanged(data, this);
+                    if (data.type && data.type == "event" && data.data && data.data.action) {
+                        // TODO handle these cases in the game realm
 
-
-                                Ext.create('Rally.data.wsapi.Store', {
-                                    model: 'PortfolioItem/Initiative',
-                                    filters: [
-                                        {
-                                          property: "_refObjectUUID",
-                                          operator: "=",
-                                          value: GLOBAL._refObjectUUID
-                                        }
-                                    ]
-                                }).load({
-                                    scope: this,
-                                    callback: function(records, operation, success) {
-                                        console.log('for ' + GLOBAL._refObjectUUID + ' got', records);
-                                        callbackData(organizedData);
-                                    }
-                                });  
-                                dataHandler();
-
-                                // switch(data.data.action) {
-                                //     case 'recycled':
-                                //         break;
-                                //     case 'updated':
-                                        
-                                //         break;
-                                //     default: break;
-                                // }
-                            }
-                    }, this);
-                });
+                        // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
+                        //      Create - User Story created
+                        //      Recycle - User Story recycled
+                        // A defect has been filed to make sure that these events are propagating correctly
+                        // Here's to hoping that it gets fixed sometime soon.
+                        if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
+                            game.addStory(data.data.state[oidUUID].value); // send OID to game side
+                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.state[typeUUID].old_value == "UserStory") {
+                            game.removeStory(data.data.changes[oidUUID].old_value);
+                        } else {
+                            // ignore all other cases for now
+                        }
+                    }
+                }, this);
             }
-        }
+        };
 });
