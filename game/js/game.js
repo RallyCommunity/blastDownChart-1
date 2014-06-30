@@ -26,6 +26,10 @@ var game = {
 
     OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
 
+    FEATURE_COLUMN: {},
+
+    AVAILABLE_POSITIONS: {},
+
     // track the score
     data : {
         // score
@@ -85,8 +89,6 @@ var game = {
         // TODO - eventually this will not be controlled by a button - realtime data
         $("#completeFeature").click(function() {
             // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
-            // TODO will you be able to shoot down a task? They are so small and they are moving!
-
             var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
             if (destroy.length == 1) {
                 var players = me.game.world.getChildByProp('type', game.PLAYER);
@@ -109,32 +111,112 @@ var game = {
     },
 
     addStory: function(oid) {
-        // TODO gather more info
-        Ext.create('Rally.data.WsapiDataStore', {
-            model: 'User Story',
-            fetch: ['Parent', 'ObjectID'],
-            filters: [
-                {
-                    property: 'ObjectID',
-                    operator: '=',
-                    value: oid
-                }
-            ]
-        }).load({
-            scope: this,
-            callback: function(records, operation, success) {
-                console.log(records);
-                game.log.addItem(oid + " created");
+        // TODO optimize
+        Rally.data.WsapiModelFactory.getModel({
+            type: 'User Story',
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri()
+            },
+            success: function(model) {
+                model.load(oid, {
+                    scope: this,
+                    callback: function(record, op, success) {
+                        console.log('got record for story', record, 'record.data.Feature._ref', record.data.Feature._ref);
+                        // console.log(record);
+                        // console.log(record.data.Feature._ref);
+                        Rally.data.WsapiModelFactory.getModel({
+                            type: 'PortfolioItem/Feature',
+                            context: {
+                                workspace: Rally.util.Ref.getRelativeUri()
+                            },
+                            success: function(featureModel) {
+                                featureModel.load(record.data.Feature._ref, {
+                                    scope: this,
+                                    callback: function(parent) {
+                                        console.log('got feature for story', parent);
+                                        console.log('available', game.AVAILABLE_POSITIONS);
+                                        // console.log(record);
+                                        var id = null;
+                                        if (parent && parent.data) {
+                                            id = parent.data.ObjectID;
+                                        }
+                                        console.log(id, game.OID_MAP[id]);
+                                        if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
+                                            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions;
+                                            if (positions && positions.length > 0) {
+                                                var position = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions.shift();
+                                                console.log("putting story ship at position", position);
+                                                game.OID_MAP[oid] = {
+                                                    displayed: true,
+                                                    formattedId: record.data.FormattedID
+                                                }
+                                                // create a new ship entitiy!
+                                                var STORY_SHIP = {
+                                                    width: 32,
+                                                    height: 32
+                                                };
+
+                                                var storyShip = me.pool.pull("enemyShip", position.x, position.y, {
+                                                    height: STORY_SHIP.height,
+                                                    image: "medium",
+                                                    name: "[STORY/DEFECT] - " + record.data.Name,
+                                                    spriteheight: STORY_SHIP.height,
+                                                    spritewidth: STORY_SHIP.width,
+                                                    width: STORY_SHIP.width,
+                                                    objectID: record.data.ObjectID,
+                                                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
+                                                    z: 10,
+                                                    health: 2,
+                                                    type: game.ENEMY_ENTITY_MEDIUM,
+                                                    delay: 0,
+                                                    programmaticallyAdded: true,
+                                                    featureId: id,
+                                                    waitFor: 0
+                                                });
+
+                                                me.game.world.addChild(storyShip, 10);
+                                                console.log('added storyship', storyShip);
+                                                game.log.addItem(record.data.Name + ":: ADDED");
+                                            } else {
+                                                game.OID_MAP[oid] = {
+                                                    displayed: false,
+                                                    formattedId: "f"
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             }
         });
-        
     },
 
     removeStory: function(oid) {
+        // removing a ship
         var item = game.OID_MAP[oid];
-        if (item && game.OID_MAP[oid].displayed) {
+        if (item && item.displayed && game.OID_MAP[Parent.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[Parent.ObjectID].column]) {
+            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[Parent.ObjectID].column].storyPositions;
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            if (positions && pendingRemove) {
+                positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
+                pendingRemove.flyOff();
+            }
+            game.log.addItem(item.formattedId + " recycled");
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
+        /*
+        var item = game.OID_MAP[oid];
+        if (item && item.displayed) {
             // currently displayed - have it fly off
             var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            console.log('pending remove', pendingRemove);
+            game.OID_MAP[Parent.ObjectID]
             if (pendingRemove) {
                 pendingRemove.flyOff();
             }
@@ -144,5 +226,29 @@ var game = {
             delete game.OID_MAP[oid];
             game.log.addItem(item.formattedId + " recycled");
         }
-    }
+        */
+    },
+
+    // TODO
+    addTask: function(oid) {
+
+    },
+
+    removeTask: function(oid) {
+        var item = game.OID_MAP[oid];
+        if (item && item.displayed) {
+            // currently displayed - have it fly off
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            console.log('pending remove', pendingRemove);
+            game.OID_MAP[Parent.ObjectID]
+            if (pendingRemove) {
+                pendingRemove.flyOff();
+            }
+            game.log.addItem(item.formattedId + " recycled");
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
+    },
 };

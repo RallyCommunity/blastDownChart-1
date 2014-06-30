@@ -87,16 +87,16 @@ module.service('RallyDataService', function (RealtimeService) {
                         var types = object.artifact._TypeHierarchy;
 
                         Ext.Array.include(projects, object.artifact.Project);
+                        console.log('object', object);
 
-                        if (organizedData.teamsPoints[object.artifact.Project] && object.artifact.State === "Closed") {
+                        if (object.artifact.ScheduleState === "Completed") {
+                            if (organizedData.teamsPoints[object.artifact.Project]) {
+                                organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
+                            } else {
+                                organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
+                            }
                             Ext.Array.push(organizedData.closedStories, object);
-                            organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
-                            return;
-                        } else if (organizedData.teamsPoints[object.artifact.Project]) {
-                            organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
-                            return;
                         }
-
 
                         if (types[types.length - 1] === "HierarchicalRequirement") {
                             // stories have an associated PortfolioItem/Feature

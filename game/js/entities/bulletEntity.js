@@ -64,7 +64,58 @@ game.BulletEntity = me.ObjectEntity.extend({
                 me.game.world.addChild(emitter.container);
                 emitter.streamParticles();
 
-                $('#gameLog').append('<li>' + res.obj.name + '</li>');
+                console.log(res.obj);
+                if (res.obj.featureId && game.OID_MAP[res.obj.featureId]) {
+                    if (res.obj.type == game.ENEMY_ENTITY_SMALL) { // task
+
+                        // was there a task waiting for this spot?
+                        if (game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingTasks.length > 0) {
+
+                        } else {
+                            game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].taskPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
+                        }
+                    } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM) {
+                        console.log('destroyed a user story');
+                        // was there a story waiting for this spot?
+                        if (game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.length > 0) {
+                            console.log('replacing');
+                            var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.shift();
+
+                            game.OID_MAP[ship.ObjectID].displayed = true;
+                            // create a new ship entitiy!
+                            var STORY_SHIP = {
+                                width: 32,
+                                height: 32
+                            };
+
+                            var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
+                                height: STORY_SHIP.height,
+                                image: "medium",
+                                name: "[STORY/DEFECT] - " + ship.Name,
+                                spriteheight: STORY_SHIP.height,
+                                spritewidth: STORY_SHIP.width,
+                                width: STORY_SHIP.width,
+                                objectID: ship.ObjectID,
+                                //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
+                                z: res.obj.z,
+                                health: 2,
+                                type: game.ENEMY_ENTITY_MEDIUM,
+                                delay: 0,
+                                programmaticallyAdded: true,
+                                featureId: res.obj.featureId,
+                                waitFor: 0
+                            });
+
+                            me.game.world.addChild(storyShip, res.obj.z);
+                        } else {
+                            console.log('empty slot');
+                            game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].storyPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
+                        }
+                    }
+                    
+                }
+
+                game.log.addItem(res.obj.name + ":: completed");
 
                 var players = me.game.world.getChildByProp('type', game.PLAYER);
                 if (players.length == 1) {
@@ -72,9 +123,9 @@ game.BulletEntity = me.ObjectEntity.extend({
                 }
 
                 me.game.world.removeChild(res.obj);
-            } else if (image && !this.shootDown && !res.obj.isDestructable()) {
+            } else if (image && !this.shootDown && !res.obj.isDestructable()) { // let it pass through for now, target could be above us
                 // res.obj.flashShields();
-                // let it pass through for now
+                
                 //me.game.world.removeChild(this);
             }
 

@@ -50814,6 +50814,10 @@ me.DroptargetEntity = (function (Entity, Event) {
     /*---------------------------------------------------------*/
 })(window);
 
+                function Point(x, y) {
+    this.x = x;
+    this.y = y;
+}
                 // TODO destroy a given feature/story/task that is not on the screen
 // TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
 /* Game namespace */
@@ -50828,6 +50832,8 @@ var game = {
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
 
+    SHOW_LABEL: true,
+
     PLAYER: 88,     // player type
     BULLET: 77,     // bullet type
     EXPLOSION: 66,  // explosion type
@@ -50839,6 +50845,10 @@ var game = {
     FIRE_PROBABILITY: 2000,
 
     OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
+
+    FEATURE_COLUMN: {},
+
+    AVAILABLE_POSITIONS: {},
 
     // track the score
     data : {
@@ -50899,8 +50909,6 @@ var game = {
         // TODO - eventually this will not be controlled by a button - realtime data
         $("#completeFeature").click(function() {
             // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
-            // TODO will you be able to shoot down a task? They are so small and they are moving!
-
             var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
             if (destroy.length == 1) {
                 var players = me.game.world.getChildByProp('type', game.PLAYER);
@@ -50911,6 +50919,7 @@ var game = {
             }
             $('#completeFeature').hide();
         });
+
         me.state.change(me.state.MENU);
 
         // Reveal the game
@@ -50922,7 +50931,7 @@ var game = {
     },
 
     addStory: function(oid) {
-        // TODO gather more info
+        // TODO gather more info about parent, etc
         Ext.create('Rally.data.WsapiDataStore', {
             model: 'User Story',
             fetch: ['Parent', 'ObjectID'],
@@ -50943,11 +50952,12 @@ var game = {
         
     },
 
-    removeStory: function(oid) {
+    removeItem: function(oid) {
         var item = game.OID_MAP[oid];
         if (item && game.OID_MAP[oid].displayed) {
             // currently displayed - have it fly off
             var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            console.log('pending remove', pendingRemove);
             if (pendingRemove) {
                 pendingRemove.flyOff();
             }
@@ -50957,6 +50967,10 @@ var game = {
             delete game.OID_MAP[oid];
             game.log.addItem(item.formattedId + " recycled");
         }
+    },
+
+    addTask: function(oid) {
+
     }
 };
 
@@ -51001,25 +51015,26 @@ var game = {
     // constructor
     init: function(x, y, settings) {
         // call the constructor
-        this.parent(x, y, settings);
+        this.parent(x + (settings.width / 2), y, settings);
 
-        this.font = new me.Font("Arial", settings.fontSize || 24, "white", "left");
+        this.font = new me.Font("Arial", settings.fontSize || 24, "white", "center");
         this.formattedId = settings.formattedId;
         this.displayed = false;
-        console.log("this", this);
     },
 
     update: function() {
-        return true;
+        this.vel.x = 0;
+        this.vel.y = 0;
+        return false;
     },
 
     draw: function(context) {
-        if (!this.displayed) {
-            console.log('id', this);
-            this.font.draw(context,this.formattedId, this.pos.x, this.pos.y);
+        if (game.SHOW_LABEL) {
+            this.font.draw(context, this.formattedId, this.pos.x, this.pos.y);
             this.displayed = true;
+        } else {
+            me.game.world.removeChild(this);
         }
-        
     }
 });
                 game.PlayerEntity = me.ObjectEntity.extend({
@@ -51041,9 +51056,9 @@ var game = {
 
     // update position
     update: function(dt) {
+        // Is there a target to destroy?
         if (this.targets.length !== 0) {
-            // there is a target to shoot at!
-            // line em up and shoot em down
+            // navigate to the target and shoot!
             var myPos = (this.pos.x + this.shootingOffset);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             if (Math.abs(myPos - targetPos) > 3 && game.canShoot) {
@@ -51063,23 +51078,49 @@ var game = {
             return true;
         }
 
-        // player movement pattern
-        this.stepNum++;
-        var step = Math.floor(this.stepNum / (game.WINDOW_WIDTH / 11));
-        if (step === 0) {
+        // Player movement pattern
+        // 0 --------->
+        // 1 <---------
+        // 2 ------------------->
+        // 3           <---------
+        // 4           --------->
+        // 5 <-------------------
+        // repeat
+
+        if (this.stepNum === 0) {
+            if (this.pos.x > game.WINDOW_WIDTH / 2) {
+                this.stepNum++;
+            }
             // move right halfway
             this.vel.x += this.accel.x * me.timer.tick;
-        } else if (step == 1) {
-            // move left halfway
+        } else if (this.stepNum == 1) {
+            if (this.pos.x < 64) {
+                this.stepNum++;
+            }
+            // move to left edge
             this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (step < 4) {
+        } else if (this.stepNum == 2) {
+            if (this.pos.x > game.WINDOW_WIDTH - 64) {
+                this.stepNum++;
+            }
             // move all the way across (right)
             this.vel.x += this.accel.x * me.timer.tick;
-        } else if (step == 4) {
+        } else if (this.stepNum == 3) {
+            if (this.pos.x < game.WINDOW_WIDTH / 2) {
+                this.stepNum++;
+            }
+            // half way across to the left
             this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (step == 5) {
+        } else if (this.stepNum == 4) {
+            if (this.pos.x > game.WINDOW_WIDTH - 64) {
+                this.stepNum++;
+            }
+            // back to the right side
             this.vel.x += this.accel.x * me.timer.tick;
-        } else if (step < 8) {
+        } else if (this.stepNum == 5) {
+            if (this.pos.x < 64) {
+                this.stepNum = 0;
+            }
             // move all the way across the screen (left)
             this.vel.x -= this.accel.x * me.timer.tick;
         } else {
@@ -51176,8 +51217,16 @@ var game = {
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
 
+
+
         // wait for the others to get setup
         this.waitFor = settings.waitFor;
+
+        this.flyOff = function() {
+            this.setupComplete = false;
+            this.goToY = game.WINDOW_HEIGHT + 64;
+            // TODO remove from the game world
+        }
     },
 
     // ship behavior
@@ -51194,12 +51243,24 @@ var game = {
             return true;
         }
 
+        if (game.SHOW_LABEL && this.formattedId) {
+            var label = me.pool.pull("label", this.pos.x, this.pos.y, {
+                formattedId: this.formattedId,
+                height: this.height,
+                width: this.width
+            });
+            me.game.world.addChild(label, Number.POSITIVE_INFINITY);
+            this.formattedId = false; // dont draw it again
+        }
+
         // wait for the others to get setup
         if (this.waitFor > 0) {
             return true;
         } else {
             this.waitFor = 0; // dont let it wrap around
         }
+
+        game.SHOW_LABEL = false;
 
         // ships randomly shoot at the player if they are not being targeted
         if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
@@ -51224,15 +51285,11 @@ var game = {
                 this.numSteps = 0;
             }
 
+            if (this.numSteps % (192 / 2) === 0) {
+
+            }
+
             if (this.moveRight) {
-                // if (this.formattedId) {
-                //     var label = me.pool.pull("label", this.pos.x, this.pos.y, {
-                //         formattedId: this.formattedId,
-                //         height: this.height,
-                //         width: this.width
-                //     });
-                //     me.game.world.addChild(label, Number.POSITIVE_INFINITY);
-                // }
                 this.pos.x -= 1;
             } else {
                 this.pos.x += 1;
@@ -51621,7 +51678,7 @@ game.TitleScreen = me.ScreenObject.extend({
         var STORY_DELAY = MAX_TASK_ROWS * TASK_SHIP.height;
         var FEATURE_DELAY = STORY_DELAY + MAX_STORY_ROWS * STORY_SHIP.height;
         var MOTHERSHIP_DELAY = FEATURE_DELAY + MAX_FEATURE_ROWS * FEATURE_SHIP.height;
-        var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32;
+        var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32 + 256;
 
         // reset the score
         game.data.score = data.teamsPoints;
@@ -51670,7 +51727,8 @@ game.TitleScreen = me.ScreenObject.extend({
 
             game.OID_MAP[features[i].feature.ObjectID] = {
                 displayed: true,
-                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy)
+                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
+                column: i % featuresPerLine
             };
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
@@ -51694,6 +51752,7 @@ game.TitleScreen = me.ScreenObject.extend({
             if (i >= featuresPerLine) {
                 continue;
             }
+            game.AVAILABLE_POSITIONS[i % featuresPerLine] = {};
 
             var stories = features[i].children;
             
@@ -51731,9 +51790,8 @@ game.TitleScreen = me.ScreenObject.extend({
                     storiesOnThisLine = numStories % storiesPerLine;
                 }
                 storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
-
-                storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
-
+                //storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+                storyX = (i * sectionWidth) + j * STORY_SHIP.width;
                 game.OID_MAP[stories[j].artifact.ObjectID] = {
                     displayed: true,
                     formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy)
@@ -51762,6 +51820,19 @@ game.TitleScreen = me.ScreenObject.extend({
                     Ext.Array.push(tasks, oneTask);
                 });
             }
+            game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions = [];
+            for (var extra = maxStories; extra < MAX_STORY_ROWS * storiesPerLine; extra++) {
+                var x, y;
+                var storiesOnThisLine = storiesPerLine;
+                if (Math.floor(j / storiesPerLine + 1) == storyLines) {
+                    storiesOnThisLine = numStories % storiesPerLine;
+                }
+                y = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
+
+                x = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+
+                game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions.push(new Point(x, y));
+            }
 
             // add the stories not shown to the map
             this.addExtraToMap(maxStories, stories, 'artifact');
@@ -51786,7 +51857,8 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
-                taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+                taskX = (i * sectionWidth) + k * TASK_SHIP.width;
+                //taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
                 game.shootMe = tasks[k].ObjectID;
                 console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
 
@@ -51814,9 +51886,25 @@ game.TitleScreen = me.ScreenObject.extend({
                 me.game.world.addChild(taskShip, zAxis++);
             }
 
+            game.AVAILABLE_POSITIONS[i % featuresPerLine].taskPositions = [];
+            for (var extra = maxTasks; extra < MAX_TASK_ROWS * tasksPerLine; extra++) {
+                var x, y;
+                var tasksOnThisLine = tasksPerLine;
+                if (Math.floor(k / tasksPerLine + 1) == taskLines) {
+                    tasksOnThisLine = numTasks % tasksPerLine;
+                }
+
+                y = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
+                x = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+                
+                game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions.push(new Point(x, y));
+            }
+
             // add the tasks that are not shown to the map
             this.addExtraToMap(maxTasks, tasks);
         }
+
+        // currently cannot add a feature
 
         // add the features that are not shown to the map
         this.addExtraToMap(maxFeatures, features, 'feature');
@@ -52017,23 +52105,36 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                 console.log(realtime);        
                 websocket.onmessage = Ext.bind(function(e) {
                     var data = JSON.parse(e.data);
-
+                    console.log(data);
                     realtime.publishObjectChanged(data, this);
                     if (data.type && data.type == "event" && data.data && data.data.action) {
-                        // TODO handle these cases in the game realm
-
                         // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
                         //      Create - User Story created
                         //      Recycle - User Story recycled
                         // A defect has been filed to make sure that these events are propagating correctly
                         // Here's to hoping that it gets fixed sometime soon.
+
+                        // User Stories
                         if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
+                            console.info('Add Story');
                             game.addStory(data.data.state[oidUUID].value); // send OID to game side
-                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.state[typeUUID].old_value == "UserStory") {
-                            game.removeStory(data.data.changes[oidUUID].old_value);
-                        } else {
-                            // ignore all other cases for now
-                        }
+                            return;
+                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "UserStory") {
+                            console.info('Remove Story');
+                            game.removeItem(data.data.changes[oidUUID].old_value);
+                            return;
+                        } // ignore all other cases for now
+                            
+
+                        // Tasks
+                        if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "Task") {
+                            console.info('Add Task');
+                            game.addTask(data.data.state[oidUUID].value);
+                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "Task") {
+                            console.info('Remove Task');
+                            game.removeItem(data.data.changes[oidUUID].old_value);
+                            return;
+                        } // ignore all other cases for now
                     }
                 }, this);
             }
@@ -52203,118 +52304,6 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         }
     };
 });
-
-/*
-                                                         Ext.create('Rally.data.wsapi.Store', {
-                                                                 model: 'PortfolioItem/Feature',
-                                                                 limit: Infinity,
-                                                                 fetch: ['Parent'],
-                                                                 context: {
-                                                                         project: '/project/' + projects[0], // TODO this only does one project
-                                                                         projectScopeUp: false,
-                                                                         projectScopeDown: false
-                                                                 }
-                                                         }).load({
-                                                                    scope: this,
-                                                                    callback: function(records, operation, success) {
-                                                                            console.log('records', records);
-                                                                            console.log(organizedData.initiative._refObjectUUID);
-                                                                            var features = [];
-                                                                            Ext.Array.each(records, function(record) {
-                                                                                            if (record.data && record.data.Parent && record.data.Parent._refObjectUUID == GLOBAL._refObjectUUID) {
-                                                                                                    Ext.Array.push(features, record);
-                                                                                            }
-                                                                            });
-                                                                            console.log(features);
-
-
-
-                                                                            Ext.create('Rally.data.wsapi.Store', {
-                                                                                     model: 'PortfolioItem/Feature',
-                                                                                     limit: Infinity,
-                                                                                     fetch: ['Parent'],
-                                                                                     context: {
-                                                                                             project: '/project/' + projects[0], // TODO this only does one project
-                                                                                             projectScopeUp: false,
-                                                                                             projectScopeDown: false
-                                                                                     }
-                                                                             }).load({
-                                                                                        scope: this,
-                                                                                        callback: function(records, operation, success) {
-                                                                                                console.log('records', records);
-                                                                                                console.log(organizedData.initiative._refObjectUUID);
-                                                                                                var features = [];
-                                                                                                Ext.Array.each(records, function(record) {
-                                                                                                                if (record.data && record.data.Parent && record.data.Parent._refObjectUUID == GLOBAL._refObjectUUID) {
-                                                                                                                        Ext.Array.push(features, record);
-                                                                                                                }
-                                                                                                });
-                                                                                                console.log(features);
-
-                                                                                                _.pluck(features, 'data.ObjectID');
-
-                                                                                                console.log(features);
-
-                                                                                                Ext.create
-                                                                                        }
-                                                                             });
-                                                                    }
-                                                         });
-
-*/
-
-
-// Cross Origin Request error.  But this does return the correct data!  can convert from _refObjectUUID to ObjectID this way
-/*
-                                                            $.ajax({
-                                                                url: 'http://rally1.rallydev.com/slm/webservice/v2.0/portfolioitem/' + GLOBAL._refObjectUUID +'?fetch=ObjectID&compact=true',
-                                                                dataType: 'json',
-                                                                success: function(result) {
-                                                                    console.log(result);
-                                                                }
-                                                            });
-
-                                                            // convert from OID to UUID
-                                                            $.ajax({
-                                                                url: 'http://rally1.rallydev.com/slm/webservice/v2.0/portfolioitem/' + GLOBAL.ObjectID +'?fetch=uuid&compact=true',
-                                                                dataType: 'json',
-                                                                success: function(result) {
-                                                                    console.log(result);
-                                                                }
-                                                            });
-*/
-
-// Ext.create('Rally.data.wsapi.Store', {
-//    model: 'PortfolioItem/Initiative',
-//    filters: [
-//       {
-//         property: "_refObjectUUID",
-//         operator: "=",
-//         value: GLOBAL._refObjectUUID
-//       }
-//    ]
-// }).load({
-//     scope: this,
-//     callback: function(records, operation, success) {
-//       console.log('for ' + GLOBAL._refObjectUUID + ' got', records);
-//       callbackData(organizedData);
-//     }
-// });  
-
-
-/*
-
-                                                                 setTimeout(function(){
-                                                                            scope.RallyDataService.getData(false, function(data) {
-                                                                                scope.organizedData = data;
-                                                                                scope.$apply();
-                                                                                // Start the game
-                                                                                console.log("changes - ", data);
-                                                                            });
-                                                                        }, 30000); // wait 30s for lbapi to reflect changes
-                                                                        // PROBLEM - you get multiple "update" messages
-                                                                        
-                                                                        */
 
             Rally.launchApp('CustomApp', {
                 name:"Space Invaders",

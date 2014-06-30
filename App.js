@@ -36,41 +36,48 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
-        var oid = 20185829601;
-
+        var oid = 20185532021;
 
         // TODO why can't I get the exact same data using WSAPI?
 
-        Ext.create('Rally.data.WsapiDataStore', {
-            model: 'User Story',
-            fetch: true,
-            filters: [
-                {
-                    property: 'ObjectID',
-                    operator: "=",
-                    value: oid
-                }
-            ]
-        }).load({
-            scope: this,
-            callback: function(records, operation, success) {
-                console.log('wsapi', oid, records, operation, success);
-            }
-        });
+        // Ext.create('Rally.data.WsapiDataStore', {
+        //     model: 'User Story',
+        //     fetch: true,
+        //     limit: Infinity
+        // }).load(oid, {
+        //     scope: this,
+        //     callback: function(records, operation, success) {
+        //         console.log('wsapi', oid, records, operation, success);
+        //     }
+        // });
 
-        Ext.create('Rally.data.lookback.SnapshotStore', {
-            fetch: true,
-            findConfig: {
-                "_TypeHierarchy": "HierarchicalRequirement",
-                "__At": "current",
-                "ObjectID": oid
-            }
-        }).load({
-            scope: this,
-            callback: function(records, operation, success) {
-                console.log('lbapi', oid, records, operation, success);
-            }
-        });
+        
+
+        // Rally.domain.WsapiModel.load(oid, {
+        //     scope: this,
+        //     callback: function(record, op, success) {
+        //         console.log(record);
+        //     }
+        // });
+
+        var ref = "/portfolioitem/feature/20093939763";
+
+
+                            // console.log(record);
+        // Ext.create('Rally.data.lookback.SnapshotStore', {
+        //     fetch: true,
+        //     findConfig: {
+        //         "_TypeHierarchy": "HierarchicalRequirement",
+        //         "__At": "current",
+        //         "ObjectID": oid
+        //     }
+        // }).load({
+        //     scope: this,
+        //     callback: function(records, operation, success) {
+        //         console.log('lbapi', oid, records, operation, success);
+                
+        //     }
+        // });
     }
 });
 

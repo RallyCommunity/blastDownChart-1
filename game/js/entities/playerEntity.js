@@ -17,16 +17,21 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
     // update position
     update: function(dt) {
+        if (this.delay > 0) {
+            this.delay--;
+            return true;
+        }
+        // Is there a target to destroy?
         if (this.targets.length !== 0) {
-            // there is a target to shoot at!
-            // line em up and shoot em down
+            // navigate to the target and shoot!
             var myPos = (this.pos.x + this.shootingOffset);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
-            if (Math.abs(myPos - targetPos) > 3 && game.canShoot) {
+            var move = this.accel.x * me.timer.tick;
+            if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot) {
                 if (myPos > targetPos) {
-                    this.vel.x -= this.accel.x * me.timer.tick;
+                    this.vel.x -= move;
                 } else {
-                    this.vel.x += this.accel.x * me.timer.tick;
+                    this.vel.x += move;
                 }
             } else if (game.canShoot) {
                 this.vel.x = 0;
@@ -39,23 +44,49 @@ game.PlayerEntity = me.ObjectEntity.extend({
             return true;
         }
 
-        // player movement pattern
-        this.stepNum++;
-        var step = Math.floor(this.stepNum / (game.WINDOW_WIDTH / 11));
-        if (step === 0) {
+        // Player movement pattern
+        // 0 --------->
+        // 1 <---------
+        // 2 ------------------->
+        // 3           <---------
+        // 4           --------->
+        // 5 <-------------------
+        // repeat
+
+        if (this.stepNum === 0) {
+            if (this.pos.x > game.WINDOW_WIDTH / 2) {
+                this.stepNum++;
+            }
             // move right halfway
             this.vel.x += this.accel.x * me.timer.tick;
-        } else if (step == 1) {
-            // move left halfway
+        } else if (this.stepNum == 1) {
+            if (this.pos.x < 32) {
+                this.stepNum++;
+            }
+            // move to left edge
             this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (step < 4) {
+        } else if (this.stepNum == 2) {
+            if (this.pos.x > game.WINDOW_WIDTH - 64) {
+                this.stepNum++;
+            }
             // move all the way across (right)
             this.vel.x += this.accel.x * me.timer.tick;
-        } else if (step == 4) {
+        } else if (this.stepNum == 3) {
+            if (this.pos.x < game.WINDOW_WIDTH / 2) {
+                this.stepNum++;
+            }
+            // half way across to the left
             this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (step == 5) {
+        } else if (this.stepNum == 4) {
+            if (this.pos.x > game.WINDOW_WIDTH - 64) {
+                this.stepNum++;
+            }
+            // back to the right side
             this.vel.x += this.accel.x * me.timer.tick;
-        } else if (step < 8) {
+        } else if (this.stepNum == 5) {
+            if (this.pos.x < 32) {
+                this.stepNum = 0;
+            }
             // move all the way across the screen (left)
             this.vel.x -= this.accel.x * me.timer.tick;
         } else {
@@ -122,8 +153,13 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * @param target the target to remove
      */
     removeTarget: function(target) {
-        if (this.targets.length > 0 && this.targets[0].objectID == target.objectID) {
+        //if (this.targets.length > 0 && this.targets[0].objectID == target.objectID) {
             this.targets.shift(); // shifts the array 1 position to the left
-        }
+        //}
+        console.log(this.targets, this.targets.length);
+    },
+
+    setDelay: function(delay) {
+        this.delay = delay;
     }
 });

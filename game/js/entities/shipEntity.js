@@ -5,6 +5,9 @@ game.Ship = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, -settings.height + 1, settings);
 
+        this.startingX = x;
+        this.startingY = y;
+
         // set the movement speed
         this.gravity = 0.0;
         this.setVelocity(0, 0);
@@ -13,22 +16,32 @@ game.Ship = me.ObjectEntity.extend({
         this.moveRight = true;              // which direction to move
         this.collidable = true;             // Can be hit by bullet entities
         this.objectID = settings.objectID;  // ObjectID used for ship destruction and removal
-        if (settings.formattedId) {
-            this.formattedId = settings.formattedId;
-        }
+
+        this.formattedId = settings.formattedId;
+        this.featureId = settings.featureId;
         
         this.isVulnerable = false;          // can this ship be destroyed
         this.delay = settings.delay;        // Delay before moving to my y position
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
 
+
+        this.programmaticallyAdded = settings.programmaticallyAdded || false;
+
         // wait for the others to get setup
         this.waitFor = settings.waitFor;
+
+        this.flyOff = function() {
+            this.setupComplete = false;
+            this.goToY = game.WINDOW_HEIGHT + 64;
+            // TODO remove from the game world
+        }
     },
 
     // ship behavior
     update: function() {
         this.waitFor--;
+        // fly in from the top
         if (!this.setupComplete && this.delay <= 0) {
             this.pos.y++;
             if (this.pos.y == this.goToY) {
@@ -40,6 +53,17 @@ game.Ship = me.ObjectEntity.extend({
             return true;
         }
 
+        if (this.programmaticallyAdded) {
+            var initiative = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_SUPER);
+            if (initiative.length == 1 && initiative[0].numSteps == 1 && !initiative[0].moveRight) {
+                // wait for the movement mattern to line ups
+                this.setupComplete = true;
+                this.programmaticallyAdded = false;
+            }
+            return true;
+        }
+
+        // show the label
         if (game.SHOW_LABEL && this.formattedId) {
             var label = me.pool.pull("label", this.pos.x, this.pos.y, {
                 formattedId: this.formattedId,
@@ -80,10 +104,6 @@ game.Ship = me.ObjectEntity.extend({
             if (this.numSteps % (192) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
-            }
-
-            if (this.numSteps % (192 / 2) === 0) {
-
             }
 
             if (this.moveRight) {

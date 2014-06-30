@@ -31,7 +31,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var data;
         var scope = angular.element($("#root")).scope();
         data = scope.organizedData;
-        console.log(data);
+        console.log('orangizedData', data);
 
         var PADDING = 32;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
@@ -115,7 +115,8 @@ game.PlayScreen = me.ScreenObject.extend({
 
             game.OID_MAP[features[i].feature.ObjectID] = {
                 displayed: true,
-                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy)
+                formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
+                column: i % featuresPerLine
             };
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
@@ -139,8 +140,13 @@ game.PlayScreen = me.ScreenObject.extend({
             if (i >= featuresPerLine) {
                 continue;
             }
+            game.AVAILABLE_POSITIONS[i % featuresPerLine] = {};
 
             var stories = features[i].children;
+
+            _.each(stories, function(story) {
+                story.featureId = features[i].feature.ObjectID
+            });
             
             // aggregate all of the stories in this area
             for (var rows = 1; rows < featureLines; rows++) {
@@ -151,6 +157,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     break;
                 }
                 for (var el = 0; el < arr.length; el++) {
+                    el.featureId = features[rows * featuresPerLine + i].feature.ObjectID;
                     Ext.Array.push(stories, arr[el]); 
                 }
             }
@@ -176,9 +183,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     storiesOnThisLine = numStories % storiesPerLine;
                 }
                 storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
-
-                storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
-
+                //storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
+                storyX = (i * sectionWidth) + (j % storiesPerLine) * STORY_SHIP.width;
                 game.OID_MAP[stories[j].artifact.ObjectID] = {
                     displayed: true,
                     formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy)
@@ -192,6 +198,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     spritewidth: STORY_SHIP.width,
                     width: STORY_SHIP.width,
                     objectID: stories[j].artifact.ObjectID,
+                    featureId: stories[j].featureId,
                     //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
                     z: zAxis,
                     health: 2,
@@ -204,12 +211,27 @@ game.PlayScreen = me.ScreenObject.extend({
 
                 // add the tasks together
                 _.each(stories[j].children, function(oneTask) {
+                    oneTask.featureId = stories[j].featureId;
                     Ext.Array.push(tasks, oneTask);
                 });
             }
+            game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions = [];
+            game.AVAILABLE_POSITIONS[i % featuresPerLine].pendingStories = [];
+            for (var extra = maxStories; extra < MAX_STORY_ROWS * storiesPerLine; extra++) {
+                var x, y;
+                var storiesOnThisLine = storiesPerLine;
+                if (Math.floor(extra / storiesPerLine + 1) == storyLines) {
+                    storiesOnThisLine = numStories % storiesPerLine;
+                }
+                y = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(extra / storiesPerLine) * (STORY_SHIP.height);
+
+                x = (i * sectionWidth) + (extra % storiesPerLine) * STORY_SHIP.width;
+
+                game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions.push(new Point(x, y));
+            }
 
             // add the stories not shown to the map
-            this.addExtraToMap(maxStories, stories, 'artifact');
+            this.addExtraToMap(maxStories, stories, 'artifact', 'pendingStories');
 
 
             // for proper task vertical alignment
@@ -231,7 +253,8 @@ game.PlayScreen = me.ScreenObject.extend({
                 }
 
                 taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
-                taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+                taskX = (i * sectionWidth) + (k % tasksPerLine) * TASK_SHIP.width;
+                //taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
                 game.shootMe = tasks[k].ObjectID;
                 console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
 
@@ -253,15 +276,33 @@ game.PlayScreen = me.ScreenObject.extend({
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
                     delay: TASK_DELAY,
+                    featureId: tasks[k].featureId,
                     waitFor: TOTAL_DELAY
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);
             }
 
+            game.AVAILABLE_POSITIONS[i % featuresPerLine].taskPositions = [];
+            game.AVAILABLE_POSITIONS[i % featuresPerLine].pendingTasks = [];
+            for (var extra = maxTasks; extra < MAX_TASK_ROWS * tasksPerLine; extra++) {
+                var x, y;
+                var tasksOnThisLine = tasksPerLine;
+                if (Math.floor(extra / tasksPerLine + 1) == taskLines) {
+                    tasksOnThisLine = numTasks % tasksPerLine;
+                }
+
+                y = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(extra / tasksPerLine) * (TASK_SHIP.height);
+                x = (i * sectionWidth) + (extra % tasksPerLine) * TASK_SHIP.width;
+                
+                game.AVAILABLE_POSITIONS[i % featuresPerLine].taskPositions.push(new Point(x, y));
+            }
+
             // add the tasks that are not shown to the map
-            this.addExtraToMap(maxTasks, tasks);
+            this.addExtraToMap(maxTasks, tasks, null, 'pendingTasks');
         }
+
+        // currently cannot add a feature
 
         // add the features that are not shown to the map
         this.addExtraToMap(maxFeatures, features, 'feature');
@@ -269,6 +310,26 @@ game.PlayScreen = me.ScreenObject.extend({
         // add our HUD to the game world
         this.HUD = new game.HUD.Container();
         me.game.world.addChild(this.HUD);
+
+
+        var players = me.game.world.getChildByProp('type', game.PLAYER);
+        var player;
+        if (players.length == 1) {
+            player = players[0];
+            player.setDelay(TOTAL_DELAY);
+
+            // destroy all completed items
+            // TODO then add in anything if there is more room?
+            _.each(data.closedStories, function(story) {
+                var destroy = me.game.world.getChildByProp('objectID', story.artifact.ObjectID);
+                if (destroy && destroy.length == 1) {
+                    destroy[0].setVulnerable(true);
+                    player.addTarget(destroy[0]);
+                }
+            });
+        }
+
+        console.log("available", game.AVAILABLE_POSITIONS);
     },
 
 
@@ -278,20 +339,36 @@ game.PlayScreen = me.ScreenObject.extend({
      * @param values the array of items to add
      * @param property the property offset of the object in the array to access ObjectID (if any)
      */
-    addExtraToMap: function(start, values, property) {
+    addExtraToMap: function(start, values, property, pendingProperty) {
         // add all not shown tasks OIDs to the map
+        console.log(start, values, property, pendingProperty);
+        var meScreen = this;
         for (var extra = start; extra < values.length; extra++) {
             if (property) {
                 game.OID_MAP[values[extra][property].ObjectID] = {
                     displayed: false,
-                    formattedId: playScreen.getFormattedId(values[extra][property]._UnformattedID, values[extra][property]._TypeHierarchy)
+                    formattedId: meScreen.getFormattedId(values[extra][property]._UnformattedID, values[extra][property]._TypeHierarchy)
                 };
+
+                if (pendingProperty && values[extra].featureId) {
+                    console.log("pending property", pendingProperty);
+                    values[extra][property].featureId = values[extra].featureId;
+                    game.AVAILABLE_POSITIONS[game.OID_MAP[values[extra].featureId].column][pendingProperty].push(values[extra][property]);
+                }
+
             } else {
                 game.OID_MAP[values[extra].ObjectID] = {
                     displayed: false,
-                    formattedId: playScreen.getFormattedId(values[extra]._UnformattedID, values[extra]._TypeHierarchy)
+                    formattedId: meScreen.getFormattedId(values[extra]._UnformattedID, values[extra]._TypeHierarchy)
                 };
+
+                if (pendingProperty && values[extra].featureId) {
+                    console.log("pending property", pendingProperty);
+                    game.AVAILABLE_POSITIONS[game.OID_MAP[values[extra].featureId].column][pendingProperty].push(values[extra]);
+                }
             }
+
+
         }
     },
 
