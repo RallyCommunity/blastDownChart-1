@@ -17,6 +17,9 @@ game.BulletEntity = me.ObjectEntity.extend({
         if (this.pos.y < 16) {
             game.canShoot = true;
             me.game.world.removeChild(this);
+        } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
+            console.log("removing bullet");
+            me.game.world.removeChild(this);
         }
 
         // did we hit an enemy?
@@ -70,33 +73,46 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                         // was there a task waiting for this spot?
                         if (game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingTasks.length > 0) {
+                            var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingTasks.shift();
+                            var taskShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
+                                height: game.TASK_SHIP.height,
+                                image: "small",
+                                name: "[TASK] - " + ship.Name,
+                                spriteheight: game.TASK_SHIP.height,
+                                spritewidth: game.TASK_SHIP.width,
+                                width: game.TASK_SHIP.width,
+                                objectID: ship.ObjectID,
+                                z: res.obj.z,
+                                health: 2,
+                                type: game.ENEMY_ENTITY_SMALL,
+                                delay: 0,
+                                programmaticallyAdded: true,
+                                featureId: res.obj.featureId,
+                                waitFor: 0
+                            });
+
+                            me.game.world.addChild(taskShip, res.obj.z);
 
                         } else {
                             game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].taskPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
                         }
                     } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM) {
-                        console.log('destroyed a user story');
+
                         // was there a story waiting for this spot?
                         if (game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.length > 0) {
-                            console.log('replacing');
+
                             var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.shift();
 
                             game.OID_MAP[ship.ObjectID].displayed = true;
-                            // create a new ship entitiy!
-                            var STORY_SHIP = {
-                                width: 32,
-                                height: 32
-                            };
 
                             var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
-                                height: STORY_SHIP.height,
+                                height: game.STORY_SHIP.height,
                                 image: "medium",
                                 name: "[STORY/DEFECT] - " + ship.Name,
-                                spriteheight: STORY_SHIP.height,
-                                spritewidth: STORY_SHIP.width,
-                                width: STORY_SHIP.width,
+                                spriteheight: game.STORY_SHIP.height,
+                                spritewidth: game.STORY_SHIP.width,
+                                width: game.STORY_SHIP.width,
                                 objectID: ship.ObjectID,
-                                //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
                                 z: res.obj.z,
                                 health: 2,
                                 type: game.ENEMY_ENTITY_MEDIUM,
@@ -108,7 +124,6 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                             me.game.world.addChild(storyShip, res.obj.z);
                         } else {
-                            console.log('empty slot');
                             game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].storyPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
                         }
                     }

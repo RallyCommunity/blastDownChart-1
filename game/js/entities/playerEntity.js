@@ -13,16 +13,18 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.shootingOffset = 10;
         this.stepNum = 0;
         this.steps = 0;
+        this.hunting = 1000;
     },
 
     // update position
     update: function(dt) {
+        this.hunting--;
         if (this.delay > 0) {
             this.delay--;
             return true;
         }
         // Is there a target to destroy?
-        if (this.targets.length !== 0) {
+        if (this.targets.length !== 0 && this.hunting < 0) {
             // navigate to the target and shoot!
             var myPos = (this.pos.x + this.shootingOffset);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
@@ -35,6 +37,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
                 }
             } else if (game.canShoot) {
                 this.vel.x = 0;
+                this.targets[0].setVulnerable(true);
                 this.shoot();
             } else {
                 this.vel.x = 0;
@@ -153,10 +156,8 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * @param target the target to remove
      */
     removeTarget: function(target) {
-        //if (this.targets.length > 0 && this.targets[0].objectID == target.objectID) {
-            this.targets.shift(); // shifts the array 1 position to the left
-        //}
-        console.log(this.targets, this.targets.length);
+        this.targets.shift(); // shifts the array 1 position to the left
+        this.hunting = 1000;
     },
 
     setDelay: function(delay) {

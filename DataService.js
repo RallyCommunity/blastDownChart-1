@@ -35,17 +35,19 @@ module.service('RallyDataService', function (RealtimeService) {
                         case "HierarchicalRequirement":
                             aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
                                 artifact: artifact.raw,
-                                children: []
+                                children: [],
+                                completedTasks: []
                             };
                             break;
                         case "PortfolioItem/Feature":
                             aggregateData.features[artifact.data.ObjectID] = {
                                 feature: artifact.raw,
-                                children: []
+                                children: [],
+                                completedTasks: []
                             };
                             break;
                         case "Task":
-                            Ext.Array.push(tasks, artifact.raw);
+                            Ext.Array.push(tasks, artifact.raw);                            
                             break;
                         default: // ignore
                         }
@@ -77,7 +79,12 @@ module.service('RallyDataService', function (RealtimeService) {
 
                         if (aggregateData.storiesAndDefects[parent]) {
                             // add it to the list of children
-                            Ext.Array.push(aggregateData.storiesAndDefects[parent].children, task);
+                            if (task.State == "Completed") {
+                                Ext.Array.push(aggregateData.storiesAndDefects[parent].completedTasks, task);
+                            } else {
+                                Ext.Array.push(aggregateData.storiesAndDefects[parent].children, task);
+                            }
+
                         } // else not parented to a story/defect
                     });
 

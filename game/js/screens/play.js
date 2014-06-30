@@ -24,6 +24,9 @@ game.PlayScreen = me.ScreenObject.extend({
     */
     setupShips: function() {
         // subscribe to the realtime data service
+
+        var completedTasks = [];
+
         var playScreen = this;
 
         var realtime = new Realtime();
@@ -40,32 +43,11 @@ game.PlayScreen = me.ScreenObject.extend({
         var MAX_STORY_ROWS = 3;
         var MAX_TASK_ROWS = 4;
 
-        // Image asset sizes
-        var MOTHERSHIP = {
-            width: 320,
-            height: 160
-        };
-
-        var FEATURE_SHIP = {
-            width: 64,
-            height: 64
-        };
-
-        var STORY_SHIP = {
-            width: 32,
-            height: 32
-        };
-
-        var TASK_SHIP = {
-            width: 16,
-            height: 16
-        };
-
         // Delay to fly onto the screen
         var TASK_DELAY = 0;
-        var STORY_DELAY = MAX_TASK_ROWS * TASK_SHIP.height;
-        var FEATURE_DELAY = STORY_DELAY + MAX_STORY_ROWS * STORY_SHIP.height;
-        var MOTHERSHIP_DELAY = FEATURE_DELAY + MAX_FEATURE_ROWS * FEATURE_SHIP.height;
+        var STORY_DELAY = MAX_TASK_ROWS * game.TASK_SHIP.height;
+        var FEATURE_DELAY = STORY_DELAY + MAX_STORY_ROWS * game.STORY_SHIP.height;
+        var MOTHERSHIP_DELAY = FEATURE_DELAY + MAX_FEATURE_ROWS * game.FEATURE_SHIP.height;
         var TOTAL_DELAY = STORY_DELAY + FEATURE_DELAY + MOTHERSHIP_DELAY - 32 + 256;
 
         // reset the score
@@ -82,13 +64,13 @@ game.PlayScreen = me.ScreenObject.extend({
             formattedId: data.initiative.FormattedID
         };
         // draw the mothership
-        var mothership = me.pool.pull("enemyShip", WIDTH / 2 - MOTHERSHIP.width / 2, PADDING, {
-            height: MOTHERSHIP.height,
+        var mothership = me.pool.pull("enemyShip", WIDTH / 2 - game.MOTHERSHIP.width / 2, PADDING, {
+            height: game.MOTHERSHIP.height,
             image: "xlarge",
             name: "[INITIATIVE] " + data.initiative.Name,
-            spriteheight: MOTHERSHIP.height,
-            spritewidth: MOTHERSHIP.width,
-            width: MOTHERSHIP.width,
+            spriteheight: game.MOTHERSHIP.height,
+            spritewidth: game.MOTHERSHIP.width,
+            width: game.MOTHERSHIP.width,
             objectID: data.initiative.ObjectID,
             z: zAxis,
             formattedId: data.initiative.FormattedID,
@@ -101,7 +83,7 @@ game.PlayScreen = me.ScreenObject.extend({
         zAxis++;
         var features = _.toArray(data.features);
         var numFeatures = features.length;
-        var featuresPerLine = Math.floor(WIDTH / FEATURE_SHIP.width);
+        var featuresPerLine = Math.floor(WIDTH / game.FEATURE_SHIP.width);
         var featureLines = Math.floor(numFeatures / featuresPerLine) + 1;
         var sectionWidth = numFeatures > featuresPerLine ? WIDTH/featuresPerLine : WIDTH / numFeatures;
 
@@ -110,8 +92,8 @@ game.PlayScreen = me.ScreenObject.extend({
         // draw all the features
         for (var i = 0; i < maxFeatures; i++) {
             var pos = i % featuresPerLine;
-            var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (FEATURE_SHIP.width / 2);
-            var yPosition = PADDING + MOTHERSHIP.height + Math.floor(i / featuresPerLine) * FEATURE_SHIP.height;
+            var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (game.FEATURE_SHIP.width / 2);
+            var yPosition = PADDING + game.MOTHERSHIP.height + Math.floor(i / featuresPerLine) * game.FEATURE_SHIP.height;
 
             game.OID_MAP[features[i].feature.ObjectID] = {
                 displayed: true,
@@ -120,12 +102,12 @@ game.PlayScreen = me.ScreenObject.extend({
             };
 
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
-                height: FEATURE_SHIP.height,
+                height: game.FEATURE_SHIP.height,
                 image: "large",
                 name: "[FEATURE] - " + features[i].feature.Name,
-                spriteheight: FEATURE_SHIP.height,
-                spritewidth: FEATURE_SHIP.width,
-                width: FEATURE_SHIP.width,
+                spriteheight: game.FEATURE_SHIP.height,
+                spritewidth: game.FEATURE_SHIP.width,
+                width: game.FEATURE_SHIP.width,
                 objectID: features[i].feature.ObjectID,
                 formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
                 z: zAxis,
@@ -168,7 +150,7 @@ game.PlayScreen = me.ScreenObject.extend({
             }
 
             var numStories = stories.length;
-            var storiesPerLine = Math.floor(sectionWidth / STORY_SHIP.width);
+            var storiesPerLine = Math.floor(sectionWidth / game.STORY_SHIP.width);
             var storyLines = Math.floor(numStories / storiesPerLine) + 1;
 
             var tasks = [];
@@ -182,21 +164,21 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (Math.floor(j / storiesPerLine + 1) == storyLines) {
                     storiesOnThisLine = numStories % storiesPerLine;
                 }
-                storyY = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (STORY_SHIP.height);
-                //storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (STORY_SHIP.width / 2);
-                storyX = (i * sectionWidth) + (j % storiesPerLine) * STORY_SHIP.width;
+                storyY = PADDING + game.MOTHERSHIP.height + game.FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(j / storiesPerLine) * (game.STORY_SHIP.height);
+                //storyX = (i * sectionWidth) + (j % storiesPerLine) * ((sectionWidth) / (storiesOnThisLine + 1)) + sectionWidth / (storiesOnThisLine + 1) - (game.STORY_SHIP.width / 2);
+                storyX = (i * sectionWidth) + (j % storiesPerLine) * game.STORY_SHIP.width;
                 game.OID_MAP[stories[j].artifact.ObjectID] = {
                     displayed: true,
                     formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy)
                 };
 
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
-                    height: STORY_SHIP.height,
+                    height: game.STORY_SHIP.height,
                     image: "medium",
                     name: "[STORY/DEFECT] - " + stories[j].artifact.Name,
-                    spriteheight: STORY_SHIP.height,
-                    spritewidth: STORY_SHIP.width,
-                    width: STORY_SHIP.width,
+                    spriteheight: game.STORY_SHIP.height,
+                    spritewidth: game.STORY_SHIP.width,
+                    width: game.STORY_SHIP.width,
                     objectID: stories[j].artifact.ObjectID,
                     featureId: stories[j].featureId,
                     //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
@@ -214,6 +196,12 @@ game.PlayScreen = me.ScreenObject.extend({
                     oneTask.featureId = stories[j].featureId;
                     Ext.Array.push(tasks, oneTask);
                 });
+
+                _.each(stories[j].completedTasks, function(oneTask) {
+                    oneTask.featureId = stories[j].featureId;
+                    Ext.Array.push(tasks, oneTask);
+                    Ext.Array.push(completedTasks, oneTask);
+                });
             }
             game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions = [];
             game.AVAILABLE_POSITIONS[i % featuresPerLine].pendingStories = [];
@@ -223,16 +211,28 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (Math.floor(extra / storiesPerLine + 1) == storyLines) {
                     storiesOnThisLine = numStories % storiesPerLine;
                 }
-                y = PADDING + MOTHERSHIP.height + FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(extra / storiesPerLine) * (STORY_SHIP.height);
+                y = PADDING + game.MOTHERSHIP.height + game.FEATURE_SHIP.height * Math.min(featureLines, MAX_FEATURE_ROWS) + Math.floor(extra / storiesPerLine) * (game.STORY_SHIP.height);
 
-                x = (i * sectionWidth) + (extra % storiesPerLine) * STORY_SHIP.width;
+                x = (i * sectionWidth) + (extra % storiesPerLine) * game.STORY_SHIP.width;
 
                 game.AVAILABLE_POSITIONS[i % featuresPerLine].storyPositions.push(new Point(x, y));
             }
 
+            for (var x = maxStories; x < numStories; x++) {
+                _.each(stories[x].children, function(oneTask) {
+                    oneTask.featureId = stories[x].featureId;
+                    Ext.Array.push(tasks, oneTask);
+                });
+
+                _.each(stories[x].completedTasks, function(oneTask) {
+                    oneTask.featureId = stories[x].featureId;
+                    Ext.Array.push(tasks, oneTask);
+                    Ext.Array.push(completedTasks, oneTask);
+                });
+            }
+
             // add the stories not shown to the map
             this.addExtraToMap(maxStories, stories, 'artifact', 'pendingStories');
-
 
             // for proper task vertical alignment
             if (numStories % storiesPerLine === 0) {
@@ -240,7 +240,7 @@ game.PlayScreen = me.ScreenObject.extend({
             }
 
             var numTasks = tasks.length;
-            var tasksPerLine = Math.floor(sectionWidth / TASK_SHIP.width);
+            var tasksPerLine = Math.floor(sectionWidth / game.TASK_SHIP.width);
             var taskLines = Math.floor(numTasks / tasksPerLine) + 1;
             var maxTasks = taskLines > MAX_TASK_ROWS ? MAX_TASK_ROWS * tasksPerLine : numTasks;
 
@@ -252,9 +252,9 @@ game.PlayScreen = me.ScreenObject.extend({
                     tasksOnThisLine = numTasks % tasksPerLine;
                 }
 
-                taskY = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (TASK_SHIP.height);
-                taskX = (i * sectionWidth) + (k % tasksPerLine) * TASK_SHIP.width;
-                //taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (TASK_SHIP.width / 2);
+                taskY = PADDING + game.MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * game.STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * game.FEATURE_SHIP.height + Math.floor(k / tasksPerLine) * (game.TASK_SHIP.height);
+                taskX = (i * sectionWidth) + (k % tasksPerLine) * game.TASK_SHIP.width;
+                //taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (game.TASK_SHIP.width / 2);
                 game.shootMe = tasks[k].ObjectID;
                 console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
 
@@ -264,12 +264,12 @@ game.PlayScreen = me.ScreenObject.extend({
                 };
 
                 var taskShip = me.pool.pull("enemyShip", taskX, taskY, {
-                    height: TASK_SHIP.height,
+                    height: game.TASK_SHIP.height,
                     image: "small",
                     name: "[TASK] - " + tasks[k].Name,
-                    spriteheight: TASK_SHIP.height,
-                    spritewidth: TASK_SHIP.width,
-                    width: TASK_SHIP.width,
+                    spriteheight: game.TASK_SHIP.height,
+                    spritewidth: game.TASK_SHIP.width,
+                    width: game.TASK_SHIP.width,
                     objectID: tasks[k].ObjectID,
                     //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: zAxis,
@@ -292,8 +292,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     tasksOnThisLine = numTasks % tasksPerLine;
                 }
 
-                y = PADDING + MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * FEATURE_SHIP.height + Math.floor(extra / tasksPerLine) * (TASK_SHIP.height);
-                x = (i * sectionWidth) + (extra % tasksPerLine) * TASK_SHIP.width;
+                y = PADDING + game.MOTHERSHIP.height + Math.min(storyLines, MAX_STORY_ROWS) * game.STORY_SHIP.height + Math.min(featureLines, MAX_FEATURE_ROWS) * game.FEATURE_SHIP.height + Math.floor(extra / tasksPerLine) * (game.TASK_SHIP.height);
+                x = (i * sectionWidth) + (extra % tasksPerLine) * game.TASK_SHIP.width;
                 
                 game.AVAILABLE_POSITIONS[i % featuresPerLine].taskPositions.push(new Point(x, y));
             }
@@ -319,15 +319,27 @@ game.PlayScreen = me.ScreenObject.extend({
             player.setDelay(TOTAL_DELAY);
 
             // destroy all completed items
-            // TODO then add in anything if there is more room?
+            console.log("shoot down completed tasks", completedTasks);
+            _.each(completedTasks, function(task) {
+                var destroy = me.game.world.getChildByProp('objectID', task.ObjectID);
+                if (destroy && destroy.length == 1) {
+                    console.log("destroy ", destroy);
+                    
+                    player.addTarget(destroy[0]);
+                }
+            });
+
+            
             _.each(data.closedStories, function(story) {
                 var destroy = me.game.world.getChildByProp('objectID', story.artifact.ObjectID);
                 if (destroy && destroy.length == 1) {
-                    destroy[0].setVulnerable(true);
+                    
                     player.addTarget(destroy[0]);
                 }
             });
         }
+
+        // TODO sort the player targets or pick the right one
 
         console.log("available", game.AVAILABLE_POSITIONS);
     },

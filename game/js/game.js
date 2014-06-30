@@ -30,6 +30,27 @@ var game = {
 
     AVAILABLE_POSITIONS: {},
 
+    // Image asset sizes
+    MOTHERSHIP: {
+        width: 320,
+        height: 160
+    },
+
+    FEATURE_SHIP: {
+        width: 64,
+        height: 64
+    },
+
+    STORY_SHIP: {
+        width: 32,
+        height: 32
+    },
+
+    TASK_SHIP: {
+        width: 16,
+        height: 16
+    },
+
     // track the score
     data : {
         // score
@@ -45,6 +66,7 @@ var game = {
     // Run on page load.
     "onload" : function () {
         // Initialize the video.
+        me.sys.fps = 45;
         if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
             alert("Your browser does not support HTML5 canvas.");
             return;
@@ -133,57 +155,7 @@ var game = {
                                 featureModel.load(record.data.Feature._ref, {
                                     scope: this,
                                     callback: function(parent) {
-                                        console.log('got feature for story', parent);
-                                        console.log('available', game.AVAILABLE_POSITIONS);
-                                        // console.log(record);
-                                        var id = null;
-                                        if (parent && parent.data) {
-                                            id = parent.data.ObjectID;
-                                        }
-                                        console.log(id, game.OID_MAP[id]);
-                                        if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
-                                            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions;
-                                            if (positions && positions.length > 0) {
-                                                var position = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions.shift();
-                                                console.log("putting story ship at position", position);
-                                                game.OID_MAP[oid] = {
-                                                    displayed: true,
-                                                    formattedId: record.data.FormattedID
-                                                }
-                                                // create a new ship entitiy!
-                                                var STORY_SHIP = {
-                                                    width: 32,
-                                                    height: 32
-                                                };
-
-                                                var storyShip = me.pool.pull("enemyShip", position.x, position.y, {
-                                                    height: STORY_SHIP.height,
-                                                    image: "medium",
-                                                    name: "[STORY/DEFECT] - " + record.data.Name,
-                                                    spriteheight: STORY_SHIP.height,
-                                                    spritewidth: STORY_SHIP.width,
-                                                    width: STORY_SHIP.width,
-                                                    objectID: record.data.ObjectID,
-                                                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
-                                                    z: 10,
-                                                    health: 2,
-                                                    type: game.ENEMY_ENTITY_MEDIUM,
-                                                    delay: 0,
-                                                    programmaticallyAdded: true,
-                                                    featureId: id,
-                                                    waitFor: 0
-                                                });
-
-                                                me.game.world.addChild(storyShip, 10);
-                                                console.log('added storyship', storyShip);
-                                                game.log.addItem(record.data.Name + ":: ADDED");
-                                            } else {
-                                                game.OID_MAP[oid] = {
-                                                    displayed: false,
-                                                    formattedId: "f"
-                                                }
-                                            }
-                                        }
+                                        game.displayStory(parent);
                                     }
                                 });
                             }
@@ -231,7 +203,60 @@ var game = {
 
     // TODO
     addTask: function(oid) {
+        // TODO optimize
 
+        Rally.data.WsapiModelFactory.getModel({
+            type: 'Task',
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri()
+            },
+            success: function(taskModel) {
+                taskModel.load(oid, {
+                    scope: this,
+                    callback: function(taskRecord, op, success) {
+                        console.log('got record for task', taskRecord);
+                        if (taskRecord && taskRecord.data.WorkProduct && taskRecord.data.WorkProduct._type == "HierarchicalRequirement") {
+                            
+
+                            // get User Story
+                            Rally.data.WsapiModelFactory.getModel({
+                                type: 'User Story',
+                                context: {
+                                    workspace: Rally.util.Ref.getRelativeUri()
+                                },
+                                success: function(userStoryModel) {
+                                    userStoryModel.load(taskRecord.data.WorkProduct._ref, {
+                                        scope: this,
+                                        callback: function(storyRecord, op, success) {
+                                            console.log('got record for story', storyRecord);
+                                            
+                                            if (storyRecord && storyRecord.data && storyRecord.data.Feature) {
+
+                                                // Get Feature
+                                                Rally.data.WsapiModelFactory.getModel({
+                                                    type: 'PortfolioItem/Feature',
+                                                    context: {
+                                                        workspace: Rally.util.Ref.getRelativeUri()
+                                                    },
+                                                    success: function(featureModel) {
+                                                        featureModel.load(storyRecord.data.Feature._ref, {
+                                                            scope: this,
+                                                            callback: function(featureRecord) {
+                                                                game.displayTask(oid, taskRecord, storyRecord, featureRecord);
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
     },
 
     removeTask: function(oid) {
@@ -251,4 +276,102 @@ var game = {
             game.log.addItem(item.formattedId + " recycled");
         }
     },
+
+    displayStory: function(parent) {
+        var id = null;
+        if (parent && parent.data) {
+            id = parent.data.ObjectID;
+        }
+        console.log(id, game.OID_MAP[id]);
+        if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
+            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions;
+            if (positions && positions.length > 0) {
+                var position = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions.shift();
+                console.log("putting story ship at position", position);
+                game.OID_MAP[oid] = {
+                    displayed: true,
+                    formattedId: record.data.FormattedID
+                }
+                // create a new ship entitiy!
+                var STORY_SHIP = {
+                    width: 32,
+                    height: 32
+                };
+
+                var storyShip = me.pool.pull("enemyShip", position.x, position.y, {
+                    height: game.STORY_SHIP.height,
+                    image: "medium",
+                    name: "[STORY/DEFECT] - " + record.data.Name,
+                    spriteheight: game.STORY_SHIP.height,
+                    spritewidth: game.STORY_SHIP.width,
+                    width: game.STORY_SHIP.width,
+                    objectID: record.data.ObjectID,
+                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
+                    z: 10,
+                    health: 2,
+                    type: game.ENEMY_ENTITY_MEDIUM,
+                    delay: 0,
+                    programmaticallyAdded: true,
+                    featureId: id,
+                    waitFor: 0
+                });
+
+                me.game.world.addChild(storyShip, 10);
+                console.log('added storyship', storyShip);
+                game.log.addItem(record.data.Name + ":: ADDED");
+            } else {
+                game.OID_MAP[oid] = {
+                    displayed: false,
+                    formattedId: "f"
+                }
+            }
+        }
+    },
+
+    displayTask: function(oid, task, story, feature) {
+        // console.log(record);
+        var id = null;
+        if (feature && feature.data) {
+            id = feature.data.ObjectID;
+        }
+
+        if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
+            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].taskPositions;
+            if (positions && positions.length > 0) {
+                var position = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].taskPositions.shift();
+                console.log("putting story ship at position", position);
+                game.OID_MAP[oid] = {
+                    displayed: true,
+                    formattedId: task.data.FormattedID
+                }
+
+                var taskShip = me.pool.pull("enemyShip", position.x, position.y, {
+                    height: game.TASK_SHIP.height,
+                    image: "small",
+                    name: "[TASK] - " + task.data.Name,
+                    spriteheight: game.TASK_SHIP.height,
+                    spritewidth: game.TASK_SHIP.width,
+                    width: game.TASK_SHIP.width,
+                    objectID: task.data.ObjectID,
+                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
+                    z: Number.POSITIVE_INFINITY,
+                    health: 2,
+                    type: game.ENEMY_ENTITY_SMALL,
+                    delay: 0,
+                    featureId: id,
+                    programmaticallyAdded: true,
+                    waitFor: 0
+                });
+
+                me.game.world.addChild(taskShip, Number.POSITIVE_INFINITY);
+                console.log('added task', taskShip);
+                game.log.addItem(task.data.Name + ":: ADDED");
+            } else {
+                game.OID_MAP[oid] = {
+                    displayed: false,
+                    formattedId: "f"
+                }
+            }
+        }
+    }
 };

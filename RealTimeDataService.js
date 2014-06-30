@@ -2,7 +2,8 @@ module.factory('RealtimeService', function () {
         var realtime = new Realtime();
         var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
         var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
-        var formattedId = '55c5512a-1518-4944-8597-3eb91875e8d1';
+        //var formattedId = '55c5512a-1518-4944-8597-3eb91875e8d1';
+
         return {
             connect: function(uuids) {
                 var websocket = realtime.connectTo(uuids);
@@ -10,6 +11,9 @@ module.factory('RealtimeService', function () {
                 websocket.onmessage = Ext.bind(function(e) {
                     var data = JSON.parse(e.data);
                     console.log(data);
+
+                    // TODO if realtime connection error, display connection state to user?
+
                     realtime.publishObjectChanged(data, this);
                     if (data.type && data.type == "event" && data.data && data.data.action) {
                         // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
@@ -17,6 +21,9 @@ module.factory('RealtimeService', function () {
                         //      Recycle - User Story recycled
                         // A defect has been filed to make sure that these events are propagating correctly
                         // Here's to hoping that it gets fixed sometime soon.
+
+                        // TODO revisit conditions for event relevance
+                        // TODO refactor
 
                         // User Stories
                         if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
@@ -28,7 +35,6 @@ module.factory('RealtimeService', function () {
                             game.removeStory(data.data.changes[oidUUID].old_value);
                             return;
                         } // ignore all other cases for now
-                            
 
                         // Tasks
                         if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "Task") {
