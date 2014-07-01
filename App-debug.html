@@ -44,13 +44,65 @@
 </head>
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
-    <h1>Space Invaders Blast Down for {{organizedData.initiative.Name}}</h1>
+    <!-- <h1>Space Invaders Blast Down for {{organizedData.initiative.Name}}</h1> -->
 <!--     <h2>Features: </h2>
     <ul>
         <li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>
     </ul> -->
-    <div id="spaceInvadersContainer">
-        <div id="gameAndLog">
+    <div class="middle">
+        <div id="spaceInvadersContainer">
+            <div>
+                <div id="scores">
+                    <div class="content">
+                        Scores
+                    </div>
+                </div>
+                <div id="legend">
+                    <div class="content">
+                        <div class="shipContainer logo">
+                            <img src="https://lh4.googleusercontent.com/-vkXOTHhRGck/AAAAAAAAAAI/AAAAAAAAAAA/IBjv0oYIm5Q/photo.jpg">
+                        </div>
+                        <div class="shipContainer">
+                            Initiative
+                            <br />
+                            <img src="game/data/img/shipSuper.png">
+                        </div>
+                        <div class="shipContainer">
+                            Feature
+                            <br />
+                            <img src="game/data/img/shipLarge.png">
+                        </div>
+                        <div class="shipContainer">
+                            User Story / Defect
+                            <img src="game/data/img/shipMedium.png">
+                        </div>
+                        <div class="shipContainer">
+                            Task
+                            <br />
+                            <img src="game/data/img/shipSmall.png">
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div id="screen">
+                </div>
+                <div id="log">
+                    <div class="content">
+                        <ul id="historyLog">
+                          <li ng-repeat="logItem in logItems">[{{logItem.date.getMonth() + 1}}/{{logItem.date.getDate()}} {{logItem.date.getHours()}}:{{logItem.date.getMinutes()}}:{{logItem.date.getSeconds()}}] - {{logItem.note}}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!--         <div id="gameAndLog">
             <div id="screen"></div>
             <div id="gameLog">
                 <div id="logToggle">
@@ -67,8 +119,8 @@
                 </ul>
             </div>
             <button type="button" id="completeFeature">Complete a feature</button>
-        </div>
-        <div id="shipKey">
+        </div> -->
+<!--         <div id="shipKey">
             <fieldset>
                 <legend>Legend:</legend>
                 <div class="shipContainer">
@@ -91,7 +143,7 @@
                     <img src="game/data/img/shipSuper.png">
                 </div>
             </fieldset>
-        </div>
+        </div> -->
     </div>
 </div>
 

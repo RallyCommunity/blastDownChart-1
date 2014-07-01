@@ -10,23 +10,24 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.type = game.PLAYER;
         
         this.targets = [];
-        this.shootingOffset = 10;
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 1000;
+        this.hunting = 500;
     },
 
     // update position
     update: function(dt) {
-        this.hunting--;
         if (this.delay > 0) {
             this.delay--;
             return true;
         }
+
+        this.hunting--;
+
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
             // navigate to the target and shoot!
-            var myPos = (this.pos.x + this.shootingOffset);
+            var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
             if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot) {
@@ -128,7 +129,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * Shoots a laser!  The player can only have 1 shot outstanding at a time
      */
     shoot: function() {
-        var x = this.pos.x + this.shootingOffset;
+        var x = this.pos.x + this.width / 2;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
             height: 16,
             image: "bullet",
@@ -157,7 +158,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
      */
     removeTarget: function(target) {
         this.targets.shift(); // shifts the array 1 position to the left
-        this.hunting = 1000;
+        this.hunting = 500;
     },
 
     setDelay: function(delay) {

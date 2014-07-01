@@ -8,6 +8,8 @@ game.PlayScreen = me.ScreenObject.extend({
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
 
+        this.showLegend();
+
         this.setupShips();
     },
 
@@ -344,6 +346,23 @@ game.PlayScreen = me.ScreenObject.extend({
         console.log("available", game.AVAILABLE_POSITIONS);
     },
 
+
+    showLegend: function() {
+        //
+        function changeShip(num) {
+            var ships = $('.shipContainer');
+            if (num >= ships.length) {
+                num = 0;
+            }
+            console.log(ships);
+
+            $(ships[num]).fadeIn().delay(3000).fadeOut(function() {
+                 changeShip(num + 1);
+             });
+        }
+        $('.shipContainer.logo').hide();
+        changeShip(1);
+    },
 
     /**
      * Adds the given values to the OID_MAP as not shown

@@ -13,17 +13,25 @@ body {
     -ms-touch-action: none;
     touch-action: none;
 
-    /* Allow canvas to hit the edges of the browser viewport. */
+    padding: 0;
     margin: 0;
+    font-family: pressStart;
 }
 
 #screen canvas {
-    margin: auto;
 
+    width: 1024px;
+    height: 512px;
     /* Hide the gap for font descenders. */
     display: block;
 
-    /* disable scaling interpolation */
+    /* disable scaling interpolation 
+    
+    do we want image scaling or a set height/width?
+    Makes it easier to develop the log, etc around the screen if the size is more fixed
+
+
+    */
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
     image-rendering: -o-crisp-edges;
@@ -32,8 +40,81 @@ body {
     -ms-interpolation-mode: nearest-neighbor;
 }
 
+@font-face {
+    font-family: arcadeClassic;
+    src: url(data/font/ARCADECLASSIC.ttf);
+}
+
+@font-face {
+    font-family: pressStart;
+    src: url(data/font/prstartk.ttf);
+}
+
+#scores {
+    width: 1024px;
+    height: 208px;
+}
 
 #screen {
+    width: 1024px;
+    height: 512px;
+}
+
+#log {
+    width: 256px;
+    height: 512px;
+    overflow-y: scroll;
+}
+
+#legend {
+    width: 256px;
+    height: 208px;
+}
+
+#screen, #log, #scores, #legend {
+    float: left;
+}
+
+.content {
+    padding: 10px;
+}
+
+#root {
+    display: table;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+
+.middle {
+    display: table-cell;
+    vertical-align: middle;
+    width: 100%;
+}
+
+#spaceInvadersContainer {
+    width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.shipContainer {
+    text-align:center;
+    display: none;
+}
+
+.shipContainer > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: auto;
+    height: 64px;
+}
+
+.logo {
+    display: block;
+}
+/*#screen {
     width: 80%;
 }
 #screen, #gameLog {
@@ -71,11 +152,6 @@ body {
     height: 64px;
 }
 
-@font-face {
-    font-family: arcadeClassic;
-    src: url(data/font/ARCADECLASSIC.ttf);
-}
-
 .button {
     font-family: "NotoSans";
     font-size: .9em;
@@ -89,7 +165,7 @@ body {
 }
 
 .button:hover  {
-    background: #E6E6E6;   /* $grey2 */
+    background: #E6E6E6;
     color: #444; 
     text-decoration: none;
 }
@@ -108,4 +184,4 @@ body {
 
 #realtimeLog {
     display: none;
-}
+}*/

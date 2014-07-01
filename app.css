@@ -1,3 +1,8 @@
 .app {
      /* Add app styles here */
 }
+
+body {
+    min-height: 720px; /* min 720p */
+    min-width: 1280px;
+}
