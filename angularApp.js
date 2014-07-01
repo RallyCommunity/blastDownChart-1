@@ -22,16 +22,15 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
     });
 
     $scope.logItems = [{
-        date: new Date(),
-        note: "Space Invaders Initialized",
-        style: "italic" // TODO use this
+        date: Ext.Date.format(new Date(), "m-d H:i"),
+        note: "Space Invaders Blast Down Initialized"
     }];
 
-    $scope.addLogItem = function(logItem, style) {
-        $scope.logItems.push({
-            date: new Date(),
-            note: logItem,
-            style: style
+    $scope.addLogItem = function(logItem, date) {
+        var dateString = date || Ext.Date.format(new Date(), "m-d H:i");
+        $scope.logItems.unshift({
+            date: dateString,
+            note: logItem
         });
         $scope.$apply();
     };

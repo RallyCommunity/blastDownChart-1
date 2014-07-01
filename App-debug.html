@@ -54,13 +54,43 @@
             <div>
                 <div id="scores">
                     <div class="content">
-                        Scores
+                        <table>
+                            <tr>
+                                <th>
+                                    Team
+                                </th>
+                                <th ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                    {{teamName}}
+                                </th>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Score
+                                </td>
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                    {{teamInfo.score}}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Lives
+                                </td>
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                    {{teamInfo.lives}}
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
                 <div id="legend">
                     <div class="content">
                         <div class="shipContainer logo">
                             <img src="https://lh4.googleusercontent.com/-vkXOTHhRGck/AAAAAAAAAAI/AAAAAAAAAAA/IBjv0oYIm5Q/photo.jpg">
+                        </div>
+                        <div class="shipContainer">
+                            Space Invaders Blast Down
+                            <br />
+                            {{organizedData.initiative.Name}}
                         </div>
                         <div class="shipContainer">
                             Initiative
@@ -81,7 +111,6 @@
                             <br />
                             <img src="game/data/img/shipSmall.png">
                         </div>
-                        
                     </div>
                 </div>
             </div>
@@ -91,7 +120,7 @@
                 <div id="log">
                     <div class="content">
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems">[{{logItem.date.getMonth() + 1}}/{{logItem.date.getDate()}} {{logItem.date.getHours()}}:{{logItem.date.getMinutes()}}:{{logItem.date.getSeconds()}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems">[{{logItem.date}}] - {{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

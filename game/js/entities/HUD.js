@@ -25,7 +25,10 @@ game.HUD.Container = me.ObjectContainer.extend({
         var container = this;
         // TODO don't fix the data like this
         game.data.score = {
-            "Team 1": 17,
+            "Team 1": {
+                score: 4,
+                lives: 2
+            },
             "Team 2": 13,
             "Long team name number 3": 23
         };

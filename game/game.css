@@ -61,17 +61,37 @@ body {
 }
 
 #log {
-    width: 256px;
     height: 512px;
-    overflow-y: scroll;
+    overflow: hidden;
+}
+
+#log, #legend {
+    margin-left: 1024px;
+    min-width: 256px;
+}
+
+#log > .content {
+    height: 100%;
+    width: 100%;
+    border: none;
+    overflow: auto;
+}
+
+#log, #scores {
+    font-family: "Helvetica Neue", Arial, Sans;
 }
 
 #legend {
-    width: 256px;
     height: 208px;
 }
 
-#screen, #log, #scores, #legend {
+#scores > .content > table {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+#screen, #scores {
     float: left;
 }
 
@@ -93,9 +113,9 @@ body {
 }
 
 #spaceInvadersContainer {
-    width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
+
+/*    margin-left: auto;
+    margin-right: auto;*/
 }
 
 .shipContainer {

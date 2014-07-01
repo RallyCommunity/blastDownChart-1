@@ -18,7 +18,6 @@ game.BulletEntity = me.ObjectEntity.extend({
             game.canShoot = true;
             me.game.world.removeChild(this);
         } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
-            console.log("removing bullet");
             me.game.world.removeChild(this);
         }
 
@@ -67,7 +66,10 @@ game.BulletEntity = me.ObjectEntity.extend({
                 me.game.world.addChild(emitter.container);
                 emitter.streamParticles();
 
-                console.log(res.obj);
+                game.PENDING_REMOVE.push(emitter);
+                game.PENDING_REMOVE.push(emitter.container);
+
+
                 if (res.obj.featureId && game.OID_MAP[res.obj.featureId]) {
                     if (res.obj.type == game.ENEMY_ENTITY_SMALL) { // task
 
@@ -130,14 +132,12 @@ game.BulletEntity = me.ObjectEntity.extend({
                     
                 }
 
-                game.log.addItem(res.obj.name + ":: completed");
+                game.log.addItem(res.obj.name + " COMPLETED", Ext.Date.format(new Date(res.obj.date), "m-d H:i"));
 
-                var players = me.game.world.getChildByProp('type', game.PLAYER);
-                if (players.length == 1) {
-                    players[0].removeTarget(res.obj);
-                }
+                game.PLAYER_SHIP.removeTarget(res.obj);
 
                 me.game.world.removeChild(res.obj);
+                return true;
             } else if (image && !this.shootDown && !res.obj.isDestructable()) { // let it pass through for now, target could be above us
                 // res.obj.flashShields();
                 
@@ -148,7 +148,7 @@ game.BulletEntity = me.ObjectEntity.extend({
             if (res.obj.type == game.PLAYER && this.shootDown) {
                 me.game.world.removeChild(this);
                 image = me.loader.getImage('explosionSmall');
-                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                var explosion = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
                     image: image,
                     width: 4,
                     totalParticles: 12,
@@ -166,13 +166,14 @@ game.BulletEntity = me.ObjectEntity.extend({
                     framesToSkip: 1
                 });
 
-                // res.obj.renderable.flicker(500);
-                emitter.name = 'fire';
-                emitter.z = res.obj.z + 1;
+                explosion.name = 'fire';
+                explosion.z = res.obj.z + 1;
                 // TODO remove the emitter?
-                me.game.world.addChild(emitter);
-                me.game.world.addChild(emitter.container);
-                emitter.streamParticles();
+                me.game.world.addChild(explosion);
+                me.game.world.addChild(explosion.container);
+                game.PENDING_REMOVE.push(explosion);
+                game.PENDING_REMOVE.push(explosion.container);
+                explosion.streamParticles();
             }
         }
 

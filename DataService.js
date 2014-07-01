@@ -18,7 +18,8 @@ module.service('RallyDataService', function (RealtimeService) {
                         initiative: {},
                         features: {},
                         storiesAndDefects: {},
-                        parentless: []
+                        parentless: [],
+                        teamsPoints: {}
                     };
 
                     var tasks = [];
@@ -69,7 +70,7 @@ module.service('RallyDataService', function (RealtimeService) {
                         initiative: angular.element(document.body).scope().initiative,
                         features: [],
                         closedStories: [],
-                        teamsPoints: {}
+                        scoreboard: {}
                     };
                     var projects = [];
 
@@ -94,15 +95,21 @@ module.service('RallyDataService', function (RealtimeService) {
                         var types = object.artifact._TypeHierarchy;
 
                         Ext.Array.include(projects, object.artifact.Project);
-                        console.log('object', object);
 
-                        if (object.artifact.ScheduleState === "Completed") {
-                            if (organizedData.teamsPoints[object.artifact.Project]) {
-                                organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
-                            } else {
-                                organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
-                            }
+                        if (!aggregateData.teamsPoints[object.artifact.Project]) {
+                            aggregateData.teamsPoints[object.artifact.Project] = {
+                                score: 0,
+                                lives: 5
+                            };
+                        }
+
+                        var state = object.artifact.ScheduleState;
+
+                        if (state == "Completed" || state == "Accepted" || state == "Released") {
+                            // aggregateData.teamsPoints[object.artifact.Project].score += object.artifact.PlanEstimate || 0;
+                            // Ext.Array.push(organizedData.closedStories, object);
                             Ext.Array.push(organizedData.closedStories, object);
+                            console.log("completed", object.artifact)
                         }
 
                         if (types[types.length - 1] === "HierarchicalRequirement") {
@@ -122,44 +129,42 @@ module.service('RallyDataService', function (RealtimeService) {
                         } // else not parented to a feature
                     });
 
+                    // TODO optimize if possible
                     Ext.create('Rally.data.WsapiDataStore', {
                         model: 'Project',
-                        fetch: ['Name'],
-                        limit: Infinity
-                            /*
-                                                TODO optimize
-                                                filters: [
-                                                        {
-                                                                property: 'ObjectID',
-                                                                operator: 'in',
-                                                                value: projects
-                                                        }
-                                                ]
-                                                */
+                        fetch: ['Name', 'ObjectID'],
+                        limit: Infinity,
+                        context: {
+                            workspace: Rally.util.Ref.getRelativeUri(),
+                            project: null
+                        }
                     }).load({
                         scope: this,
                         callback: function (records, operation, success) {
-                            console.log("records", records);
-                            console.log(GLOBAL);
-
-                            var i = 0;
                             projectUUIDs = [];
-                            Ext.Array.each(records, function (record) {
-                                if (Ext.Array.indexOf(projects, record.get('ObjectID')) >= 0) {
-                                    Ext.Array.push(projectUUIDs, record.get('_refObjectUUID'));
+                            var allProjects = [];
+                            _.each(records, function (record) {
+                                if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
+                                    Ext.Array.push(allProjects, record);
                                 }
+                                
                             });
+
+                            _.each(allProjects, function(project) {
+                                console.log(project);
+                                Ext.Array.push(projectUUIDs, project.data._refObjectUUID);
+                                organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
+                            });
+
+                            console.log(aggregateData.teamsPoints, organizedData.scoreboard);
                             organizedData.features = _.toArray(aggregateData.features);
                             organizedData.initiative = GLOBAL;
-
-                            console.log("initiative UUID", GLOBAL._refObjectUUID);
-
+                            
                             var scope = angular.element($("#root")).scope();
                             scope.realtimeConnection = function () {
                                 RealtimeService.connect(projectUUIDs);
                             };
                             scope.realtimeConnection(); // listen for changes in realtime
-
                             callbackData(organizedData);
                         }
                     });

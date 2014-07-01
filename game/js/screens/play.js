@@ -38,7 +38,7 @@ game.PlayScreen = me.ScreenObject.extend({
         data = scope.organizedData;
         console.log('orangizedData', data);
 
-        var PADDING = 32;
+        var PADDING = 8;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
 
         var MAX_FEATURE_ROWS = 2;
@@ -65,6 +65,8 @@ game.PlayScreen = me.ScreenObject.extend({
             displayed: true,
             formattedId: data.initiative.FormattedID
         };
+
+        console.log('WIDTH / 2 - game.MOTHERSHIP.width / 2', WIDTH / 2 - game.MOTHERSHIP.width / 2);
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - game.MOTHERSHIP.width / 2, PADDING, {
             height: game.MOTHERSHIP.height,
@@ -91,12 +93,24 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var maxFeatures = featureLines > MAX_FEATURE_ROWS ? MAX_FEATURE_ROWS * featuresPerLine : numFeatures;
 
+        game.farRight = WIDTH;
+
+        console.log("width, WINDOW_WIDTH", WIDTH, game.WINDOW_WIDTH);
+
+
+        var players = me.game.world.getChildByProp('type', game.PLAYER);
+        if (players.length == 1) {
+            game.PLAYER_SHIP = players[0];
+        } else {
+            console.error("no player"); // should never happen
+        }
+
         // draw all the features
         for (var i = 0; i < maxFeatures; i++) {
             var pos = i % featuresPerLine;
             var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (game.FEATURE_SHIP.width / 2);
             var yPosition = PADDING + game.MOTHERSHIP.height + Math.floor(i / featuresPerLine) * game.FEATURE_SHIP.height;
-
+            console.log('x', xPosition);
             game.OID_MAP[features[i].feature.ObjectID] = {
                 displayed: true,
                 formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
@@ -188,7 +202,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
                     delay: STORY_DELAY,
-                    waitFor: TOTAL_DELAY
+                    waitFor: TOTAL_DELAY,
+                    date: new Date(stories[j].artifact.InProgressDate) // TODO what date to use?
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -258,7 +273,6 @@ game.PlayScreen = me.ScreenObject.extend({
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * game.TASK_SHIP.width;
                 //taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (game.TASK_SHIP.width / 2);
                 game.shootMe = tasks[k].ObjectID;
-                console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
 
                 game.OID_MAP[tasks[k].ObjectID] = {
                     displayed: true,
@@ -273,13 +287,13 @@ game.PlayScreen = me.ScreenObject.extend({
                     spritewidth: game.TASK_SHIP.width,
                     width: game.TASK_SHIP.width,
                     objectID: tasks[k].ObjectID,
-                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
                     delay: TASK_DELAY,
                     featureId: tasks[k].featureId,
-                    waitFor: TOTAL_DELAY
+                    waitFor: TOTAL_DELAY,
+                    date: new Date(tasks[k]._SnapshotDate) // TODO what date to use?
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);
@@ -310,24 +324,23 @@ game.PlayScreen = me.ScreenObject.extend({
         this.addExtraToMap(maxFeatures, features, 'feature');
 
         // add our HUD to the game world
-        this.HUD = new game.HUD.Container();
-        me.game.world.addChild(this.HUD);
+        // this.HUD = new game.HUD.Container();
+        // me.game.world.addChild(this.HUD);
 
 
-        var players = me.game.world.getChildByProp('type', game.PLAYER);
-        var player;
-        if (players.length == 1) {
-            player = players[0];
-            player.setDelay(TOTAL_DELAY);
+        if (game.PLAYER_SHIP) {
+
+            game.PLAYER_SHIP.setDelay(TOTAL_DELAY);
 
             // destroy all completed items
             console.log("shoot down completed tasks", completedTasks);
             _.each(completedTasks, function(task) {
+                console.log(task);
                 var destroy = me.game.world.getChildByProp('objectID', task.ObjectID);
                 if (destroy && destroy.length == 1) {
                     console.log("destroy ", destroy);
                     
-                    player.addTarget(destroy[0]);
+                    game.PLAYER_SHIP.addTarget(destroy[0]);
                 }
             });
 
@@ -336,27 +349,25 @@ game.PlayScreen = me.ScreenObject.extend({
                 var destroy = me.game.world.getChildByProp('objectID', story.artifact.ObjectID);
                 if (destroy && destroy.length == 1) {
                     
-                    player.addTarget(destroy[0]);
+                    game.PLAYER_SHIP.addTarget(destroy[0]);
                 }
             });
-        }
 
-        // TODO sort the player targets or pick the right one
+            game.PLAYER_SHIP.sortTargetsByDate();
+        }
 
         console.log("available", game.AVAILABLE_POSITIONS);
     },
 
 
     showLegend: function() {
-        //
         function changeShip(num) {
             var ships = $('.shipContainer');
             if (num >= ships.length) {
                 num = 0;
             }
-            console.log(ships);
 
-            $(ships[num]).fadeIn().delay(3000).fadeOut(function() {
+            $(ships[num]).fadeIn().delay(5000).fadeOut(function() {
                  changeShip(num + 1);
              });
         }

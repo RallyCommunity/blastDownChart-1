@@ -50824,8 +50824,8 @@ me.DroptargetEntity = (function (Entity, Event) {
 var game = {
 
     // size of the game canvas
-    WINDOW_WIDTH: 960,
-    WINDOW_HEIGHT: 640,
+    WINDOW_WIDTH: 1024,
+    WINDOW_HEIGHT: 512,
 
     ENEMY_ENTITY_SMALL:  96, // small enemy type
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
@@ -50842,13 +50842,15 @@ var game = {
     canShoot: true,
 
     // probability that enemy ships will shoot
-    FIRE_PROBABILITY: 2000,
+    FIRE_PROBABILITY: 3000,
 
     OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
 
     FEATURE_COLUMN: {},
 
     AVAILABLE_POSITIONS: {},
+
+    PLAYER_SHIP: null,
 
     // Image asset sizes
     MOTHERSHIP: {
@@ -50878,8 +50880,8 @@ var game = {
     },
 
     log : {
-        addItem: function(logEvent) {
-            angular.element($("#root")).scope().addLogItem(logEvent);
+        addItem: function(logEvent, date) {
+            angular.element($("#root")).scope().addLogItem(logEvent, date);
         }
     },
 
@@ -50952,155 +50954,115 @@ var game = {
         Ext.getBody().unmask();
     },
 
-    addStory: function(oid) {
-        // TODO optimize
-        Rally.data.WsapiModelFactory.getModel({
-            type: 'User Story',
+    getStory: function(oid, callback) {
+        Ext.create('Rally.data.WsapiDataStore', {
+            model   : 'HierarchicalRequirement',
+            fetch   : ['Name','Feature','Feature.ObjectID'],
+            filters : [{
+                property : 'ObjectID',
+                value    : 20247226787
+            }],
             context: {
-                workspace: Rally.util.Ref.getRelativeUri()
-            },
-            success: function(model) {
-                model.load(oid, {
-                    scope: this,
-                    callback: function(record, op, success) {
-                        console.log('got record for story', record, 'record.data.Feature._ref', record.data.Feature._ref);
-                        // console.log(record);
-                        // console.log(record.data.Feature._ref);
-                        Rally.data.WsapiModelFactory.getModel({
-                            type: 'PortfolioItem/Feature',
-                            context: {
-                                workspace: Rally.util.Ref.getRelativeUri()
-                            },
-                            success: function(featureModel) {
-                                featureModel.load(record.data.Feature._ref, {
-                                    scope: this,
-                                    callback: function(parent) {
-                                        game.displayStory(parent);
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
+                workspace: Rally.util.Ref.getRelativeUri(),
+
+                //all projects
+                project: null
             }
+        }).load({
+            callback : function(records, operation, success) {
+                console.log(records);
+                var story     = records[0];
+                var feature   = story.get('Feature');
+                console.log("story, feature", story, feature);
+                callback(story, feature);
+            }
+        });
+    },
+
+    addStory: function(oid) {
+        this.getStory(oid, function(story, feature) {
+            game.displayStory(story, feature);
         });
     },
 
     removeStory: function(oid) {
         // removing a ship
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed && game.OID_MAP[Parent.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[Parent.ObjectID].column]) {
-            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[Parent.ObjectID].column].storyPositions;
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            if (positions && pendingRemove) {
-                positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
-                pendingRemove.flyOff();
-            }
-            game.log.addItem(item.formattedId + " recycled");
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
-        /*
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            // currently displayed - have it fly off
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            console.log('pending remove', pendingRemove);
-            game.OID_MAP[Parent.ObjectID]
-            if (pendingRemove) {
-                pendingRemove.flyOff();
-            }
-            game.log.addItem(item.formattedId + " recycled");
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
-        */
-    },
-
-    // TODO
-    addTask: function(oid) {
-        // TODO optimize
-
-        Rally.data.WsapiModelFactory.getModel({
-            type: 'Task',
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri()
-            },
-            success: function(taskModel) {
-                taskModel.load(oid, {
-                    scope: this,
-                    callback: function(taskRecord, op, success) {
-                        console.log('got record for task', taskRecord);
-                        if (taskRecord && taskRecord.data.WorkProduct && taskRecord.data.WorkProduct._type == "HierarchicalRequirement") {
-                            
-
-                            // get User Story
-                            Rally.data.WsapiModelFactory.getModel({
-                                type: 'User Story',
-                                context: {
-                                    workspace: Rally.util.Ref.getRelativeUri()
-                                },
-                                success: function(userStoryModel) {
-                                    userStoryModel.load(taskRecord.data.WorkProduct._ref, {
-                                        scope: this,
-                                        callback: function(storyRecord, op, success) {
-                                            console.log('got record for story', storyRecord);
-                                            
-                                            if (storyRecord && storyRecord.data && storyRecord.data.Feature) {
-
-                                                // Get Feature
-                                                Rally.data.WsapiModelFactory.getModel({
-                                                    type: 'PortfolioItem/Feature',
-                                                    context: {
-                                                        workspace: Rally.util.Ref.getRelativeUri()
-                                                    },
-                                                    success: function(featureModel) {
-                                                        featureModel.load(storyRecord.data.Feature._ref, {
-                                                            scope: this,
-                                                            callback: function(featureRecord) {
-                                                                game.displayTask(oid, taskRecord, storyRecord, featureRecord);
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    }
-                });
+        this.getStory(oid, function(story, feature) {
+            var item = game.OID_MAP[oid];
+            if (item && item.displayed && game.OID_MAP[feature.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column]) {
+                var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column].storyPositions;
+                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+                if (positions && pendingRemove) {
+                    positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
+                    pendingRemove.flyOff();
+                }
+                game.log.addItem(item.formattedId + " recycled");
+            } else if (item) {
+                // not currently displayed, just remove it from the map and log it
+                delete game.OID_MAP[oid];
+                game.log.addItem(item.formattedId + " recycled");
             }
         });
     },
 
-    removeTask: function(oid) {
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            // currently displayed - have it fly off
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            console.log('pending remove', pendingRemove);
-            game.OID_MAP[Parent.ObjectID]
-            if (pendingRemove) {
-                pendingRemove.flyOff();
+    getTask: function(oid, callback) {
+        Ext.create('Rally.data.WsapiDataStore', {
+            model   : 'Task',
+            fetch   : ['WorkProduct','Name','Feature','Feature.ObjectID'],
+            filters : [{
+                property : 'ObjectID',
+                value    : oid
+            }],
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri(),
+
+                //all projects
+                project: null
             }
-            game.log.addItem(item.formattedId + " recycled");
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
+        }).load({
+            callback : function(records, operation, success) {
+                console.log(records);
+                var task      = records[0];
+                var userStory = task.get('WorkProduct');
+                var feature   = userStory.Feature;
+
+                console.log(task, userStory, feature);
+                callback(task, userStory, feature);
+            }
+        });
     },
 
-    displayStory: function(parent) {
+    addTask: function(oid) {
+        this.getTask(oid, function(task, story, feature) {
+            displayTask(oid, task, story, feature);
+        });
+    },
+
+    removeTask: function(oid) {
+        this.getTask(oid, function(task, story, feature) {
+            var item = game.OID_MAP[oid];
+            if (item && item.displayed) {
+                // currently displayed - have it fly off
+                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+                console.log('pending remove', pendingRemove);
+                game.OID_MAP[feature.ObjectID]
+                if (pendingRemove) {
+                    pendingRemove.flyOff();
+                }
+                game.log.addItem(item.formattedId + " recycled");
+            } else if (item) {
+                // not currently displayed, just remove it from the map and log it
+                delete game.OID_MAP[oid];
+                game.log.addItem(item.formattedId + " recycled");
+            }
+        });
+        
+    },
+
+    displayStory: function(oid, story, feature) {
         var id = null;
-        if (parent && parent.data) {
-            id = parent.data.ObjectID;
+        if (feature && feature.data) {
+            id = feature.data.ObjectID;
         }
         console.log(id, game.OID_MAP[id]);
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
@@ -51126,7 +51088,6 @@ var game = {
                     spritewidth: game.STORY_SHIP.width,
                     width: game.STORY_SHIP.width,
                     objectID: record.data.ObjectID,
-                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
                     z: 10,
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
@@ -51173,7 +51134,6 @@ var game = {
                     spritewidth: game.TASK_SHIP.width,
                     width: game.TASK_SHIP.width,
                     objectID: task.data.ObjectID,
-                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: Number.POSITIVE_INFINITY,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
@@ -51189,7 +51149,7 @@ var game = {
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
-                    formattedId: "f"
+                    formattedId: "N/A"
                 }
             }
         }
@@ -51223,13 +51183,13 @@ var game = {
     {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},
 
     // background
-    {name: "background", type: "image", src: "game/data/img/background.png"},
+    {name: "background", type: "image", src: "game/data/img/background-2.png"},
     
     // tileset
     {name: "sprites", type:"image", src: "game/data/sprites.png"},
 
     // map
-    {name: "area51", type: "tmx", src: "game/data/map/area51.tmx"}
+    {name: "area51", type: "tmx", src: "game/data/map/area51-1024.tmx"}
 ];
 
                 game.LabelEntity = me.ObjectEntity.extend({
@@ -51273,7 +51233,7 @@ var game = {
         this.targets = [];
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 500;
+        this.hunting = 0; // set this to enable delayed history execution
     },
 
     // update position
@@ -51419,11 +51379,17 @@ var game = {
      */
     removeTarget: function(target) {
         this.targets.shift(); // shifts the array 1 position to the left
-        this.hunting = 500;
+        this.hunting = 0;
     },
 
     setDelay: function(delay) {
         this.delay = delay;
+    },
+
+    sortTargetsByDate: function() {
+        this.targets = _.sortBy(this.targets, function(target) {
+            return target.date ? new Date(target.date).getTime() : -1;
+        });
     }
 });
 
@@ -51456,7 +51422,7 @@ var game = {
 
 
         this.programmaticallyAdded = settings.programmaticallyAdded || false;
-
+        this.date = settings.date;
         // wait for the others to get setup
         this.waitFor = settings.waitFor;
 
@@ -51468,6 +51434,8 @@ var game = {
     },
 
     // ship behavior
+    // Called many times to refresh the ships on the screen
+    // to optimize performance, minimize the cost of calling this
     update: function() {
         this.waitFor--;
         // fly in from the top
@@ -51488,6 +51456,12 @@ var game = {
                 // wait for the movement mattern to line ups
                 this.setupComplete = true;
                 this.programmaticallyAdded = false;
+                this.numSteps = 1;
+                this.pos.x += 1;
+                this.moveRight = initiative[0].moveRight;
+                this.update = function() {
+                   this.normalMovement();
+                }
             }
             return true;
         }
@@ -51512,6 +51486,14 @@ var game = {
 
         game.SHOW_LABEL = false;
 
+        this.update = function() {
+           this.normalMovement();
+        }
+    },
+
+    // Use this function to eliminate unnecessary checks for ship entities
+    // optimization
+    normalMovement: function() {
         // ships randomly shoot at the player if they are not being targeted
         if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
             var x = this.pos.x + this.width / 2;
@@ -51530,7 +51512,7 @@ var game = {
 
         // movement pattern
         if (this.numSteps % 3 === 0) {
-            if (this.numSteps % (192) === 0) {
+            if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight) * 3) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
             }
@@ -51585,7 +51567,6 @@ var game = {
             game.canShoot = true;
             me.game.world.removeChild(this);
         } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
-            console.log("removing bullet");
             me.game.world.removeChild(this);
         }
 
@@ -51634,7 +51615,7 @@ var game = {
                 me.game.world.addChild(emitter.container);
                 emitter.streamParticles();
 
-                console.log(res.obj);
+
                 if (res.obj.featureId && game.OID_MAP[res.obj.featureId]) {
                     if (res.obj.type == game.ENEMY_ENTITY_SMALL) { // task
 
@@ -51696,13 +51677,15 @@ var game = {
                     }
                     
                 }
-
-                game.log.addItem(res.obj.name + ":: completed");
-
-                var players = me.game.world.getChildByProp('type', game.PLAYER);
-                if (players.length == 1) {
-                    players[0].removeTarget(res.obj);
+                var date = new Date(res.obj.date);
+                var today = new Date();
+                if (date.toDateString() == today.toDateString()) { // is it today?
+                    game.log.addItem(res.obj.name + " COMPLETED", Ext.Date.format(date, "H:i"));
+                } else {
+                    game.log.addItem(res.obj.name + " COMPLETED", Ext.Date.format(date, "m-d H:i"));
                 }
+
+                game.PLAYER_SHIP.removeTarget(res.obj);
 
                 me.game.world.removeChild(res.obj);
             } else if (image && !this.shootDown && !res.obj.isDestructable()) { // let it pass through for now, target could be above us
@@ -51781,7 +51764,10 @@ game.HUD.Container = me.ObjectContainer.extend({
         var container = this;
         // TODO don't fix the data like this
         game.data.score = {
-            "Team 1": 17,
+            "Team 1": {
+                score: 4,
+                lives: 2
+            },
             "Team 2": 13,
             "Long team name number 3": 23
         };
@@ -51862,7 +51848,7 @@ game.TitleScreen = me.ScreenObject.extend({
      */
     onResetEvent : function() {
         // title screen
-        me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('titleScreen')), 1);
+        me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('background')), 1);
      
         // add a new renderable component with the scrolling text
         me.game.world.addChild(new (me.Renderable.extend({
@@ -51891,8 +51877,8 @@ game.TitleScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "PRESS ENTER TO PLAY", 480, 500);
-                this.font.draw(context, this.scroller, this.scrollerpos, 440);
+                this.font.draw(context, "PRESS ENTER TO PLAY", 450, 350);
+                this.font.draw(context, this.scroller, this.scrollerpos, 256);
             },
             onDestroyEvent : function() {
                 //just in case
@@ -51963,7 +51949,7 @@ game.TitleScreen = me.ScreenObject.extend({
         data = scope.organizedData;
         console.log('orangizedData', data);
 
-        var PADDING = 32;
+        var PADDING = 8;
         var WIDTH = game.WINDOW_WIDTH - (PADDING * 2);
 
         var MAX_FEATURE_ROWS = 2;
@@ -51990,6 +51976,8 @@ game.TitleScreen = me.ScreenObject.extend({
             displayed: true,
             formattedId: data.initiative.FormattedID
         };
+
+        console.log('WIDTH / 2 - game.MOTHERSHIP.width / 2', WIDTH / 2 - game.MOTHERSHIP.width / 2);
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - game.MOTHERSHIP.width / 2, PADDING, {
             height: game.MOTHERSHIP.height,
@@ -52016,12 +52004,24 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var maxFeatures = featureLines > MAX_FEATURE_ROWS ? MAX_FEATURE_ROWS * featuresPerLine : numFeatures;
 
+        game.farRight = WIDTH;
+
+        console.log("width, WINDOW_WIDTH", WIDTH, game.WINDOW_WIDTH);
+
+
+        var players = me.game.world.getChildByProp('type', game.PLAYER);
+        if (players.length == 1) {
+            game.PLAYER_SHIP = players[0];
+        } else {
+            console.error("no player"); // should never happen
+        }
+
         // draw all the features
         for (var i = 0; i < maxFeatures; i++) {
             var pos = i % featuresPerLine;
             var xPosition = (pos * sectionWidth) + ((sectionWidth) / 2) - (game.FEATURE_SHIP.width / 2);
             var yPosition = PADDING + game.MOTHERSHIP.height + Math.floor(i / featuresPerLine) * game.FEATURE_SHIP.height;
-
+            console.log('x', xPosition);
             game.OID_MAP[features[i].feature.ObjectID] = {
                 displayed: true,
                 formattedId: playScreen.getFormattedId(features[i].feature._UnformattedID, features[i].feature._TypeHierarchy),
@@ -52113,7 +52113,8 @@ game.TitleScreen = me.ScreenObject.extend({
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
                     delay: STORY_DELAY,
-                    waitFor: TOTAL_DELAY
+                    waitFor: TOTAL_DELAY,
+                    date: new Date(stories[j].artifact.InProgressDate) // TODO what date to use?
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -52183,7 +52184,6 @@ game.TitleScreen = me.ScreenObject.extend({
                 taskX = (i * sectionWidth) + (k % tasksPerLine) * game.TASK_SHIP.width;
                 //taskX = (i * sectionWidth) + (k % tasksPerLine) * ((sectionWidth) / (tasksOnThisLine + 1)) + sectionWidth / (tasksOnThisLine + 1) - (game.TASK_SHIP.width / 2);
                 game.shootMe = tasks[k].ObjectID;
-                console.log("formatted id", playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy));
 
                 game.OID_MAP[tasks[k].ObjectID] = {
                     displayed: true,
@@ -52198,13 +52198,13 @@ game.TitleScreen = me.ScreenObject.extend({
                     spritewidth: game.TASK_SHIP.width,
                     width: game.TASK_SHIP.width,
                     objectID: tasks[k].ObjectID,
-                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: zAxis,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
                     delay: TASK_DELAY,
                     featureId: tasks[k].featureId,
-                    waitFor: TOTAL_DELAY
+                    waitFor: TOTAL_DELAY,
+                    date: new Date(tasks[k]._SnapshotDate) // TODO what date to use?
                 });
 
                 me.game.world.addChild(taskShip, zAxis++);
@@ -52235,24 +52235,23 @@ game.TitleScreen = me.ScreenObject.extend({
         this.addExtraToMap(maxFeatures, features, 'feature');
 
         // add our HUD to the game world
-        this.HUD = new game.HUD.Container();
-        me.game.world.addChild(this.HUD);
+        // this.HUD = new game.HUD.Container();
+        // me.game.world.addChild(this.HUD);
 
 
-        var players = me.game.world.getChildByProp('type', game.PLAYER);
-        var player;
-        if (players.length == 1) {
-            player = players[0];
-            player.setDelay(TOTAL_DELAY);
+        if (game.PLAYER_SHIP) {
+
+            game.PLAYER_SHIP.setDelay(TOTAL_DELAY);
 
             // destroy all completed items
             console.log("shoot down completed tasks", completedTasks);
             _.each(completedTasks, function(task) {
+                console.log(task);
                 var destroy = me.game.world.getChildByProp('objectID', task.ObjectID);
                 if (destroy && destroy.length == 1) {
                     console.log("destroy ", destroy);
                     
-                    player.addTarget(destroy[0]);
+                    game.PLAYER_SHIP.addTarget(destroy[0]);
                 }
             });
 
@@ -52261,32 +52260,30 @@ game.TitleScreen = me.ScreenObject.extend({
                 var destroy = me.game.world.getChildByProp('objectID', story.artifact.ObjectID);
                 if (destroy && destroy.length == 1) {
                     
-                    player.addTarget(destroy[0]);
+                    game.PLAYER_SHIP.addTarget(destroy[0]);
                 }
             });
-        }
 
-        // TODO sort the player targets or pick the right one
+            game.PLAYER_SHIP.sortTargetsByDate();
+        }
 
         console.log("available", game.AVAILABLE_POSITIONS);
     },
 
 
     showLegend: function() {
-        $('.shipContainer.logo').hide();
         function changeShip(num) {
             var ships = $('.shipContainer');
             if (num >= ships.length) {
                 num = 0;
             }
-            console.log(ships);
 
             $(ships[num]).fadeIn().delay(5000).fadeOut(function() {
                  changeShip(num + 1);
              });
         }
-
-        changeShip(0);
+        $('.shipContainer.logo').hide();
+        changeShip(1);
     },
 
     /**
@@ -52406,48 +52403,7 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
-        var oid = 20185532021;
-
-        // TODO why can't I get the exact same data using WSAPI?
-
-        // Ext.create('Rally.data.WsapiDataStore', {
-        //     model: 'User Story',
-        //     fetch: true,
-        //     limit: Infinity
-        // }).load(oid, {
-        //     scope: this,
-        //     callback: function(records, operation, success) {
-        //         console.log('wsapi', oid, records, operation, success);
-        //     }
-        // });
-
-        
-
-        // Rally.domain.WsapiModel.load(oid, {
-        //     scope: this,
-        //     callback: function(record, op, success) {
-        //         console.log(record);
-        //     }
-        // });
-
-        var ref = "/portfolioitem/feature/20093939763";
-
-
-                            // console.log(record);
-        // Ext.create('Rally.data.lookback.SnapshotStore', {
-        //     fetch: true,
-        //     findConfig: {
-        //         "_TypeHierarchy": "HierarchicalRequirement",
-        //         "__At": "current",
-        //         "ObjectID": oid
-        //     }
-        // }).load({
-        //     scope: this,
-        //     callback: function(records, operation, success) {
-        //         console.log('lbapi', oid, records, operation, success);
-                
-        //     }
-        // });
+        var oid = 20250817419;
     }
 });
 
@@ -52477,16 +52433,15 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
     });
 
     $scope.logItems = [{
-        date: new Date(),
-        note: "Space Invaders Initialized",
-        style: "italic" // TODO use this
+        date: Ext.Date.format(new Date(), "m-d H:i"),
+        note: "Space Invaders Blast Down Initialized"
     }];
 
-    $scope.addLogItem = function(logItem, style) {
-        $scope.logItems.push({
-            date: new Date(),
-            note: logItem,
-            style: style
+    $scope.addLogItem = function(logItem, date) {
+        var dateString = date || Ext.Date.format(new Date(), "m-d H:i");
+        $scope.logItems.unshift({
+            date: dateString,
+            note: logItem
         });
         $scope.$apply();
     };
@@ -52539,6 +52494,9 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                             game.removeTask(data.data.changes[oidUUID].old_value);
                             return;
                         } // ignore all other cases for now
+
+                        // User Story gets updated and marked as complete
+                        // state == "Completed" || state == "Accepted" || state == "Released"
                     }
                 }, this);
             }
@@ -52565,7 +52523,8 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                         initiative: {},
                         features: {},
                         storiesAndDefects: {},
-                        parentless: []
+                        parentless: [],
+                        teamsPoints: {}
                     };
 
                     var tasks = [];
@@ -52616,7 +52575,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                         initiative: angular.element(document.body).scope().initiative,
                         features: [],
                         closedStories: [],
-                        teamsPoints: {}
+                        scoreboard: {}
                     };
                     var projects = [];
 
@@ -52641,15 +52600,21 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                         var types = object.artifact._TypeHierarchy;
 
                         Ext.Array.include(projects, object.artifact.Project);
-                        console.log('object', object);
 
-                        if (object.artifact.ScheduleState === "Completed") {
-                            if (organizedData.teamsPoints[object.artifact.Project]) {
-                                organizedData.teamsPoints[object.artifact.Project] += object.artifact.PlanEstimate;
-                            } else {
-                                organizedData.teamsPoints[object.artifact.Project] = object.artifact.PlanEstimate;
-                            }
+                        if (!aggregateData.teamsPoints[object.artifact.Project]) {
+                            aggregateData.teamsPoints[object.artifact.Project] = {
+                                score: 0,
+                                lives: 5
+                            };
+                        }
+
+                        var state = object.artifact.ScheduleState;
+
+                        if (state == "Completed" || state == "Accepted" || state == "Released") {
+                            // aggregateData.teamsPoints[object.artifact.Project].score += object.artifact.PlanEstimate || 0;
+                            // Ext.Array.push(organizedData.closedStories, object);
                             Ext.Array.push(organizedData.closedStories, object);
+                            console.log("completed", object.artifact)
                         }
 
                         if (types[types.length - 1] === "HierarchicalRequirement") {
@@ -52669,44 +52634,42 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                         } // else not parented to a feature
                     });
 
+                    // TODO optimize if possible
                     Ext.create('Rally.data.WsapiDataStore', {
                         model: 'Project',
-                        fetch: ['Name'],
-                        limit: Infinity
-                            /*
-                                                TODO optimize
-                                                filters: [
-                                                        {
-                                                                property: 'ObjectID',
-                                                                operator: 'in',
-                                                                value: projects
-                                                        }
-                                                ]
-                                                */
+                        fetch: ['Name', 'ObjectID'],
+                        limit: Infinity,
+                        context: {
+                            workspace: Rally.util.Ref.getRelativeUri(),
+                            project: null
+                        }
                     }).load({
                         scope: this,
                         callback: function (records, operation, success) {
-                            console.log("records", records);
-                            console.log(GLOBAL);
-
-                            var i = 0;
                             projectUUIDs = [];
-                            Ext.Array.each(records, function (record) {
-                                if (Ext.Array.indexOf(projects, record.get('ObjectID')) >= 0) {
-                                    Ext.Array.push(projectUUIDs, record.get('_refObjectUUID'));
+                            var allProjects = [];
+                            _.each(records, function (record) {
+                                if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
+                                    Ext.Array.push(allProjects, record);
                                 }
+                                
                             });
+
+                            _.each(allProjects, function(project) {
+                                console.log(project);
+                                Ext.Array.push(projectUUIDs, project.data._refObjectUUID);
+                                organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
+                            });
+
+                            console.log(aggregateData.teamsPoints, organizedData.scoreboard);
                             organizedData.features = _.toArray(aggregateData.features);
                             organizedData.initiative = GLOBAL;
-
-                            console.log("initiative UUID", GLOBAL._refObjectUUID);
-
+                            
                             var scope = angular.element($("#root")).scope();
                             scope.realtimeConnection = function () {
                                 RealtimeService.connect(projectUUIDs);
                             };
                             scope.realtimeConnection(); // listen for changes in realtime
-
                             callbackData(organizedData);
                         }
                     });
@@ -52778,18 +52741,34 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
   height: 512px;
 }
 #log {
-  width: 256px;
   height: 512px;
-  overflow-y: scroll;
+  overflow: hidden;
+}
+#log,
+#legend {
+  margin-left: 1024px;
+  background-color: red;
+  border: 1px solid white;
+}
+#log > .content {
+  height: 100%;
+  width: 100%;
+  border: none;
+  overflow: auto;
+}
+#log,
+#scores {
+  font-family: "Helvetica Neue", Arial, Sans;
 }
 #legend {
-  width: 256px;
   height: 208px;
 }
+#scores > .content > table {
+  margin-left: auto;
+  margin-right: auto;
+}
 #screen,
-#log,
-#scores,
-#legend {
+#scores {
   float: left;
 }
 .content {
@@ -52808,8 +52787,8 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 }
 #spaceInvadersContainer {
   width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
+  /*    margin-left: auto;
+    margin-right: auto;*/
 }
 .shipContainer {
   text-align: center;
@@ -52907,6 +52886,9 @@ body {
   /* min 720p */
   min-width: 1280px;
 }
+td.dataColumn {
+  text-align: center;
+}
 
     </style>
 </head>
@@ -52922,13 +52904,43 @@ body {
             <div>
                 <div id="scores">
                     <div class="content">
-                        Scores
+                        <table>
+                            <tr>
+                                <th>
+                                    Team
+                                </th>
+                                <th ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                    {{teamName}}
+                                </th>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Score
+                                </td>
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                    {{teamInfo.score}}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Lives
+                                </td>
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                    {{teamInfo.lives}}
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
                 <div id="legend">
                     <div class="content">
                         <div class="shipContainer logo">
                             <img src="https://lh4.googleusercontent.com/-vkXOTHhRGck/AAAAAAAAAAI/AAAAAAAAAAA/IBjv0oYIm5Q/photo.jpg">
+                        </div>
+                        <div class="shipContainer">
+                            Space Invaders Blast Down
+                            <br />
+                            {{organizedData.initiative.Name}}
                         </div>
                         <div class="shipContainer">
                             Initiative
@@ -52949,7 +52961,6 @@ body {
                             <br />
                             <img src="game/data/img/shipSmall.png">
                         </div>
-                        
                     </div>
                 </div>
             </div>
@@ -52959,7 +52970,7 @@ body {
                 <div id="log">
                     <div class="content">
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems">[{{logItem.date.getMonth() + 1}}/{{logItem.date.getDate()}} {{logItem.date.getHours()}}:{{logItem.date.getMinutes()}}:{{logItem.date.getSeconds()}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems">[{{logItem.date}}] - {{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

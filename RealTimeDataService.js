@@ -45,6 +45,9 @@ module.factory('RealtimeService', function () {
                             game.removeTask(data.data.changes[oidUUID].old_value);
                             return;
                         } // ignore all other cases for now
+
+                        // User Story gets updated and marked as complete
+                        // state == "Completed" || state == "Accepted" || state == "Released"
                     }
                 }, this);
             }

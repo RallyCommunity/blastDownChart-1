@@ -8,7 +8,7 @@ game.TitleScreen = me.ScreenObject.extend({
      */
     onResetEvent : function() {
         // title screen
-        me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('titleScreen')), 1);
+        me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('background')), 1);
      
         // add a new renderable component with the scrolling text
         me.game.world.addChild(new (me.Renderable.extend({
@@ -37,8 +37,8 @@ game.TitleScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "PRESS ENTER TO PLAY", 480, 500);
-                this.font.draw(context, this.scroller, this.scrollerpos, 440);
+                this.font.draw(context, "PRESS ENTER TO PLAY", 450, 350);
+                this.font.draw(context, this.scroller, this.scrollerpos, 256);
             },
             onDestroyEvent : function() {
                 //just in case

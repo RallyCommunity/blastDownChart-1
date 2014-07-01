@@ -6,3 +6,7 @@ body {
     min-height: 720px; /* min 720p */
     min-width: 1280px;
 }
+
+td.dataColumn {
+    text-align: center;
+}

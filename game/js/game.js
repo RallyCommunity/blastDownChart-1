@@ -4,8 +4,8 @@
 var game = {
 
     // size of the game canvas
-    WINDOW_WIDTH: 960,
-    WINDOW_HEIGHT: 640,
+    WINDOW_WIDTH: 1024,
+    WINDOW_HEIGHT: 512,
 
     ENEMY_ENTITY_SMALL:  96, // small enemy type
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
@@ -22,13 +22,17 @@ var game = {
     canShoot: true,
 
     // probability that enemy ships will shoot
-    FIRE_PROBABILITY: 2000,
+    FIRE_PROBABILITY: 3000,
+
+    PENDING_REMOVE: [],
 
     OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
 
     FEATURE_COLUMN: {},
 
     AVAILABLE_POSITIONS: {},
+
+    PLAYER_SHIP: null,
 
     // Image asset sizes
     MOTHERSHIP: {
@@ -58,8 +62,8 @@ var game = {
     },
 
     log : {
-        addItem: function(logEvent) {
-            angular.element($("#root")).scope().addLogItem(logEvent);
+        addItem: function(logEvent, date) {
+            angular.element($("#root")).scope().addLogItem(logEvent, date);
         }
     },
 
@@ -132,155 +136,121 @@ var game = {
         Ext.getBody().unmask();
     },
 
-    addStory: function(oid) {
-        // TODO optimize
-        Rally.data.WsapiModelFactory.getModel({
-            type: 'User Story',
+    getStory: function(oid, callback) {
+        Ext.create('Rally.data.WsapiDataStore', {
+            model   : 'HierarchicalRequirement',
+            fetch   : ['Name','Feature','Feature.ObjectID'],
+            filters : [{
+                property : 'ObjectID',
+                value    : oid
+            }],
             context: {
-                workspace: Rally.util.Ref.getRelativeUri()
-            },
-            success: function(model) {
-                model.load(oid, {
-                    scope: this,
-                    callback: function(record, op, success) {
-                        console.log('got record for story', record, 'record.data.Feature._ref', record.data.Feature._ref);
-                        // console.log(record);
-                        // console.log(record.data.Feature._ref);
-                        Rally.data.WsapiModelFactory.getModel({
-                            type: 'PortfolioItem/Feature',
-                            context: {
-                                workspace: Rally.util.Ref.getRelativeUri()
-                            },
-                            success: function(featureModel) {
-                                featureModel.load(record.data.Feature._ref, {
-                                    scope: this,
-                                    callback: function(parent) {
-                                        game.displayStory(parent);
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
+                workspace: Rally.util.Ref.getRelativeUri(),
+
+                //all projects
+                project: null
             }
+        }).load({
+            callback : function(records, operation, success) {
+                console.log(records);
+                var story     = records[0];
+                var feature   = story.get('Feature');
+                console.log("story, feature", story, feature);
+                callback(story, feature);
+            }
+        });
+    },
+
+    addStory: function(oid) {
+        this.getStory(oid, function(story, feature) {
+            game.displayStory(oid, story, feature);
         });
     },
 
     removeStory: function(oid) {
         // removing a ship
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed && game.OID_MAP[Parent.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[Parent.ObjectID].column]) {
-            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[Parent.ObjectID].column].storyPositions;
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            if (positions && pendingRemove) {
-                positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
-                pendingRemove.flyOff();
-            }
-            game.log.addItem(item.formattedId + " recycled");
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
-        /*
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            // currently displayed - have it fly off
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            console.log('pending remove', pendingRemove);
-            game.OID_MAP[Parent.ObjectID]
-            if (pendingRemove) {
-                pendingRemove.flyOff();
-            }
-            game.log.addItem(item.formattedId + " recycled");
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
-        */
-    },
-
-    // TODO
-    addTask: function(oid) {
-        // TODO optimize
-
-        Rally.data.WsapiModelFactory.getModel({
-            type: 'Task',
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri()
-            },
-            success: function(taskModel) {
-                taskModel.load(oid, {
-                    scope: this,
-                    callback: function(taskRecord, op, success) {
-                        console.log('got record for task', taskRecord);
-                        if (taskRecord && taskRecord.data.WorkProduct && taskRecord.data.WorkProduct._type == "HierarchicalRequirement") {
-                            
-
-                            // get User Story
-                            Rally.data.WsapiModelFactory.getModel({
-                                type: 'User Story',
-                                context: {
-                                    workspace: Rally.util.Ref.getRelativeUri()
-                                },
-                                success: function(userStoryModel) {
-                                    userStoryModel.load(taskRecord.data.WorkProduct._ref, {
-                                        scope: this,
-                                        callback: function(storyRecord, op, success) {
-                                            console.log('got record for story', storyRecord);
-                                            
-                                            if (storyRecord && storyRecord.data && storyRecord.data.Feature) {
-
-                                                // Get Feature
-                                                Rally.data.WsapiModelFactory.getModel({
-                                                    type: 'PortfolioItem/Feature',
-                                                    context: {
-                                                        workspace: Rally.util.Ref.getRelativeUri()
-                                                    },
-                                                    success: function(featureModel) {
-                                                        featureModel.load(storyRecord.data.Feature._ref, {
-                                                            scope: this,
-                                                            callback: function(featureRecord) {
-                                                                game.displayTask(oid, taskRecord, storyRecord, featureRecord);
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    }
-                });
+        this.getStory(oid, function(story, feature) {
+            var item = game.OID_MAP[oid];
+            if (item && item.displayed && game.OID_MAP[feature.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column]) {
+                var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column].storyPositions;
+                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+                if (positions && pendingRemove) {
+                    positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
+                    pendingRemove.flyOff();
+                }
+                game.log.addItem(item.formattedId + " recycled");
+            } else if (item) {
+                // not currently displayed, just remove it from the map and log it
+                delete game.OID_MAP[oid];
+                game.log.addItem(item.formattedId + " recycled");
             }
         });
     },
 
-    removeTask: function(oid) {
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            // currently displayed - have it fly off
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            console.log('pending remove', pendingRemove);
-            game.OID_MAP[Parent.ObjectID]
-            if (pendingRemove) {
-                pendingRemove.flyOff();
+    getTask: function(oid, callback) {
+        Ext.create('Rally.data.WsapiDataStore', {
+            model   : 'Task',
+            fetch   : ['WorkProduct','Name','Feature','Feature.ObjectID'],
+            filters : [{
+                property : 'ObjectID',
+                value    : oid
+            }],
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri(),
+
+                //all projects
+                project: null
             }
-            game.log.addItem(item.formattedId + " recycled");
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
+        }).load({
+            callback : function(records, operation, success) {
+                console.log(records);
+                var task      = records[0];
+                var userStory = task.get('WorkProduct');
+                var feature   = userStory.Feature;
+
+                console.log(task, userStory, feature);
+                callback(task, userStory, feature);
+            }
+        });
     },
 
-    displayStory: function(parent) {
+    addTask: function(oid) {
+        this.getTask(oid, function(task, story, feature) {
+            game.displayTask(oid, task, story, feature);
+        });
+    },
+
+    removeTask: function(oid) {
+        this.getTask(oid, function(task, story, feature) {
+            var item = game.OID_MAP[oid];
+            if (item && item.displayed) {
+                // currently displayed - have it fly off
+                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+                console.log('pending remove', pendingRemove);
+                game.OID_MAP[feature.ObjectID]
+                if (pendingRemove) {
+                    pendingRemove.flyOff();
+                }
+                game.log.addItem(item.formattedId + " recycled");
+            } else if (item) {
+                // not currently displayed, just remove it from the map and log it
+                delete game.OID_MAP[oid];
+                game.log.addItem(item.formattedId + " recycled");
+            }
+        });
+        
+    },
+
+    displayStory: function(oid, story, feature) {
+        console.log(oid, story, feature);
         var id = null;
-        if (parent && parent.data) {
-            id = parent.data.ObjectID;
+        if (feature && feature._ref) {
+            var parts = feature._ref.split("/");
+            console.log(feature._ref, parts);
+            if (parts && parts.length > 0) {
+                id = parseInt(parts[parts.length - 1]);
+            }
+            
         }
         console.log(id, game.OID_MAP[id]);
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
@@ -290,7 +260,7 @@ var game = {
                 console.log("putting story ship at position", position);
                 game.OID_MAP[oid] = {
                     displayed: true,
-                    formattedId: record.data.FormattedID
+                    formattedId: story.data.FormattedID
                 }
                 // create a new ship entitiy!
                 var STORY_SHIP = {
@@ -301,12 +271,11 @@ var game = {
                 var storyShip = me.pool.pull("enemyShip", position.x, position.y, {
                     height: game.STORY_SHIP.height,
                     image: "medium",
-                    name: "[STORY/DEFECT] - " + record.data.Name,
+                    name: "[STORY/DEFECT] - " + story.data.Name,
                     spriteheight: game.STORY_SHIP.height,
                     spritewidth: game.STORY_SHIP.width,
                     width: game.STORY_SHIP.width,
-                    objectID: record.data.ObjectID,
-                    //formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy),
+                    objectID: story.data.ObjectID,
                     z: 10,
                     health: 2,
                     type: game.ENEMY_ENTITY_MEDIUM,
@@ -318,7 +287,7 @@ var game = {
 
                 me.game.world.addChild(storyShip, 10);
                 console.log('added storyship', storyShip);
-                game.log.addItem(record.data.Name + ":: ADDED");
+                game.log.addItem(story.data.Name + ":: ADDED");
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
@@ -329,10 +298,14 @@ var game = {
     },
 
     displayTask: function(oid, task, story, feature) {
-        // console.log(record);
         var id = null;
-        if (feature && feature.data) {
-            id = feature.data.ObjectID;
+        // TODO helper function
+        if (feature && feature._ref) {
+            var parts = feature._ref.split("/");
+            console.log(feature._ref, parts);
+            if (parts && parts.length > 0) {
+                id = parseInt(parts[parts.length - 1]);
+            }
         }
 
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
@@ -353,7 +326,6 @@ var game = {
                     spritewidth: game.TASK_SHIP.width,
                     width: game.TASK_SHIP.width,
                     objectID: task.data.ObjectID,
-                    //formattedId: playScreen.getFormattedId(tasks[k]._UnformattedID, tasks[k]._TypeHierarchy),
                     z: Number.POSITIVE_INFINITY,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
@@ -369,9 +341,18 @@ var game = {
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
-                    formattedId: "f"
+                    formattedId: "N/A"
                 }
             }
         }
+    },
+
+    cleanup: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        _.each(game.PENDING_REMOVE, function(remove) {
+            me.game.world.removeChild(remove);
+        });
+
+        game.PENDING_REMOVE = [];
     }
 };

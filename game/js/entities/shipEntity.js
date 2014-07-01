@@ -27,7 +27,7 @@ game.Ship = me.ObjectEntity.extend({
 
 
         this.programmaticallyAdded = settings.programmaticallyAdded || false;
-
+        this.date = settings.date;
         // wait for the others to get setup
         this.waitFor = settings.waitFor;
 
@@ -39,6 +39,8 @@ game.Ship = me.ObjectEntity.extend({
     },
 
     // ship behavior
+    // Called many times to refresh the ships on the screen
+    // to optimize performance, minimize the cost of calling this
     update: function() {
         this.waitFor--;
         // fly in from the top
@@ -59,6 +61,12 @@ game.Ship = me.ObjectEntity.extend({
                 // wait for the movement mattern to line ups
                 this.setupComplete = true;
                 this.programmaticallyAdded = false;
+                this.numSteps = 1;
+                this.pos.x += 1;
+                this.moveRight = initiative[0].moveRight;
+                this.update = function() {
+                   this.normalMovement();
+                }
             }
             return true;
         }
@@ -83,6 +91,14 @@ game.Ship = me.ObjectEntity.extend({
 
         game.SHOW_LABEL = false;
 
+        this.update = function() {
+           this.normalMovement();
+        }
+    },
+
+    // Use this function to eliminate unnecessary checks for ship entities
+    // optimization
+    normalMovement: function() {
         // ships randomly shoot at the player if they are not being targeted
         if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
             var x = this.pos.x + this.width / 2;
@@ -101,7 +117,7 @@ game.Ship = me.ObjectEntity.extend({
 
         // movement pattern
         if (this.numSteps % 3 === 0) {
-            if (this.numSteps % (192) === 0) {
+            if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight) * 3) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
             }

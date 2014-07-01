@@ -12,7 +12,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.targets = [];
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 500;
+        this.hunting = 0; // set this to enable delayed history execution
     },
 
     // update position
@@ -60,7 +60,9 @@ game.PlayerEntity = me.ObjectEntity.extend({
         if (this.stepNum === 0) {
             if (this.pos.x > game.WINDOW_WIDTH / 2) {
                 this.stepNum++;
+                game.cleanup();
             }
+
             // move right halfway
             this.vel.x += this.accel.x * me.timer.tick;
         } else if (this.stepNum == 1) {
@@ -158,10 +160,16 @@ game.PlayerEntity = me.ObjectEntity.extend({
      */
     removeTarget: function(target) {
         this.targets.shift(); // shifts the array 1 position to the left
-        this.hunting = 500;
+        this.hunting = 0;
     },
 
     setDelay: function(delay) {
         this.delay = delay;
+    },
+
+    sortTargetsByDate: function() {
+        this.targets = _.sortBy(this.targets, function(target) {
+            return target.date ? new Date(target.date).getTime() : -1;
+        });
     }
 });

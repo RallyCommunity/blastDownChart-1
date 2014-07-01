@@ -25,11 +25,11 @@ game.resources = [
     {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},
 
     // background
-    {name: "background", type: "image", src: "game/data/img/background.png"},
+    {name: "background", type: "image", src: "game/data/img/background-2.png"},
     
     // tileset
     {name: "sprites", type:"image", src: "game/data/sprites.png"},
 
     // map
-    {name: "area51", type: "tmx", src: "game/data/map/area51.tmx"}
+    {name: "area51", type: "tmx", src: "game/data/map/area51-1024.tmx"}
 ];
