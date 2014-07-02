@@ -25,8 +25,7 @@ game.PlayScreen = me.ScreenObject.extend({
           ++   +
     */
     setupShips: function() {
-        // subscribe to the realtime data service
-
+        var today = moment();
         var completedTasks = [];
 
         var playScreen = this;
@@ -66,6 +65,16 @@ game.PlayScreen = me.ScreenObject.extend({
             formattedId: data.initiative.FormattedID
         };
 
+        var initiativeComplete = null;
+
+        var initiativeDateString = data.initiative.ActualEndDate;
+        var initDate;
+        if (initiativeDateString) {
+            initDate = moment(initiativeDateString);
+        } else {
+            initDate = moment();
+        }
+
         console.log('WIDTH / 2 - game.MOTHERSHIP.width / 2', WIDTH / 2 - game.MOTHERSHIP.width / 2);
         // draw the mothership
         var mothership = me.pool.pull("enemyShip", WIDTH / 2 - game.MOTHERSHIP.width / 2, PADDING, {
@@ -80,8 +89,15 @@ game.PlayScreen = me.ScreenObject.extend({
             formattedId: data.initiative.FormattedID,
             type: game.ENEMY_ENTITY_SUPER,
             delay: MOTHERSHIP_DELAY,
-            waitFor: TOTAL_DELAY
+            waitFor: TOTAL_DELAY,
+            date: initDate
         });
+
+        if (today.isAfter(initDate)) {
+            initiativeComplete = mothership;
+        }
+
+        game.initiative = data.initiative
 
         me.game.world.addChild(mothership, zAxis);
         zAxis++;
@@ -90,7 +106,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var featuresPerLine = Math.floor(WIDTH / game.FEATURE_SHIP.width);
         var featureLines = Math.floor(numFeatures / featuresPerLine) + 1;
         var sectionWidth = numFeatures > featuresPerLine ? WIDTH/featuresPerLine : WIDTH / numFeatures;
-
+        var completedFeatures = [];
         var maxFeatures = featureLines > MAX_FEATURE_ROWS ? MAX_FEATURE_ROWS * featuresPerLine : numFeatures;
 
         game.farRight = WIDTH;
@@ -117,6 +133,9 @@ game.PlayScreen = me.ScreenObject.extend({
                 column: i % featuresPerLine
             };
 
+            var featureDateString = features[i].feature.ActualEndDate;
+            var featureDate = moment(featureDateString);
+
             var featureShip = me.pool.pull("enemyShip", xPosition, yPosition, {
                 height: game.FEATURE_SHIP.height,
                 image: "large",
@@ -129,8 +148,15 @@ game.PlayScreen = me.ScreenObject.extend({
                 z: zAxis,
                 type: game.ENEMY_ENTITY_LARGE,
                 delay: FEATURE_DELAY,
-                waitFor: TOTAL_DELAY
+                waitFor: TOTAL_DELAY,
+                date: new Date(featureDate)
             });
+
+            if (featureDateString && today.isAfter(featureDate)) {
+                completedFeatures.push(featureShip);
+            }
+
+            console.log("today and feature date", today, featureDate, today.isAfter(featureDate));
 
             me.game.world.addChild(featureShip, zAxis++);
 
@@ -188,6 +214,8 @@ game.PlayScreen = me.ScreenObject.extend({
                     formattedId: playScreen.getFormattedId(stories[j].artifact._UnformattedID, stories[j].artifact._TypeHierarchy)
                 };
 
+                var useDate = stories[j].artifact.AcceptedDate || stories[j].artifact.InProgressDate || stories[j].artifact.CreationDate || stories[j].artifact._SnapshotDate;
+
                 var storyShip = me.pool.pull("enemyShip", storyX, storyY, {
                     height: game.STORY_SHIP.height,
                     image: "medium",
@@ -203,7 +231,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     type: game.ENEMY_ENTITY_MEDIUM,
                     delay: STORY_DELAY,
                     waitFor: TOTAL_DELAY,
-                    date: new Date(stories[j].artifact.InProgressDate) // TODO what date to use?
+                    date: new Date(useDate) // TODO what date to use?
                 });
 
                 me.game.world.addChild(storyShip, zAxis++);
@@ -346,14 +374,22 @@ game.PlayScreen = me.ScreenObject.extend({
 
             
             _.each(data.closedStories, function(story) {
-                var destroy = me.game.world.getChildByProp('objectID', story.artifact.ObjectID);
+                var destroy = me.game.world.getChildByProp('objectID', story.artifact.ObjectID); // TODO dont get by id
                 if (destroy && destroy.length == 1) {
                     
                     game.PLAYER_SHIP.addTarget(destroy[0]);
                 }
             });
 
+            _.each(completedFeatures, function(feature) {
+                game.PLAYER_SHIP.addTarget(feature);
+            });
+
             game.PLAYER_SHIP.sortTargetsByDate();
+
+            if (initiativeComplete) {
+                game.PLAYER_SHIP.addTarget(initiativeComplete);
+            }
         }
 
         console.log("available", game.AVAILABLE_POSITIONS);
@@ -422,11 +458,29 @@ game.PlayScreen = me.ScreenObject.extend({
         // TODO remove all ships?
 
         _.each(game.OID_MAP, function(element, index, list) {
-            var destroy = me.game.world.getChildByProp('objectID', index);
-            me.game.world.removeChild(destroy);
-        });
+            console.log(element, index, list);
+            if (element.displayed) {
+                var destroy = me.game.world.getChildByProp('objectID', index);
+                if (destroy && destroy.length > 0) {
+                    destroy = destroy[0];
+                    var offset;
+                    switch (destroy.type) {
+                        case game.ENEMY_ENTITY_LARGE:
+                            offset = 'LARGE';
+                            break;
 
-        me.game.world.removeChild(this.HUD);
+                        case game.ENEMY_ENTITY_MEDIUM:
+                            offset = 'MEDIUM'; 
+                            break;
+                        default: offset = 'SMALL';
+                    }
+                    game.VICTORY_ANIMATIONS[offset].push(new Point(destroy.pos.x + destroy.width / 2, destroy.pos.y + destroy.height / 2));
+
+                    me.game.world.removeChild(destroy);
+                    // TODO animate destruction of remaining ships?
+                }
+            }
+        });
     },
 
     /**

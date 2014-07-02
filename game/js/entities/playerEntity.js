@@ -60,7 +60,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
         if (this.stepNum === 0) {
             if (this.pos.x > game.WINDOW_WIDTH / 2) {
                 this.stepNum++;
-                game.cleanup();
             }
 
             // move right halfway
@@ -68,6 +67,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         } else if (this.stepNum == 1) {
             if (this.pos.x < 32) {
                 this.stepNum++;
+                game.cleanup();
             }
             // move to left edge
             this.vel.x -= this.accel.x * me.timer.tick;
@@ -159,7 +159,20 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * @param target the target to remove
      */
     removeTarget: function(target) {
-        this.targets.shift(); // shifts the array 1 position to the left
+        game.cleanupOld();
+        var destroyed = this.targets.shift(); // shifts the array 1 position to the left
+        console.log("destroyed", destroyed);
+        if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+
+            game.VICTORY_ANIMATIONS = {
+                SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
+                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+            }
+
+            me.state.change(me.state.VICTORY);
+        }
         this.hunting = 0;
     },
 

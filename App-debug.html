@@ -10,6 +10,7 @@
         // I am keeping the extra , in there to simplify my code. If someone is actually using an old version of IE to make an app let me know.
         Rally.loadScripts(
                 [
+                      "node_modules/moment/moment.js",
                       "bower_components/angular/angular.js",
                       "bower_components/jquery/dist/jquery.js",
                       "realtime/reconnecting-websocket.js",
@@ -24,7 +25,7 @@
                       "game/js/entities/playerEntity.js",
                       "game/js/entities/shipEntity.js",
                       "game/js/entities/bulletEntity.js",
-                      "game/js/entities/HUD.js",
+                      "game/js/screens/victory.js",
                       "game/js/screens/title.js",
                       "game/js/screens/play.js",
                       "App.js",

@@ -60,6 +60,10 @@ game.BulletEntity = me.ObjectEntity.extend({
                 emitter.name = 'fire'; // TODO use radial explosion instead?
 
                 
+                if (game.OID_MAP[res.obj.objectID]) {
+                    game.OID_MAP[res.obj.objectID].displayed = false;
+                }
+
                 emitter.z = res.obj.z + 1;
                 // TODO removeChild?
                 me.game.world.addChild(emitter);

@@ -71,10 +71,13 @@ var game = {
     "onload" : function () {
         // Initialize the video.
         me.sys.fps = 45;
+        me.sys.pauseOnBlur = false;
         if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
             alert("Your browser does not support HTML5 canvas.");
             return;
         }
+
+        console.error("System", me.sys);
 
         // add "#debug" to the URL to enable the debug Panel
         if (document.location.hash === "#debug") {
@@ -100,6 +103,7 @@ var game = {
     "loaded" : function () {
         me.state.set(me.state.MENU, new game.TitleScreen());
         me.state.set(me.state.PLAY, new game.PlayScreen());
+        me.state.set(me.state.VICTORY, new game.VictoryScreen());
 
         me.pool.register("mainPlayer", game.PlayerEntity);
         me.pool.register("bullet", game.BulletEntity);
@@ -354,5 +358,12 @@ var game = {
         });
 
         game.PENDING_REMOVE = [];
+    },
+
+    cleanupOld: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
+            me.game.world.removeChild(game.PENDING_REMOVE.shift());
+        }
     }
 };
