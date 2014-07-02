@@ -89,7 +89,9 @@ game.Ship = me.ObjectEntity.extend({
             this.waitFor = 0; // dont let it wrap around
         }
 
-        game.SHOW_LABEL = false;
+        if (game.SHOW_LABEL) {
+            game.SHOW_LABEL = false;
+        }
 
         this.update = function() {
            this.normalMovement();

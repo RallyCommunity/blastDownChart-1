@@ -17,7 +17,10 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
     // update position
     update: function(dt) {
-        if (this.delay > 0) {
+        if (this.delay == 0) {
+            game.realtimeHandler.handlePendingReatimeMessages();
+            this.delay = -1;
+        } else if (this.delay > 0) {
             this.delay--;
             return true;
         }

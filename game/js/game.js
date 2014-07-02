@@ -365,5 +365,8 @@ var game = {
         for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
             me.game.world.removeChild(game.PENDING_REMOVE.shift());
         }
-    }
+    },
+
+
+    
 };

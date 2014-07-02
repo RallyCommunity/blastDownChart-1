@@ -33862,6 +33862,66 @@ ReconnectingWebSocket.debugAll = false;
 
 
 
+                function RealtimeDataHandler() {
+    this.queue = [];
+
+    this.handleRealtimeMessage = function(data) {
+        if (game.SHOW_LABEL || this.queue.length > 0) { // setup not complete yet and we want to handle events in orders
+            // queue and return
+            this.queue.push(data);
+            return;
+        }
+        if (data.type && data.type == "event" && data.data && data.data.action) {
+            // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
+            //      Create - User Story created
+            //      Recycle - User Story recycled
+            // A defect has been filed to make sure that these events are propagating correctly
+            // Here's to hoping that it gets fixed sometime soon.
+
+            // TODO question do we get events "in order" (is that guaranteed?)
+            // TODO revisit conditions for event relevance
+            // TODO refactor
+
+            // User Stories
+            if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
+                console.info('Add Story');
+                game.addStory(data.data.state[oidUUID].value); // send OID to game side
+                return;
+            } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "UserStory") {
+                console.info('Remove Story');
+                game.removeStory(data.data.changes[oidUUID].old_value);
+                return;
+            } // ignore all other cases for now
+
+            // Tasks
+            if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "Task") {
+                console.info('Add Task');
+                game.addTask(data.data.state[oidUUID].value);
+            } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "Task") {
+                console.info('Remove Task');
+                game.removeTask(data.data.changes[oidUUID].old_value);
+                return;
+            } // ignore all other cases for now
+
+            // User Story gets updated and marked as complete
+            // state == "Completed" || state == "Accepted" || state == "Released"
+            // points get updated on the story
+
+            // Task gets updated and marked as complete
+
+            // Feature gets updated and marked as complete
+
+            // initiative gets updated and marked as complete
+        }
+    }
+
+    this.handlePendingReatimeMessages = function() {
+        console.log("handling " +  queue.length + " pending messages");
+        while (queue.length != 0) {
+            this.handleRealtimeMessage(this.queue.shift());
+        }
+    }
+}
                 $(document).ready(function() {
     $('.unselected').click(function() {
         $(this).parent().find('.selected').removeClass('selected').addClass('unselected');
@@ -53502,10 +53562,13 @@ var game = {
     "onload" : function () {
         // Initialize the video.
         me.sys.fps = 45;
+        me.sys.pauseOnBlur = false;
         if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
             alert("Your browser does not support HTML5 canvas.");
             return;
         }
+
+        console.error("System", me.sys);
 
         // add "#debug" to the URL to enable the debug Panel
         if (document.location.hash === "#debug") {
@@ -53786,7 +53849,17 @@ var game = {
         });
 
         game.PENDING_REMOVE = [];
-    }
+    },
+
+    cleanupOld: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
+            me.game.world.removeChild(game.PENDING_REMOVE.shift());
+        }
+    },
+
+
+    
 };
 
                 game.resources = [
@@ -53875,6 +53948,8 @@ var game = {
             this.delay--;
             return true;
         }
+
+        game.realtimeHandler.handlePendingReatimeMessages();
 
         this.hunting--;
 
@@ -54013,12 +54088,19 @@ var game = {
      * @param target the target to remove
      */
     removeTarget: function(target) {
+        game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        if (destroyed == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            setTimeout(function() {
-                me.state.change(me.state.VICTORY);
-            }, 1000);
-            
+        console.log("destroyed", destroyed);
+        if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+
+            game.VICTORY_ANIMATIONS = {
+                SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
+                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+            }
+
+            me.state.change(me.state.VICTORY);
         }
         this.hunting = 0;
     },
@@ -54250,6 +54332,10 @@ var game = {
                 emitter.name = 'fire'; // TODO use radial explosion instead?
 
                 
+                if (game.OID_MAP[res.obj.objectID]) {
+                    game.OID_MAP[res.obj.objectID].displayed = false;
+                }
+
                 emitter.z = res.obj.z + 1;
                 // TODO removeChild?
                 me.game.world.addChild(emitter);
@@ -54389,6 +54475,100 @@ game.VictoryScreen = me.ScreenObject.extend({
     onResetEvent : function() {
         // title screen
         me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('background')), 1);
+
+
+        // Add all destruction animations
+        var largeImg = me.loader.getImage('explosionSuper');
+
+        var superEmitter = new me.ParticleEmitter(game.VICTORY_ANIMATIONS.SUPER.x, game.VICTORY_ANIMATIONS.SUPER.y, {
+            image: largeImg,
+            width: 4,
+            totalParticles: 12,
+            angle: 0.0856797996433583,
+            angleVariation: 3.14159265358979,
+            minLife: 400,
+            maxLife: 1800,
+            speed: 0.954545454545454,
+            speedVariation: 9.95454545454546,
+            minRotation: 1.34231686107927,
+            minStartScale: 1.43181818181818,
+            maxParticles: 17,
+            frequency: 19,
+            duration: 400,
+            framesToSkip: 1
+        });
+        superEmitter.name = 'fire';
+
+        superEmitter.z = Number.POSITIVE_INFINITY;
+        // TODO removeChild?
+        me.game.world.addChild(superEmitter);
+        me.game.world.addChild(superEmitter.container);
+        superEmitter.streamParticles();
+
+        game.PENDING_REMOVE.push(superEmitter);
+        game.PENDING_REMOVE.push(superEmitter.container);
+
+        delete game.VICTORY_ANIMATIONS.SUPER;
+        console.log("iterate over victory animations");
+        var time = -1;
+        setInterval(function() {
+            time++;
+            if (time > 0) {
+                game.cleanup();
+            }
+            _.each(game.VICTORY_ANIMATIONS, function(el, index) {
+                console.log(el, index);
+
+                var image;
+
+                if (index == "LARGE") {
+                    image = me.loader.getImage('explosionLarge');
+                } else if (index == "MEDIUM") {
+                    image = me.loader.getImage('explosionMedium');
+                } else if (index == "SMALL"){
+                    image = me.loader.getImage('explosionSmall');
+                } else {
+                    image = me.loader.getImage('explosionSuper');
+                }
+
+                _.each(el, function(point) {
+                    var emitter = new me.ParticleEmitter(point.x, point.y, {
+                        image: image,
+                        width: 4,
+                        totalParticles: 12,
+                        angle: 0.0856797996433583,
+                        angleVariation: 3.14159265358979,
+                        minLife: 400,
+                        maxLife: 1800,
+                        speed: 0.954545454545454,
+                        speedVariation: 9.95454545454546,
+                        minRotation: 1.34231686107927,
+                        minStartScale: 1.43181818181818,
+                        maxParticles: 17,
+                        frequency: 19,
+                        duration: 400,
+                        framesToSkip: 1
+                    });
+                    emitter.name = 'fire';
+
+                    emitter.z = Number.POSITIVE_INFINITY;
+                    // TODO removeChild?
+                    me.game.world.addChild(emitter);
+                    me.game.world.addChild(emitter.container);
+                    emitter.streamParticles();
+
+                    game.PENDING_REMOVE.push(emitter);
+                    game.PENDING_REMOVE.push(emitter.container);
+                });
+            });
+            game.VICTORY_ANIMATIONS = {
+                SUPER: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+            }
+        }, 1500);
+        
      
         // add a new renderable component with the scrolling text
         me.game.world.addChild(new (me.Renderable.extend({
@@ -54965,11 +55145,29 @@ game.TitleScreen = me.ScreenObject.extend({
         // TODO remove all ships?
 
         _.each(game.OID_MAP, function(element, index, list) {
-            var destroy = me.game.world.getChildByProp('objectID', index);
-            me.game.world.removeChild(destroy);
-        });
+            console.log(element, index, list);
+            if (element.displayed) {
+                var destroy = me.game.world.getChildByProp('objectID', index);
+                if (destroy && destroy.length > 0) {
+                    destroy = destroy[0];
+                    var offset;
+                    switch (destroy.type) {
+                        case game.ENEMY_ENTITY_LARGE:
+                            offset = 'LARGE';
+                            break;
 
-        me.game.world.removeChild(this.HUD);
+                        case game.ENEMY_ENTITY_MEDIUM:
+                            offset = 'MEDIUM'; 
+                            break;
+                        default: offset = 'SMALL';
+                    }
+                    game.VICTORY_ANIMATIONS[offset].push(new Point(destroy.pos.x + destroy.width / 2, destroy.pos.y + destroy.height / 2));
+
+                    me.game.world.removeChild(destroy);
+                    // TODO animate destruction of remaining ships?
+                }
+            }
+        });
     },
 
     /**
@@ -55088,7 +55286,8 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         return {
             connect: function(uuids) {
                 var websocket = realtime.connectTo(uuids);
-                console.log(realtime);        
+                console.log(realtime);
+                game.realtimeHandler = new RealtimeDataHandler();   
                 websocket.onmessage = Ext.bind(function(e) {
                     var data = JSON.parse(e.data);
                     console.log(data);
@@ -55096,40 +55295,9 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                     // TODO if realtime connection error, display connection state to user?
 
                     realtime.publishObjectChanged(data, this);
-                    if (data.type && data.type == "event" && data.data && data.data.action) {
-                        // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
-                        //      Create - User Story created
-                        //      Recycle - User Story recycled
-                        // A defect has been filed to make sure that these events are propagating correctly
-                        // Here's to hoping that it gets fixed sometime soon.
 
-                        // TODO revisit conditions for event relevance
-                        // TODO refactor
-
-                        // User Stories
-                        if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
-                            console.info('Add Story');
-                            game.addStory(data.data.state[oidUUID].value); // send OID to game side
-                            return;
-                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "UserStory") {
-                            console.info('Remove Story');
-                            game.removeStory(data.data.changes[oidUUID].old_value);
-                            return;
-                        } // ignore all other cases for now
-
-                        // Tasks
-                        if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "Task") {
-                            console.info('Add Task');
-                            game.addTask(data.data.state[oidUUID].value);
-                        } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "Task") {
-                            console.info('Remove Task');
-                            game.removeTask(data.data.changes[oidUUID].old_value);
-                            return;
-                        } // ignore all other cases for now
-
-                        // User Story gets updated and marked as complete
-                        // state == "Completed" || state == "Accepted" || state == "Released"
-                    }
+                    game.realtimeHandler.handleRealtimeMessage(data);
+                    
                 }, this);
             }
         };

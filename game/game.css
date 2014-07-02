@@ -67,7 +67,7 @@ body {
 
 #log, #legend {
     margin-left: 1024px;
-    min-width: 256px;
+    min-width: 256px !important;
 }
 
 #log > .content {
