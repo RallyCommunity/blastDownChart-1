@@ -77,8 +77,6 @@ var game = {
             return;
         }
 
-        console.error("System", me.sys);
-
         // add "#debug" to the URL to enable the debug Panel
         if (document.location.hash === "#debug") {
             window.onReady(function () {
@@ -137,12 +135,13 @@ var game = {
         $('#root').show();
         $('body').removeClass('x-body');
         $('html').removeClass('x-viewport');
+        $('#screen > canvas').focus();
         Ext.getBody().unmask();
     },
 
-    getStory: function(oid, callback) {
+    getWorkItem: function(oid, workModel, callback) {
         Ext.create('Rally.data.WsapiDataStore', {
-            model   : 'HierarchicalRequirement',
+            model   : workModel,
             fetch   : ['Name','Feature','Feature.ObjectID'],
             filters : [{
                 property : 'ObjectID',
@@ -165,8 +164,8 @@ var game = {
         });
     },
 
-    addStory: function(oid) {
-        this.getStory(oid, function(story, feature) {
+    addWorkItem: function(oid, workModel) {
+        this.getWorkItem(oid, workModel, function(story, feature) {
             game.displayStory(oid, story, feature);
         });
     },
@@ -207,13 +206,16 @@ var game = {
             }
         }).load({
             callback : function(records, operation, success) {
-                console.log(records);
-                var task      = records[0];
-                var userStory = task.get('WorkProduct');
-                var feature   = userStory.Feature;
+                console.log("LOOKUP " + oid, records, operation, success);
+                if (records.length > 0) {
+                    var task      = records[0];
+                    var userStory = task.get('WorkProduct');
+                    var feature   = userStory.Feature;
 
-                console.log(task, userStory, feature);
-                callback(task, userStory, feature);
+                    console.log(task, userStory, feature);
+                    callback(task, userStory, feature);
+                }
+
             }
         });
     },
@@ -247,15 +249,8 @@ var game = {
 
     displayStory: function(oid, story, feature) {
         console.log(oid, story, feature);
-        var id = null;
-        if (feature && feature._ref) {
-            var parts = feature._ref.split("/");
-            console.log(feature._ref, parts);
-            if (parts && parts.length > 0) {
-                id = parseInt(parts[parts.length - 1]);
-            }
-            
-        }
+        var id = this.getIdFromFeature(feature);
+        
         console.log(id, game.OID_MAP[id]);
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
             var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions;
@@ -295,22 +290,14 @@ var game = {
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
-                    formattedId: "f"
+                    formattedId: "f" // not really ever used for stories at this point
                 }
             }
         }
     },
 
     displayTask: function(oid, task, story, feature) {
-        var id = null;
-        // TODO helper function
-        if (feature && feature._ref) {
-            var parts = feature._ref.split("/");
-            console.log(feature._ref, parts);
-            if (parts && parts.length > 0) {
-                id = parseInt(parts[parts.length - 1]);
-            }
-        }
+        var id = this.getIdFromFeature(feature);
 
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
             var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].taskPositions;
@@ -367,6 +354,16 @@ var game = {
         }
     },
 
+    // TODO hacky!  Another query and then callback instead?
+    getIdFromFeature: function(feature) {
+        if (feature && feature._ref) {
+            var parts = feature._ref.split("/");
+            console.log(feature._ref, parts);
+            if (parts && parts.length > 0) {
+                return parseInt(parts[parts.length - 1]);
+            }
+        }
+        return null;
+    }
 
-    
 };

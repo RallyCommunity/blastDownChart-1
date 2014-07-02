@@ -33,6 +33,7 @@ game.Ship = me.ObjectEntity.extend({
 
         this.flyOff = function() {
             this.setupComplete = false;
+            this.delay = -1;
             this.goToY = game.WINDOW_HEIGHT + 64;
             // TODO remove from the game world
         }
@@ -42,15 +43,18 @@ game.Ship = me.ObjectEntity.extend({
     // Called many times to refresh the ships on the screen
     // to optimize performance, minimize the cost of calling this
     update: function() {
+        // count every set of the process
         this.waitFor--;
         // fly in from the top
         if (!this.setupComplete && this.delay <= 0) {
+            // move in to position
             this.pos.y++;
             if (this.pos.y == this.goToY) {
                 this.setupComplete = true;
             }
             return true;
         } else if (!this.setupComplete) {
+            // wait!
             this.delay--;
             return true;
         }
@@ -102,20 +106,21 @@ game.Ship = me.ObjectEntity.extend({
     // optimization
     normalMovement: function() {
         // ships randomly shoot at the player if they are not being targeted
-        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
-            var x = this.pos.x + this.width / 2;
-            var shot = me.pool.pull("bullet", x, this.pos.y, {
-                height: 16,
-                image: "bullet",
-                name: "shot",
-                spriteheight: 16,
-                spritewidth: 16,
-                width: 16,
-                shootDown: true
-            });
-            this.shootLeft = !this.shootLeft;
-            me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
-        }
+        // optimization => lots of random number generation each time!
+        // if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
+        //     var x = this.pos.x + this.width / 2;
+        //     var shot = me.pool.pull("bullet", x, this.pos.y, {
+        //         height: 16,
+        //         image: "bullet",
+        //         name: "shot",
+        //         spriteheight: 16,
+        //         spritewidth: 16,
+        //         width: 16,
+        //         shootDown: true
+        //     });
+        //     this.shootLeft = !this.shootLeft;
+        //     me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+        // }
 
         // movement pattern
         if (this.numSteps % 3 === 0) {

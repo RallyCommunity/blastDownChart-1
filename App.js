@@ -36,7 +36,6 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
-        var oid = 20250817419;
     }
 });
 

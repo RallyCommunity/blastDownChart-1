@@ -57,7 +57,6 @@ game.TitleScreen = me.ScreenObject.extend({
                 me.state.change(me.state.PLAY);
             }
         });
-
     },
  
     /**    

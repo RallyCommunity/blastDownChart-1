@@ -14,7 +14,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.y < 16) {
+        if (this.pos.y < 16 && !this.shootDown) {
             game.canShoot = true;
             me.game.world.removeChild(this);
         } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
@@ -35,7 +35,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 image = me.loader.getImage('explosionSmall');
             }
 
-            // Did the player shoot someone destructable
+            // Did the player shoot someone destructable?
             if (image && !this.shootDown && res.obj.isDestructable()) {
                 game.canShoot = true;
                 me.game.world.removeChild(this);
