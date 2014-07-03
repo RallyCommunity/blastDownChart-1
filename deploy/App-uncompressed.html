@@ -33866,6 +33866,10 @@ ReconnectingWebSocket.debugAll = false;
     this.queue = [];
     var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
     var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
+
+    var taskStateUUID = 'bf4ba1fd-feb5-4e84-9f16-3f9836e15399';
+    var storyScheduleStateUUID = 'bc9d8dd6-1b7d-473b-99f5-adaf28270089';
+
     this.handleRealtimeMessage = function(data) {
         console.log("got a message");
         if (game.SHOW_LABEL || this.queue.length > 0) { // setup not complete yet and we want to handle events in orders
@@ -33929,19 +33933,28 @@ ReconnectingWebSocket.debugAll = false;
     var handleUserStory = function(data, prop, prop2) {
         if (data.data.action == "Created") {
             console.info('Add Story');
-            game.addStory(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
+            game.addWorkItem(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
             return;
         } else if (data.data.action == "Recycled") {
             console.info('Remove Story');
-            game.removeStory(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
+            game.removeShip(data.data[prop][oidUUID][prop2]);
             return;
-        } else if (data.data.action == "Updated") {
-
+        } else if (data.data.action == "Updated" && data.data.changes[storyScheduleStateUUID]) {
+            checkStoryUpdate(data, prop, prop2);
             return;
         }// ignore all other cases for now
     }
 
-    var handleDefect = function(data) {
+    var checkStoryUpdate = function(data, prop, prop2) {
+        var oldValues = ["Idea", "Defined", "In-Progress"];
+        var newValues = ["Completed", "Accepted", "Released"];
+        if (_.indexOf(oldValues, data.data.changes[storyScheduleStateUUID].old_value) >= 0 &&
+                _.indexOf(newValues, data.data.changes[storyScheduleStateUUID].value) >= 0) {
+            game.completeItem(data.data[prop][oidUUID][prop2]);
+        }
+    }
+
+    var handleDefect = function(data, prop, prop2) {
         // same cases as a story, just going to use a different model for queries
         if (data.data.action == "Created") {
             console.info('Add Defect');
@@ -33949,26 +33962,26 @@ ReconnectingWebSocket.debugAll = false;
             return;
         } else if (data.data.action == "Recycled") {
             console.info('Remove Defect');
-            game.addWorkItem(data.data[prop][oidUUID][prop2], 'Defect');
+            game.removeShip(data.data[prop][oidUUID][prop2]);
             return;
-        } else if (data.data.action == "Updated") {
-            // completed?
-            // points changed?
+        } else if (data.data.action == "Updated" && data.data.changes[storyScheduleStateUUID]) {
+            checkStoryUpdate(data, prop, prop2);
             return;
         }// ignore all other cases for now
     }
 
     var handleTask = function(data, prop, prop2) {
-        console.log('handle task');
+        console.log('handle task', data, "checking " + taskStateUUID);
         if (data.data.action == "Created") {
             console.info('Add Task');
             game.addTask(data.data[prop][oidUUID][prop2]); // send OID to game side
             return;
         } else if (data.data.action == "Recycled") {
             console.info('Remove Task');
-            game.removeTask(data.data[prop][oidUUID][prop2]);
+            game.removeShip(data.data[prop][oidUUID][prop2]);
             return;
-        } else if (data.data.action == "Updated") {
+        } else if (data.data.action == "Updated" && data.data.changes && data.data.changes[taskStateUUID] && data.data.changes[taskStateUUID].value == "Completed") {
+            game.completeItem(data.data[prop][oidUUID][prop2]);
             // completed?
             // points changed?
             return;
@@ -53675,19 +53688,7 @@ var game = {
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
-        // TODO - eventually this will not be controlled by a button - realtime data
-        $("#completeFeature").click(function() {
-            // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
-            var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
-            if (destroy.length == 1) {
-                var players = me.game.world.getChildByProp('type', game.PLAYER);
-                if (players.length == 1) {
-                    destroy[0].setVulnerable(true);
-                    players[0].addTarget(destroy[0]);
-                }
-            }
-            $('#completeFeature').hide();
-        });
+
 
         me.state.change(me.state.MENU);
 
@@ -53695,6 +53696,7 @@ var game = {
         $($('.rally-app')[0]).hide();
         $('#root').show();
         $('body').removeClass('x-body');
+
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
         Ext.getBody().unmask();
@@ -53731,24 +53733,37 @@ var game = {
         });
     },
 
-    removeStory: function(oid) {
+    removeShip: function(oid) {
         // removing a ship
-        this.getStory(oid, function(story, feature) {
-            var item = game.OID_MAP[oid];
-            if (item && item.displayed && game.OID_MAP[feature.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column]) {
-                var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column].storyPositions;
-                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-                if (positions && pendingRemove) {
-                    positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
-                    pendingRemove.flyOff();
-                }
-                game.log.addItem(item.formattedId + " recycled");
-            } else if (item) {
-                // not currently displayed, just remove it from the map and log it
+        var item = game.OID_MAP[oid];
+        if (item && item.displayed) {
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            game.itemFlyOff(oid, pendingRemove);
+        } else if (item && item.queueColumn) {
+            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
+            if (arr) {
+                arr.filter(function(shipData) {
+                    return oid != shipData.ObjectID;
+                });
                 delete game.OID_MAP[oid];
                 game.log.addItem(item.formattedId + " recycled");
             }
-        });
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
+    },
+
+    itemFlyOff: function(oid, pendingRemove) {
+        if (pendingRemove && pendingRemove.length > 0 && game.OID_MAP[pendingRemove[0].featureId] && game.AVAILABLE_POSITIONS[game.OID_MAP[pendingRemove[0].featureId].column]) {
+            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[pendingRemove[0].featureId].column].storyPositions;
+            if (positions) {
+                positions.unshift(new Point(pendingRemove[0].startingX, pendingRemove[0].startingY));
+                pendingRemove[0].flyOff();
+                game.log.addItem(pendingRemove[0].formattedId + " recycled");
+            }
+        }
     },
 
     getTask: function(oid, callback) {
@@ -53771,12 +53786,13 @@ var game = {
                 if (records.length > 0) {
                     var task      = records[0];
                     var userStory = task.get('WorkProduct');
-                    var feature   = userStory.Feature;
+                    if (userStory) {
+                        var feature   = userStory.Feature;
 
-                    console.log(task, userStory, feature);
-                    callback(task, userStory, feature);
+                        console.log(task, userStory, feature);
+                        callback(task, userStory, feature);
+                    }
                 }
-
             }
         });
     },
@@ -53785,27 +53801,6 @@ var game = {
         this.getTask(oid, function(task, story, feature) {
             game.displayTask(oid, task, story, feature);
         });
-    },
-
-    removeTask: function(oid) {
-        this.getTask(oid, function(task, story, feature) {
-            var item = game.OID_MAP[oid];
-            if (item && item.displayed) {
-                // currently displayed - have it fly off
-                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-                console.log('pending remove', pendingRemove);
-                game.OID_MAP[feature.ObjectID]
-                if (pendingRemove) {
-                    pendingRemove.flyOff();
-                }
-                game.log.addItem(item.formattedId + " recycled");
-            } else if (item) {
-                // not currently displayed, just remove it from the map and log it
-                delete game.OID_MAP[oid];
-                game.log.addItem(item.formattedId + " recycled");
-            }
-        });
-        
     },
 
     displayStory: function(oid, story, feature) {
@@ -53851,8 +53846,11 @@ var game = {
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
-                    formattedId: "f" // not really ever used for stories at this point
+                    formattedId: story.data.FormattedID,
+                    queueColumn: game.OID_MAP[id].column
                 }
+
+                game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].pendingStories.push(story.data);
             }
         }
     },
@@ -53879,6 +53877,7 @@ var game = {
                     width: game.TASK_SHIP.width,
                     objectID: task.data.ObjectID,
                     z: Number.POSITIVE_INFINITY,
+                    formattedId: task.data.FormattedID,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
                     delay: 0,
@@ -53925,6 +53924,23 @@ var game = {
             }
         }
         return null;
+    },
+
+    completeItem: function(oid) {
+        if (game.OID_MAP[oid]) {
+            if (game.OID_MAP[oid].displayed) {
+                var destroy = me.game.world.getChildByProp('objectID', oid);
+                if (destroy.length == 1) {
+                    var players = me.game.world.getChildByProp('type', game.PLAYER);
+                    if (players.length == 1) {
+                        destroy[0].setVulnerable(true);
+                        players[0].addTarget(destroy[0]);
+                    }
+                }
+            } else {
+                // not displayed - do nothing for now
+            }
+        }
     }
 
 };
@@ -54218,10 +54234,13 @@ var game = {
         this.waitFor = settings.waitFor;
 
         this.flyOff = function() {
-            this.setupComplete = false;
-            this.delay = -1;
-            this.goToY = game.WINDOW_HEIGHT + 64;
-            // TODO remove from the game world
+            this.update = function() {
+                this.pos.y++;
+                if (this.pos.y >= game.WINDOW_HEIGHT - 1) {
+                    delete game.OID_MAP[this.objectID];
+                    me.game.world.removeChild(this);
+                }
+            }
         }
     },
 
@@ -54234,6 +54253,7 @@ var game = {
         // fly in from the top
         if (!this.setupComplete && this.delay <= 0) {
             // move in to position
+            
             this.pos.y++;
             if (this.pos.y == this.goToY) {
                 this.setupComplete = true;
@@ -54456,26 +54476,29 @@ var game = {
 
                             var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.shift();
 
-                            game.OID_MAP[ship.ObjectID].displayed = true;
+                            if (game.OID_MAP[ship.ObjectID]) {
+                                game.OID_MAP[ship.ObjectID].displayed = true;
 
-                            var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
-                                height: game.STORY_SHIP.height,
-                                image: "medium",
-                                name: "[STORY/DEFECT] - " + ship.Name,
-                                spriteheight: game.STORY_SHIP.height,
-                                spritewidth: game.STORY_SHIP.width,
-                                width: game.STORY_SHIP.width,
-                                objectID: ship.ObjectID,
-                                z: res.obj.z,
-                                health: 2,
-                                type: game.ENEMY_ENTITY_MEDIUM,
-                                delay: 0,
-                                programmaticallyAdded: true,
-                                featureId: res.obj.featureId,
-                                waitFor: 0
-                            });
+                                var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
+                                    height: game.STORY_SHIP.height,
+                                    image: "medium",
+                                    name: "[STORY/DEFECT] - " + ship.Name,
+                                    spriteheight: game.STORY_SHIP.height,
+                                    spritewidth: game.STORY_SHIP.width,
+                                    width: game.STORY_SHIP.width,
+                                    objectID: ship.ObjectID,
+                                    z: res.obj.z,
+                                    health: 2,
+                                    type: game.ENEMY_ENTITY_MEDIUM,
+                                    delay: 0,
+                                    programmaticallyAdded: true,
+                                    featureId: res.obj.featureId,
+                                    waitFor: 0
+                                });
 
-                            me.game.world.addChild(storyShip, res.obj.z);
+                                me.game.world.addChild(storyShip, res.obj.z);
+                            }
+                            
                         } else {
                             game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].storyPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
                         }
@@ -55765,10 +55788,15 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         .app {
   /* Add app styles here */
 }
-body {
+.x-body {
   min-height: 720px;
   /* min 720p */
   min-width: 1280px;
+  background-image: url('game/data/img/background8bit.png');
+  background-repeat: no-repeat;
+  background-size: 720px 720px;
+  background-position: center;
+  background-color: #eb2027;
 }
 td.dataColumn {
   text-align: center;
@@ -55778,11 +55806,6 @@ td.dataColumn {
 </head>
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
-    <!-- <h1>Space Invaders Blast Down for {{organizedData.initiative.Name}}</h1> -->
-<!--     <h2>Features: </h2>
-    <ul>
-        <li ng-repeat="feature in organizedData.features">{{feature.feature.Name}}</li>
-    </ul> -->
     <div class="middle">
         <div id="spaceInvadersContainer">
             <div>
@@ -55860,53 +55883,6 @@ td.dataColumn {
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-
-
-<!--         <div id="gameAndLog">
-            <div id="screen"></div>
-            <div id="gameLog">
-                <div id="logToggle">
-                    <div class="button selected" title="Yes">History</div>
-                    <div class="button unselected">Realtime</div>
-                </div>
-
-                <h3>Ships Destroyed</h3>
-                <ul id="historyLog">
-                  <li ng-repeat="logItem in logItems">[{{logItem.date.getMonth() + 1}}/{{logItem.date.getDate()}} {{logItem.date.getHours()}}:{{logItem.date.getMinutes()}}:{{logItem.date.getSeconds()}}] - {{logItem.note}}</li>
-                </ul>
-                <ul id="realtimeLog">
-
-                </ul>
-            </div>
-            <button type="button" id="completeFeature">Complete a feature</button>
-        </div> -->
-<!--         <div id="shipKey">
-            <fieldset>
-                <legend>Legend:</legend>
-                <div class="shipContainer">
-                    Task
-                    <br />
-                    <img src="game/data/img/shipSmall.png">
-                </div>
-                <div class="shipContainer">
-                    User Story / Defect
-                    <img src="game/data/img/shipMedium.png">
-                </div>
-                <div class="shipContainer">
-                    Feature
-                    <br />
-                    <img src="game/data/img/shipLarge.png">
-                </div>
-                <div class="shipContainer">
-                    Initiative
-                    <br />
-                    <img src="game/data/img/shipSuper.png">
-                </div>
-            </fieldset>
-        </div> -->
     </div>
 </div>
 
