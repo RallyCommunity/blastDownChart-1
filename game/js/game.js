@@ -114,19 +114,7 @@ var game = {
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
-        // TODO - eventually this will not be controlled by a button - realtime data
-        $("#completeFeature").click(function() {
-            // TODO if you dont find the OID in the game, then it might not be present.  Kill another one??
-            var destroy = me.game.world.getChildByProp('objectID', game.shootMe);
-            if (destroy.length == 1) {
-                var players = me.game.world.getChildByProp('type', game.PLAYER);
-                if (players.length == 1) {
-                    destroy[0].setVulnerable(true);
-                    players[0].addTarget(destroy[0]);
-                }
-            }
-            $('#completeFeature').hide();
-        });
+
 
         me.state.change(me.state.MENU);
 
@@ -134,6 +122,7 @@ var game = {
         $($('.rally-app')[0]).hide();
         $('#root').show();
         $('body').removeClass('x-body');
+
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
         Ext.getBody().unmask();
@@ -170,24 +159,37 @@ var game = {
         });
     },
 
-    removeStory: function(oid) {
+    removeShip: function(oid) {
         // removing a ship
-        this.getStory(oid, function(story, feature) {
-            var item = game.OID_MAP[oid];
-            if (item && item.displayed && game.OID_MAP[feature.ObjectID] && game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column]) {
-                var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[feature.ObjectID].column].storyPositions;
-                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-                if (positions && pendingRemove) {
-                    positions.push(new Point(pendingRemove.startingX, pendingRemove.startingY));
-                    pendingRemove.flyOff();
-                }
-                game.log.addItem(item.formattedId + " recycled");
-            } else if (item) {
-                // not currently displayed, just remove it from the map and log it
+        var item = game.OID_MAP[oid];
+        if (item && item.displayed) {
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            game.itemFlyOff(oid, pendingRemove);
+        } else if (item && item.queueColumn) {
+            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
+            if (arr) {
+                arr.filter(function(shipData) {
+                    return oid != shipData.ObjectID;
+                });
                 delete game.OID_MAP[oid];
                 game.log.addItem(item.formattedId + " recycled");
             }
-        });
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
+    },
+
+    itemFlyOff: function(oid, pendingRemove) {
+        if (pendingRemove && pendingRemove.length > 0 && game.OID_MAP[pendingRemove[0].featureId] && game.AVAILABLE_POSITIONS[game.OID_MAP[pendingRemove[0].featureId].column]) {
+            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[pendingRemove[0].featureId].column].storyPositions;
+            if (positions) {
+                positions.unshift(new Point(pendingRemove[0].startingX, pendingRemove[0].startingY));
+                pendingRemove[0].flyOff();
+                game.log.addItem(pendingRemove[0].formattedId + " recycled");
+            }
+        }
     },
 
     getTask: function(oid, callback) {
@@ -210,12 +212,13 @@ var game = {
                 if (records.length > 0) {
                     var task      = records[0];
                     var userStory = task.get('WorkProduct');
-                    var feature   = userStory.Feature;
+                    if (userStory) {
+                        var feature   = userStory.Feature;
 
-                    console.log(task, userStory, feature);
-                    callback(task, userStory, feature);
+                        console.log(task, userStory, feature);
+                        callback(task, userStory, feature);
+                    }
                 }
-
             }
         });
     },
@@ -224,27 +227,6 @@ var game = {
         this.getTask(oid, function(task, story, feature) {
             game.displayTask(oid, task, story, feature);
         });
-    },
-
-    removeTask: function(oid) {
-        this.getTask(oid, function(task, story, feature) {
-            var item = game.OID_MAP[oid];
-            if (item && item.displayed) {
-                // currently displayed - have it fly off
-                var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-                console.log('pending remove', pendingRemove);
-                game.OID_MAP[feature.ObjectID]
-                if (pendingRemove) {
-                    pendingRemove.flyOff();
-                }
-                game.log.addItem(item.formattedId + " recycled");
-            } else if (item) {
-                // not currently displayed, just remove it from the map and log it
-                delete game.OID_MAP[oid];
-                game.log.addItem(item.formattedId + " recycled");
-            }
-        });
-        
     },
 
     displayStory: function(oid, story, feature) {
@@ -290,8 +272,11 @@ var game = {
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
-                    formattedId: "f" // not really ever used for stories at this point
+                    formattedId: story.data.FormattedID,
+                    queueColumn: game.OID_MAP[id].column
                 }
+
+                game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].pendingStories.push(story.data);
             }
         }
     },
@@ -318,6 +303,7 @@ var game = {
                     width: game.TASK_SHIP.width,
                     objectID: task.data.ObjectID,
                     z: Number.POSITIVE_INFINITY,
+                    formattedId: task.data.FormattedID,
                     health: 2,
                     type: game.ENEMY_ENTITY_SMALL,
                     delay: 0,
@@ -364,6 +350,23 @@ var game = {
             }
         }
         return null;
+    },
+
+    completeItem: function(oid) {
+        if (game.OID_MAP[oid]) {
+            if (game.OID_MAP[oid].displayed) {
+                var destroy = me.game.world.getChildByProp('objectID', oid);
+                if (destroy.length == 1) {
+                    var players = me.game.world.getChildByProp('type', game.PLAYER);
+                    if (players.length == 1) {
+                        destroy[0].setVulnerable(true);
+                        players[0].addTarget(destroy[0]);
+                    }
+                }
+            } else {
+                // not displayed - do nothing for now
+            }
+        }
     }
 
 };

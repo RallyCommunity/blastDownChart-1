@@ -2,11 +2,20 @@
      /* Add app styles here */
 }
 
-body {
+.x-body {
     min-height: 720px; /* min 720p */
     min-width: 1280px;
+    background-image: url('game/data/img/background8bit.png');
+    background-repeat: no-repeat;
+    background-size: 720px 720px;
+    background-position: center;
+    background-color: #eb2027;
 }
 
 td.dataColumn {
     text-align: center;
+}
+
+.x-mask {
+    background: none !important;
 }

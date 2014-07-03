@@ -33864,61 +33864,131 @@ ReconnectingWebSocket.debugAll = false;
 
                 function RealtimeDataHandler() {
     this.queue = [];
-
+    var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
+    var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
     this.handleRealtimeMessage = function(data) {
+        console.log("got a message");
         if (game.SHOW_LABEL || this.queue.length > 0) { // setup not complete yet and we want to handle events in orders
             // queue and return
+            console.log("Queueing", data, game.SHOW_LABEL, this.queue.length);
             this.queue.push(data);
             return;
         }
+        handle(data);
+    }
+
+    this.handlePendingReatimeMessages = function() {
+        while (this.queue.length != 0) {
+            handle(this.queue.shift());
+        }
+    }
+
+    var handle = function(data) {
         if (data.type && data.type == "event" && data.data && data.data.action) {
             // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
             //      Create - User Story created
             //      Recycle - User Story recycled
             // A defect has been filed to make sure that these events are propagating correctly
-            // Here's to hoping that it gets fixed sometime soon.
 
             // TODO question do we get events "in order" (is that guaranteed?)
-            // TODO revisit conditions for event relevance
-            // TODO refactor
-
-            // User Stories
-            if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "UserStory") {
-                console.info('Add Story');
-                game.addStory(data.data.state[oidUUID].value); // send OID to game side
+            var offset;
+            var secondOffset;
+            if (data.data.state && data.data.state[typeUUID]) {
+                offset = 'state';
+                secondOffset = 'value';
+            } else if (data.data.changes && data.data.changes[typeUUID]) {
+                offset = 'changes';
+                secondOffset = 'old_value';
+            } else {
+                console.error('neither matched');
                 return;
-            } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "UserStory") {
-                console.info('Remove Story');
-                game.removeStory(data.data.changes[oidUUID].old_value);
-                return;
-            } // ignore all other cases for now
+            }
 
-            // Tasks
-            if (data.data.action == "Created" && data.data.state && data.data.state[typeUUID] && data.data.state[typeUUID].value == "Task") {
-                console.info('Add Task');
-                game.addTask(data.data.state[oidUUID].value);
-            } else if (data.data.action == "Recycled" && data.data.changes && data.data.changes[typeUUID] && data.data.changes[typeUUID].old_value == "Task") {
-                console.info('Remove Task');
-                game.removeTask(data.data.changes[oidUUID].old_value);
-                return;
-            } // ignore all other cases for now
+            console.log("interpreting", data.data[offset][typeUUID].value);
+            switch(data.data[offset][typeUUID][secondOffset]) {
+                case "UserStory"    :
+                                        handleUserStory(data, offset, secondOffset);
+                                        break;
+                case "Defect"         :
+                                        handleDefect(data, offset, secondOffset);
+                                        break;
+                case "Task"         :
+                                        handleTask(data, offset, secondOffset);
+                                        break;
+                case "Feature"      :
+                                        handleFeature(data, offset, secondOffset);
+                                        break;
+                case "Initiative"   :
+                                        handleInitiative(data, offset, secondOffset);
+                                        break;
+                default: // ignore
+            }
+        } // handle other cases?
+    }
 
-            // User Story gets updated and marked as complete
-            // state == "Completed" || state == "Accepted" || state == "Released"
-            // points get updated on the story
+    var handleUserStory = function(data, prop, prop2) {
+        if (data.data.action == "Created") {
+            console.info('Add Story');
+            game.addStory(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
+            return;
+        } else if (data.data.action == "Recycled") {
+            console.info('Remove Story');
+            game.removeStory(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
+            return;
+        } else if (data.data.action == "Updated") {
 
-            // Task gets updated and marked as complete
+            return;
+        }// ignore all other cases for now
+    }
 
-            // Feature gets updated and marked as complete
+    var handleDefect = function(data) {
+        // same cases as a story, just going to use a different model for queries
+        if (data.data.action == "Created") {
+            console.info('Add Defect');
+            game.addWorkItem(data.data[prop][oidUUID][prop2], 'Defect'); // send OID to game side
+            return;
+        } else if (data.data.action == "Recycled") {
+            console.info('Remove Defect');
+            game.addWorkItem(data.data[prop][oidUUID][prop2], 'Defect');
+            return;
+        } else if (data.data.action == "Updated") {
+            // completed?
+            // points changed?
+            return;
+        }// ignore all other cases for now
+    }
 
-            // initiative gets updated and marked as complete
+    var handleTask = function(data, prop, prop2) {
+        console.log('handle task');
+        if (data.data.action == "Created") {
+            console.info('Add Task');
+            game.addTask(data.data[prop][oidUUID][prop2]); // send OID to game side
+            return;
+        } else if (data.data.action == "Recycled") {
+            console.info('Remove Task');
+            game.removeTask(data.data[prop][oidUUID][prop2]);
+            return;
+        } else if (data.data.action == "Updated") {
+            // completed?
+            // points changed?
+            return;
+        } // ignore all other cases for now
+    }
+
+    var handleFeature = function(data) {
+        // the only events for an feature that are of value
+        // if it is updated to be completed
+        if (data.data.action == "Updated") {
+            // completed?
         }
     }
 
-    this.handlePendingReatimeMessages = function() {
-        console.log("handling " +  queue.length + " pending messages");
-        while (queue.length != 0) {
-            this.handleRealtimeMessage(this.queue.shift());
+
+    var handleInitiative = function(data) {
+        // the only events for an initiative that are of value
+        // if it is updated to be completed
+        if (data.data.action == "Updated") {
+            // completed?
         }
     }
 }
@@ -53568,8 +53638,6 @@ var game = {
             return;
         }
 
-        console.error("System", me.sys);
-
         // add "#debug" to the URL to enable the debug Panel
         if (document.location.hash === "#debug") {
             window.onReady(function () {
@@ -53628,12 +53696,13 @@ var game = {
         $('#root').show();
         $('body').removeClass('x-body');
         $('html').removeClass('x-viewport');
+        $('#screen > canvas').focus();
         Ext.getBody().unmask();
     },
 
-    getStory: function(oid, callback) {
+    getWorkItem: function(oid, workModel, callback) {
         Ext.create('Rally.data.WsapiDataStore', {
-            model   : 'HierarchicalRequirement',
+            model   : workModel,
             fetch   : ['Name','Feature','Feature.ObjectID'],
             filters : [{
                 property : 'ObjectID',
@@ -53656,8 +53725,8 @@ var game = {
         });
     },
 
-    addStory: function(oid) {
-        this.getStory(oid, function(story, feature) {
+    addWorkItem: function(oid, workModel) {
+        this.getWorkItem(oid, workModel, function(story, feature) {
             game.displayStory(oid, story, feature);
         });
     },
@@ -53698,13 +53767,16 @@ var game = {
             }
         }).load({
             callback : function(records, operation, success) {
-                console.log(records);
-                var task      = records[0];
-                var userStory = task.get('WorkProduct');
-                var feature   = userStory.Feature;
+                console.log("LOOKUP " + oid, records, operation, success);
+                if (records.length > 0) {
+                    var task      = records[0];
+                    var userStory = task.get('WorkProduct');
+                    var feature   = userStory.Feature;
 
-                console.log(task, userStory, feature);
-                callback(task, userStory, feature);
+                    console.log(task, userStory, feature);
+                    callback(task, userStory, feature);
+                }
+
             }
         });
     },
@@ -53738,15 +53810,8 @@ var game = {
 
     displayStory: function(oid, story, feature) {
         console.log(oid, story, feature);
-        var id = null;
-        if (feature && feature._ref) {
-            var parts = feature._ref.split("/");
-            console.log(feature._ref, parts);
-            if (parts && parts.length > 0) {
-                id = parseInt(parts[parts.length - 1]);
-            }
-            
-        }
+        var id = this.getIdFromFeature(feature);
+        
         console.log(id, game.OID_MAP[id]);
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
             var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions;
@@ -53786,22 +53851,14 @@ var game = {
             } else {
                 game.OID_MAP[oid] = {
                     displayed: false,
-                    formattedId: "f"
+                    formattedId: "f" // not really ever used for stories at this point
                 }
             }
         }
     },
 
     displayTask: function(oid, task, story, feature) {
-        var id = null;
-        // TODO helper function
-        if (feature && feature._ref) {
-            var parts = feature._ref.split("/");
-            console.log(feature._ref, parts);
-            if (parts && parts.length > 0) {
-                id = parseInt(parts[parts.length - 1]);
-            }
-        }
+        var id = this.getIdFromFeature(feature);
 
         if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
             var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].taskPositions;
@@ -53858,8 +53915,18 @@ var game = {
         }
     },
 
+    // TODO hacky!  Another query and then callback instead?
+    getIdFromFeature: function(feature) {
+        if (feature && feature._ref) {
+            var parts = feature._ref.split("/");
+            console.log(feature._ref, parts);
+            if (parts && parts.length > 0) {
+                return parseInt(parts[parts.length - 1]);
+            }
+        }
+        return null;
+    }
 
-    
 };
 
                 game.resources = [
@@ -53944,12 +54011,13 @@ var game = {
 
     // update position
     update: function(dt) {
-        if (this.delay > 0) {
+        if (this.delay == 0) {
+            game.realtimeHandler.handlePendingReatimeMessages();
+            this.delay = -1;
+        } else if (this.delay > 0) {
             this.delay--;
             return true;
         }
-
-        game.realtimeHandler.handlePendingReatimeMessages();
 
         this.hunting--;
 
@@ -54151,6 +54219,7 @@ var game = {
 
         this.flyOff = function() {
             this.setupComplete = false;
+            this.delay = -1;
             this.goToY = game.WINDOW_HEIGHT + 64;
             // TODO remove from the game world
         }
@@ -54160,15 +54229,18 @@ var game = {
     // Called many times to refresh the ships on the screen
     // to optimize performance, minimize the cost of calling this
     update: function() {
+        // count every set of the process
         this.waitFor--;
         // fly in from the top
         if (!this.setupComplete && this.delay <= 0) {
+            // move in to position
             this.pos.y++;
             if (this.pos.y == this.goToY) {
                 this.setupComplete = true;
             }
             return true;
         } else if (!this.setupComplete) {
+            // wait!
             this.delay--;
             return true;
         }
@@ -54207,7 +54279,9 @@ var game = {
             this.waitFor = 0; // dont let it wrap around
         }
 
-        game.SHOW_LABEL = false;
+        if (game.SHOW_LABEL) {
+            game.SHOW_LABEL = false;
+        }
 
         this.update = function() {
            this.normalMovement();
@@ -54218,20 +54292,21 @@ var game = {
     // optimization
     normalMovement: function() {
         // ships randomly shoot at the player if they are not being targeted
-        if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
-            var x = this.pos.x + this.width / 2;
-            var shot = me.pool.pull("bullet", x, this.pos.y, {
-                height: 16,
-                image: "bullet",
-                name: "shot",
-                spriteheight: 16,
-                spritewidth: 16,
-                width: 16,
-                shootDown: true
-            });
-            this.shootLeft = !this.shootLeft;
-            me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
-        }
+        // optimization => lots of random number generation each time!
+        // if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
+        //     var x = this.pos.x + this.width / 2;
+        //     var shot = me.pool.pull("bullet", x, this.pos.y, {
+        //         height: 16,
+        //         image: "bullet",
+        //         name: "shot",
+        //         spriteheight: 16,
+        //         spritewidth: 16,
+        //         width: 16,
+        //         shootDown: true
+        //     });
+        //     this.shootLeft = !this.shootLeft;
+        //     me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+        // }
 
         // movement pattern
         if (this.numSteps % 3 === 0) {
@@ -54286,7 +54361,7 @@ var game = {
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.y < 16) {
+        if (this.pos.y < 16 && !this.shootDown) {
             game.canShoot = true;
             me.game.world.removeChild(this);
         } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
@@ -54307,7 +54382,7 @@ var game = {
                 image = me.loader.getImage('explosionSmall');
             }
 
-            // Did the player shoot someone destructable
+            // Did the player shoot someone destructable?
             if (image && !this.shootDown && res.obj.isDestructable()) {
                 game.canShoot = true;
                 me.game.world.removeChild(this);
@@ -54673,7 +54748,6 @@ game.TitleScreen = me.ScreenObject.extend({
                 me.state.change(me.state.PLAY);
             }
         });
-
     },
  
     /**    
@@ -55233,7 +55307,6 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
-        var oid = 20250817419;
     }
 });
 
@@ -55243,15 +55316,6 @@ Ext.define('CustomApp', {
 
 module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeService', function($scope, RallyDataService, RealtimeService) {
     $scope.organizedData = {};
-    $scope.redraw = false;
-    $scope.$watch('organizedData', function() {
-        if ($scope.redraw) {
-            console.log('redrawing');
-        } else {
-            console.log('not drawn yet');
-        }
-    });
-
     $scope.RallyDataService = RallyDataService;
 
     RallyDataService.getData(true, function(data) {
@@ -55259,7 +55323,6 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         $scope.$apply();
         // Start the game
         game.onload();
-        $scope.redraw = true; // now when it changes the game will recognize it
     });
 
     $scope.logItems = [{
@@ -55279,8 +55342,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 
                 module.factory('RealtimeService', function () {
         var realtime = new Realtime();
-        var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
-        var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
+
         //var formattedId = '55c5512a-1518-4944-8597-3eb91875e8d1';
 
         return {
@@ -55571,7 +55633,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 #log,
 #legend {
   margin-left: 1024px;
-  min-width: 256px;
+  min-width: 256px !important;
 }
 #log > .content {
   height: 100%;
@@ -55757,7 +55819,7 @@ td.dataColumn {
                 <div id="legend">
                     <div class="content">
                         <div class="shipContainer logo">
-                            <img src="https://lh4.googleusercontent.com/-vkXOTHhRGck/AAAAAAAAAAI/AAAAAAAAAAA/IBjv0oYIm5Q/photo.jpg">
+                            <img src="game/data/img/rally8bit.png">
                         </div>
                         <div class="shipContainer">
                             Space Invaders Blast Down

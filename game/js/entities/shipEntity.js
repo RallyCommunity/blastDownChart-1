@@ -32,10 +32,13 @@ game.Ship = me.ObjectEntity.extend({
         this.waitFor = settings.waitFor;
 
         this.flyOff = function() {
-            this.setupComplete = false;
-            this.delay = -1;
-            this.goToY = game.WINDOW_HEIGHT + 64;
-            // TODO remove from the game world
+            this.update = function() {
+                this.pos.y++;
+                if (this.pos.y >= game.WINDOW_HEIGHT - 1) {
+                    delete game.OID_MAP[this.objectID];
+                    me.game.world.removeChild(this);
+                }
+            }
         }
     },
 
@@ -48,6 +51,7 @@ game.Ship = me.ObjectEntity.extend({
         // fly in from the top
         if (!this.setupComplete && this.delay <= 0) {
             // move in to position
+            
             this.pos.y++;
             if (this.pos.y == this.goToY) {
                 this.setupComplete = true;

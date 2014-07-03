@@ -109,26 +109,29 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                             var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.shift();
 
-                            game.OID_MAP[ship.ObjectID].displayed = true;
+                            if (game.OID_MAP[ship.ObjectID]) {
+                                game.OID_MAP[ship.ObjectID].displayed = true;
 
-                            var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
-                                height: game.STORY_SHIP.height,
-                                image: "medium",
-                                name: "[STORY/DEFECT] - " + ship.Name,
-                                spriteheight: game.STORY_SHIP.height,
-                                spritewidth: game.STORY_SHIP.width,
-                                width: game.STORY_SHIP.width,
-                                objectID: ship.ObjectID,
-                                z: res.obj.z,
-                                health: 2,
-                                type: game.ENEMY_ENTITY_MEDIUM,
-                                delay: 0,
-                                programmaticallyAdded: true,
-                                featureId: res.obj.featureId,
-                                waitFor: 0
-                            });
+                                var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
+                                    height: game.STORY_SHIP.height,
+                                    image: "medium",
+                                    name: "[STORY/DEFECT] - " + ship.Name,
+                                    spriteheight: game.STORY_SHIP.height,
+                                    spritewidth: game.STORY_SHIP.width,
+                                    width: game.STORY_SHIP.width,
+                                    objectID: ship.ObjectID,
+                                    z: res.obj.z,
+                                    health: 2,
+                                    type: game.ENEMY_ENTITY_MEDIUM,
+                                    delay: 0,
+                                    programmaticallyAdded: true,
+                                    featureId: res.obj.featureId,
+                                    waitFor: 0
+                                });
 
-                            me.game.world.addChild(storyShip, res.obj.z);
+                                me.game.world.addChild(storyShip, res.obj.z);
+                            }
+                            
                         } else {
                             game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].storyPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
                         }
