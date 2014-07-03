@@ -36,6 +36,8 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
+
+
     }
 });
 

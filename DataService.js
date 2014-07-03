@@ -187,7 +187,7 @@ module.service('RallyDataService', function (RealtimeService) {
                                         RealtimeService.connect(projectUUIDs);
                                     };
                                     scope.realtimeConnection(); // listen for changes in realtime
-                                    callbackData(organizedData);
+                                    //callbackData(organizedData);
                                 }
                             });
                         }

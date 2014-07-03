@@ -1,27 +1,82 @@
 function RealtimeDataHandler() {
-    this.queue = [];
     var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
     var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
 
-    var taskStateUUID = 'bf4ba1fd-feb5-4e84-9f16-3f9836e15399';
-    var storyScheduleStateUUID = 'bc9d8dd6-1b7d-473b-99f5-adaf28270089';
+    var subscriptions = {};
+    var eventTrigger = $('#root');
+
+    $('#root').on("Task-Updated", null, null, function(event, data) {
+        console.log("event gave us", data);
+        if (data) {
+            console.info("a Task was updated");
+            var record = data.record;
+            var oid = data.oid;
+            console.info(record);
+            console.info(event);
+        }
+    }); 
+
+    $('#root').on("Task-Recycled", null, null, function(event, data) {
+        console.log("event gave us", data);
+        if (data) {
+            console.info("a Task was updated");
+            var record = data.record;
+            var oid = data.oid;
+            console.info(record);
+            console.info(event);
+        }
+    }); 
+
+    var wsapiAggregator = new WSAPIAggregator();
 
     this.handleRealtimeMessage = function(data) {
-        console.log("got a message");
-        if (game.SHOW_LABEL || this.queue.length > 0) { // setup not complete yet and we want to handle events in orders
-            // queue and return
-            console.log("Queueing", data, game.SHOW_LABEL, this.queue.length);
-            this.queue.push(data);
-            return;
+        console.log(data);
+        // do we have enough information to act on this
+        if (data && data.type == "event" && data.data && data.data.action) {
+            var offset, valueOffset;
+            if (data.data.state && data.data.state[typeUUID]) {
+                offset = 'state';
+                valueOffset = 'value';
+            } else if (data.data.changes && data.data.changes[typeUUID]) {
+                offset = 'changes';
+                valueOffset = 'old_value';
+            }
+            // query wsapi for more information
+            // TODO if the event was recycling the item, then you will not get any info back
+            wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
+                console.log("got ", record);
+                console.error("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
+                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" +data.data.action, {record: record, oid: data.data[offset][oidUUID][valueOffset]});
+            });
         }
-        handle(data);
     }
 
-    this.handlePendingReatimeMessages = function() {
-        while (this.queue.length != 0) {
-            handle(this.queue.shift());
-        }
+    this.setEventTrigger = function(el) {
+        eventTrigger = $(el);
     }
+}
+/*
+    // Subscribe to specific changes
+    // eg subscribe("UserStory", ["Create", "Update", "Delete"])
+    this.subscribe = function(dataType, actions) {
+        subscriptions[dataType] = actions;
+    }
+
+    // Bulk subscribe
+    // [{dataType: "User Story", actions: ["Create", "Update", "Delete"]}]
+    this.subscribeList = function(subscriptions) {
+        _.each(subscriptions, function(subscription) {
+            if (subscription && subscription.dataType && subscription.actions) {
+                this.subscribe(subscription.dataType, subscription.actions);
+            }
+        })
+    }
+    */
+
+/*
+
+    var taskStateUUID = 'bf4ba1fd-feb5-4e84-9f16-3f9836e15399';
+    var storyScheduleStateUUID = 'bc9d8dd6-1b7d-473b-99f5-adaf28270089';
 
     var handle = function(data) {
         if (data.type && data.type == "event" && data.data && data.data.action) {
@@ -45,7 +100,7 @@ function RealtimeDataHandler() {
             }
 
             console.log("interpreting", data.data[offset][typeUUID].value);
-            switch(data.data[offset][typeUUID][secondOffset]) {
+            switch(vv) {
                 case "UserStory"    :
                                         handleUserStory(data, offset, secondOffset);
                                         break;
@@ -140,4 +195,4 @@ function RealtimeDataHandler() {
             // completed?
         }
     }
-}
+    */

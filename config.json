@@ -9,6 +9,7 @@
       "bower_components/jquery/dist/jquery.js",
       "realtime/reconnecting-websocket.js",
       "realtime/alm-realtime.js",
+      "game/WsapiAggregator.js",
       "game/RealtimeDataHandler.js",
       "game/ui.js",
       "game/lib/melonJS-1.0.1.js",
