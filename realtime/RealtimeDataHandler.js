@@ -3,36 +3,14 @@ function RealtimeDataHandler() {
     var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
 
     var subscriptions = {};
-    var eventTrigger = $('#root');
-
-    $('#root').on("Task-Updated", null, null, function(event, data) {
-        console.log("event gave us", data);
-        if (data) {
-            console.info("a Task was updated");
-            var record = data.record;
-            var oid = data.oid;
-            console.info(record);
-            console.info(event);
-        }
-    }); 
-
-    $('#root').on("Task-Recycled", null, null, function(event, data) {
-        console.log("event gave us", data);
-        if (data) {
-            console.info("a Task was updated");
-            var record = data.record;
-            var oid = data.oid;
-            console.info(record);
-            console.info(event);
-        }
-    }); 
+    var eventTrigger = $('body');
 
     var wsapiAggregator = new WSAPIAggregator();
 
     this.handleRealtimeMessage = function(data) {
         console.log(data);
         // do we have enough information to act on this
-        if (data && data.type == "event" && data.data && data.data.action) {
+        if (data && data.type == 'event' && data.data && data.data.action) {
             var offset, valueOffset;
             if (data.data.state && data.data.state[typeUUID]) {
                 offset = 'state';
@@ -41,40 +19,38 @@ function RealtimeDataHandler() {
                 offset = 'changes';
                 valueOffset = 'old_value';
             }
-            // query wsapi for more information
-            // TODO if the event was recycling the item, then you will not get any info back
-            wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
-                console.log("got ", record);
-                console.error("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
-                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" +data.data.action, {record: record, oid: data.data[offset][oidUUID][valueOffset]});
-            });
+
+            var changed = _.uniq(_.pluck(data.data.changes, 'name'));
+            
+            // if the event was recycling the item, then you will not get any info back
+            if (data.data.action == 'Recycled') {
+                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" +data.data.action, {record: null, oid: data.data[offset][oidUUID][valueOffset], changes: null}); // everything changed!
+            } else {
+                // query wsapi for more information
+                wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
+                    console.log("got ", record);
+                    console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
+                    eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action, {record: record, oid: data.data[offset][oidUUID][valueOffset], changes: changed});
+                });
+            }
+        } else if (data.status) {
+            console.info("trigger status");
+            eventTrigger.trigger('RealtimeConnection-Status', data.status);
+        } else {
+            console.info("trigger other");
+            eventTrigger.trigger('RealtimeConnection-Other', data);
         }
     }
 
     this.setEventTrigger = function(el) {
-        eventTrigger = $(el);
+        if (el && typeof el === 'string') {
+            eventTrigger = $(el);
+        }
     }
 }
-/*
-    // Subscribe to specific changes
-    // eg subscribe("UserStory", ["Create", "Update", "Delete"])
-    this.subscribe = function(dataType, actions) {
-        subscriptions[dataType] = actions;
-    }
 
-    // Bulk subscribe
-    // [{dataType: "User Story", actions: ["Create", "Update", "Delete"]}]
-    this.subscribeList = function(subscriptions) {
-        _.each(subscriptions, function(subscription) {
-            if (subscription && subscription.dataType && subscription.actions) {
-                this.subscribe(subscription.dataType, subscription.actions);
-            }
-        })
-    }
-    */
 
 /*
-
     var taskStateUUID = 'bf4ba1fd-feb5-4e84-9f16-3f9836e15399';
     var storyScheduleStateUUID = 'bc9d8dd6-1b7d-473b-99f5-adaf28270089';
 

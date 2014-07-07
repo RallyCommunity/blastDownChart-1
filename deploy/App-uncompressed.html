@@ -33527,482 +33527,34 @@ return jQuery;
 
 }));
 
-                // MIT License:
-//
-// Copyright (c) 2010-2012, Joe Walnes
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+                function WSAPIAggregator() {
+    this.getWorkItem = function(oid, model, callback) {
+        console.log("fetch work item ", oid, model);
 
-/**
- * This behaves like a WebSocket in every way, except if it fails to connect,
- * or it gets disconnected, it will repeatedly poll until it succesfully connects
- * again.
- *
- * It is API compatible, so when you have:
- *   ws = new WebSocket('ws://....');
- * you can replace with:
- *   ws = new ReconnectingWebSocket('ws://....');
- *
- * The event stream will typically look like:
- *  onconnecting
- *  onopen
- *  onmessage
- *  onmessage
- *  onclose // lost connection
- *  onconnecting
- *  onopen  // sometime later...
- *  onmessage
- *  onmessage
- *  etc... 
- *
- * It is API compatible with the standard WebSocket API.
- *
- * Latest version: https://github.com/joewalnes/reconnecting-websocket/
- * - Joe Walnes
- */
-function ReconnectingWebSocket(url, protocols) {
-    protocols = protocols || [];
-
-    // These can be altered by calling code.
-    this.debug = false;
-    this.reconnectInterval = 1000;
-    this.timeoutInterval = 2000;
-
-    var self = this;
-    var ws;
-    var forcedClose = false;
-    var timedOut = false;
-    
-    this.url = url;
-    this.protocols = protocols;
-    this.readyState = WebSocket.CONNECTING;
-    this.URL = url; // Public API
-
-    this.onopen = function(event) {
-    };
-
-    this.onclose = function(event) {
-    };
-
-    this.onconnecting = function(event) {
-    };
-
-    this.onmessage = function(event) {
-    };
-
-    this.onerror = function(event) {
-    };
-
-    function connect(reconnectAttempt) {
-        ws = new WebSocket(url, protocols);
-        
-        self.onconnecting();
-        if (self.debug || ReconnectingWebSocket.debugAll) {
-            console.debug('ReconnectingWebSocket', 'attempt-connect', url);
-        }
-        
-        var localWs = ws;
-        var timeout = setTimeout(function() {
-                if (self.debug || ReconnectingWebSocket.debugAll) {
-                    console.debug('ReconnectingWebSocket', 'connection-timeout', url);
-                }
-                timedOut = true;
-                localWs.close();
-                timedOut = false;
-            }, self.timeoutInterval);
-        
-        ws.onopen = function(event) {
-            clearTimeout(timeout);
-            if (self.debug || ReconnectingWebSocket.debugAll) {
-                console.debug('ReconnectingWebSocket', 'onopen', url);
-            }
-            self.readyState = WebSocket.OPEN;
-            reconnectAttempt = false;
-            self.onopen(event);
-        };
-        
-        ws.onclose = function(event) {
-            clearTimeout(timeout);
-            ws = null;
-            if (forcedClose) {
-                self.readyState = WebSocket.CLOSED;
-                self.onclose(event);
-            } else {
-                self.readyState = WebSocket.CONNECTING;
-                self.onconnecting();
-                if (!reconnectAttempt && !timedOut) {
-                    if (self.debug || ReconnectingWebSocket.debugAll) {
-                        console.debug('ReconnectingWebSocket', 'onclose', url);
+        Ext.create('Rally.data.WsapiDataStore', {
+            model   : model,
+            fetch   : true,
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri(),
+                project: null
+            },
+            filters: [{
+                property : 'ObjectID',
+                value    : oid
+            }]
+        }).load({
+            scope: this,
+            callback: function(records) {
+                console.log("record loaded");
+                if (callback && _.isFunction(callback)) {
+                    if (records && records.length == 1) {
+                        callback(records[0]);
+                    } else {
+                        callback(null);
                     }
-                    self.onclose(event);
                 }
-                setTimeout(function() {
-                        connect(true);
-                    }, self.reconnectInterval);
             }
-        };
-        ws.onmessage = function(event) {
-            if (self.debug || ReconnectingWebSocket.debugAll) {
-                console.debug('ReconnectingWebSocket', 'onmessage', url, event.data);
-            }
-            self.onmessage(event);
-        };
-        ws.onerror = function(event) {
-            if (self.debug || ReconnectingWebSocket.debugAll) {
-                console.debug('ReconnectingWebSocket', 'onerror', url, event);
-            }
-            self.onerror(event);
-        };
-    }
-    connect(url);
-
-    this.send = function(data) {
-        if (ws) {
-            if (self.debug || ReconnectingWebSocket.debugAll) {
-                console.debug('ReconnectingWebSocket', 'send', url, data);
-            }
-            return ws.send(data);
-        } else {
-            throw 'INVALID_STATE_ERR : Pausing to reconnect websocket';
-        }
-    };
-
-    this.close = function() {
-        if (ws) {
-            forcedClose = true;
-            ws.close();
-        }
-    };
-
-    /**
-     * Additional public API method to refresh the connection if still open (close, re-open).
-     * For example, if the app suspects bad data / missed heart beats, it can try to refresh.
-     */
-    this.refresh = function() {
-        if (ws) {
-            ws.close();
-        }
-    };
-}
-
-/**
- * Setting this to true is the equivalent of setting all instances of ReconnectingWebSocket.debug to true.
- */
-ReconnectingWebSocket.debugAll = false;
-
-                function Realtime() {
-    this.ENDPOINT = "wss://realtime.rally1.rallydev.com/_websocket";
-
-    this.getSubscribeMessage = function() {
-        var projectUuid = Rally.environment.getContext().getProject()._refObjectUUID;
-        console.log('project', Rally.environment.getContext().getProject());
-        console.log('ProjectUuid', projectUuid);
-        return JSON.stringify({
-                uri: '/_subscribe',
-                    "request-method": "post",
-                    body: { topic: projectUuid }
-            });
-    }
-
-    this.getSubscribeMessageByUuid = function(projectUuid) {
-        return JSON.stringify({
-                uri: '/_subscribe',
-                    "request-method": "post",
-                    body: { topic: projectUuid }
-            });
-    }
-
-    this.getStateFieldValue = function(data, name) {
-        var field = _.find(_.values(data.data.state), { name: name });
-
-        return field && field.value;
-    }
-
-    this.getExtCompatibleRecordData = function(data, Model, useOldValue) {
-        var values = _.values(data.data.state).concat(_.values(data.data.changes));
-
-        var recordData = _.reduce(values, function(rd, v) {
-                rd[v.name] = useOldValue ? v.old_value : v.value;
-                return rd;
-            }, {});
-
-        recordData._type = Model.typePath;
-
-        return recordData;
-    }
-
-    this.getTypeFromScope = function(data) {
-        if(!data || !data.data || !data.data.scope) {
-            return;
-        }
-
-        // pull type out of "/alm-prod/<type>"
-        var match = data.data.scope.match(/([^\/]*)$/);
-
-        if(!match) {
-            return;
-        }
-
-        var typeString = match.pop();
-
-        var typeMap = {
-            'user-story': 'UserStory'
-        };
-
-        return typeMap[typeString] || typeString;
-    }
-
-    this.buildRecord = function(data, callback) {
-        var recordType = this.getStateFieldValue(data, 'object_type') || this.getTypeFromScope(data);
-
-        if(!recordType) {
-            console.log("failed to get the type of artifact that changed", data);
-            return;
-        }
-        var me = this;
-        Rally.data.WsapiModelFactory.getModel({
-                type: recordType,
-                success: function(Model) {
-                    var record = new Model(me.getExtCompatibleRecordData(data, Model, data.data.action === 'Recycled'));
-                    callback(record);
-                }
-            });
-    }
-
-    this.getChangedFields = function(data) {
-        return _.pluck(_.values(data.data.changes), 'name');
-    }
-
-    this.getMessageToPublish = function(data) {
-        if (!data || !data.data || !data.data.action) {
-            return;
-        }
-
-        var action = data.data.action;
-
-        console.log('action: ', action);
-
-        var actionMap = {
-            Updated: Rally.Message.objectUpdate,
-            Created: Rally.Message.objectCreate,
-            Recycled: Rally.Message.objectDestroy
-        };
-
-        return actionMap[action];
-    }
-
-    this.getArgsForMessage = function(message, record, changedFields, cmp) {
-        if(message === Rally.Message.objectUpdate || message === Rally.Message.objectCreate) {
-            return [message, record, changedFields, cmp];
-        }
-        return [message, record, cmp, []];
-    }
-
-    this.publishObjectChanged = function(data, cmp) {
-        var message = this.getMessageToPublish(data);
-        var me = this;
-        if(message) {
-            this.buildRecord(data, function(record) {
-                    var changedFields = me.getChangedFields(data);
-                    var args = me.getArgsForMessage(message, record, changedFields, cmp);
-                    var mb = Rally.environment.getMessageBus();
-                    mb.publish.apply(mb, args);
-                });
-        }
-    }
-
-    // this.connect = function() {
-    //     console.log('realtime: connecting');
-    //     var connection = new ReconnectingWebSocket(this.ENDPOINT);
-    //     var me = this;
-    //     connection.onopen = function() {
-    //         console.log("realtime: connected");
-    //         connection.send(me.getSubscribeMessage());
-    //     };
-    //     connection.onerror = function(e) {
-    //         console.log('realtime: error', arguments);
-    //     };
-
-    //     return connection;
-    // }
-
-    this.connectTo = function(uuids) {
-        console.log('realtime: connecting');
-        var connection = new ReconnectingWebSocket(this.ENDPOINT);
-        var me = this;
-        connection.onopen = function() {
-            console.log("realtime: connected");
-            _.each(uuids, function(uuid) {
-                connection.send(me.getSubscribeMessageByUuid(uuid));
-            });
-        };
-        connection.onerror = function(e) {
-            console.log('realtime: error', arguments);
-        };
-
-        return connection;
-    }
-};
-
-
-
-                function RealtimeDataHandler() {
-    this.queue = [];
-    var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
-    var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
-
-    var taskStateUUID = 'bf4ba1fd-feb5-4e84-9f16-3f9836e15399';
-    var storyScheduleStateUUID = 'bc9d8dd6-1b7d-473b-99f5-adaf28270089';
-
-    this.handleRealtimeMessage = function(data) {
-        console.log("got a message");
-        if (game.SHOW_LABEL || this.queue.length > 0) { // setup not complete yet and we want to handle events in orders
-            // queue and return
-            console.log("Queueing", data, game.SHOW_LABEL, this.queue.length);
-            this.queue.push(data);
-            return;
-        }
-        handle(data);
-    }
-
-    this.handlePendingReatimeMessages = function() {
-        while (this.queue.length != 0) {
-            handle(this.queue.shift());
-        }
-    }
-
-    var handle = function(data) {
-        if (data.type && data.type == "event" && data.data && data.data.action) {
-            // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
-            //      Create - User Story created
-            //      Recycle - User Story recycled
-            // A defect has been filed to make sure that these events are propagating correctly
-
-            // TODO question do we get events "in order" (is that guaranteed?)
-            var offset;
-            var secondOffset;
-            if (data.data.state && data.data.state[typeUUID]) {
-                offset = 'state';
-                secondOffset = 'value';
-            } else if (data.data.changes && data.data.changes[typeUUID]) {
-                offset = 'changes';
-                secondOffset = 'old_value';
-            } else {
-                console.error('neither matched');
-                return;
-            }
-
-            console.log("interpreting", data.data[offset][typeUUID].value);
-            switch(data.data[offset][typeUUID][secondOffset]) {
-                case "UserStory"    :
-                                        handleUserStory(data, offset, secondOffset);
-                                        break;
-                case "Defect"         :
-                                        handleDefect(data, offset, secondOffset);
-                                        break;
-                case "Task"         :
-                                        handleTask(data, offset, secondOffset);
-                                        break;
-                case "Feature"      :
-                                        handleFeature(data, offset, secondOffset);
-                                        break;
-                case "Initiative"   :
-                                        handleInitiative(data, offset, secondOffset);
-                                        break;
-                default: // ignore
-            }
-        } // handle other cases?
-    }
-
-    var handleUserStory = function(data, prop, prop2) {
-        if (data.data.action == "Created") {
-            console.info('Add Story');
-            game.addWorkItem(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
-            return;
-        } else if (data.data.action == "Recycled") {
-            console.info('Remove Story');
-            game.removeShip(data.data[prop][oidUUID][prop2]);
-            return;
-        } else if (data.data.action == "Updated" && data.data.changes[storyScheduleStateUUID]) {
-            checkStoryUpdate(data, prop, prop2);
-            return;
-        }// ignore all other cases for now
-    }
-
-    var checkStoryUpdate = function(data, prop, prop2) {
-        var oldValues = ["Idea", "Defined", "In-Progress"];
-        var newValues = ["Completed", "Accepted", "Released"];
-        if (_.indexOf(oldValues, data.data.changes[storyScheduleStateUUID].old_value) >= 0 &&
-                _.indexOf(newValues, data.data.changes[storyScheduleStateUUID].value) >= 0) {
-            game.completeItem(data.data[prop][oidUUID][prop2]);
-        }
-    }
-
-    var handleDefect = function(data, prop, prop2) {
-        // same cases as a story, just going to use a different model for queries
-        if (data.data.action == "Created") {
-            console.info('Add Defect');
-            game.addWorkItem(data.data[prop][oidUUID][prop2], 'Defect'); // send OID to game side
-            return;
-        } else if (data.data.action == "Recycled") {
-            console.info('Remove Defect');
-            game.removeShip(data.data[prop][oidUUID][prop2]);
-            return;
-        } else if (data.data.action == "Updated" && data.data.changes[storyScheduleStateUUID]) {
-            checkStoryUpdate(data, prop, prop2);
-            return;
-        }// ignore all other cases for now
-    }
-
-    var handleTask = function(data, prop, prop2) {
-        console.log('handle task', data, "checking " + taskStateUUID);
-        if (data.data.action == "Created") {
-            console.info('Add Task');
-            game.addTask(data.data[prop][oidUUID][prop2]); // send OID to game side
-            return;
-        } else if (data.data.action == "Recycled") {
-            console.info('Remove Task');
-            game.removeShip(data.data[prop][oidUUID][prop2]);
-            return;
-        } else if (data.data.action == "Updated" && data.data.changes && data.data.changes[taskStateUUID] && data.data.changes[taskStateUUID].value == "Completed") {
-            game.completeItem(data.data[prop][oidUUID][prop2]);
-            // completed?
-            // points changed?
-            return;
-        } // ignore all other cases for now
-    }
-
-    var handleFeature = function(data) {
-        // the only events for an feature that are of value
-        // if it is updated to be completed
-        if (data.data.action == "Updated") {
-            // completed?
-        }
-    }
-
-
-    var handleInitiative = function(data) {
-        // the only events for an initiative that are of value
-        // if it is updated to be completed
-        if (data.data.action == "Updated") {
-            // completed?
-        }
+        });
     }
 }
                 $(document).ready(function() {
@@ -53702,57 +53254,8 @@ var game = {
         Ext.getBody().unmask();
     },
 
-    getWorkItem: function(oid, workModel, callback) {
-        Ext.create('Rally.data.WsapiDataStore', {
-            model   : workModel,
-            fetch   : ['Name','Feature','Feature.ObjectID'],
-            filters : [{
-                property : 'ObjectID',
-                value    : oid
-            }],
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri(),
-
-                //all projects
-                project: null
-            }
-        }).load({
-            callback : function(records, operation, success) {
-                console.log(records);
-                var story     = records[0];
-                var feature   = story.get('Feature');
-                console.log("story, feature", story, feature);
-                callback(story, feature);
-            }
-        });
-    },
-
-    addWorkItem: function(oid, workModel) {
-        this.getWorkItem(oid, workModel, function(story, feature) {
-            game.displayStory(oid, story, feature);
-        });
-    },
-
-    removeShip: function(oid) {
-        // removing a ship
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            game.itemFlyOff(oid, pendingRemove);
-        } else if (item && item.queueColumn) {
-            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
-            if (arr) {
-                arr.filter(function(shipData) {
-                    return oid != shipData.ObjectID;
-                });
-                delete game.OID_MAP[oid];
-                game.log.addItem(item.formattedId + " recycled");
-            }
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
+    addWorkItem: function(oid, record) {
+        game.displayStory(oid, record, record.get('Feature'));
     },
 
     itemFlyOff: function(oid, pendingRemove) {
@@ -53766,41 +53269,14 @@ var game = {
         }
     },
 
-    getTask: function(oid, callback) {
-        Ext.create('Rally.data.WsapiDataStore', {
-            model   : 'Task',
-            fetch   : ['WorkProduct','Name','Feature','Feature.ObjectID'],
-            filters : [{
-                property : 'ObjectID',
-                value    : oid
-            }],
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri(),
+    addTask: function(oid, record) {
+        var userStory = record.get('WorkProduct');
+        if (userStory) {
+            var feature   = userStory.Feature;
 
-                //all projects
-                project: null
-            }
-        }).load({
-            callback : function(records, operation, success) {
-                console.log("LOOKUP " + oid, records, operation, success);
-                if (records.length > 0) {
-                    var task      = records[0];
-                    var userStory = task.get('WorkProduct');
-                    if (userStory) {
-                        var feature   = userStory.Feature;
-
-                        console.log(task, userStory, feature);
-                        callback(task, userStory, feature);
-                    }
-                }
-            }
-        });
-    },
-
-    addTask: function(oid) {
-        this.getTask(oid, function(task, story, feature) {
-            game.displayTask(oid, task, story, feature);
-        });
+            console.log(task, userStory, feature);
+            game.displayTask(oid, record, userStory, feature);
+        }
     },
 
     displayStory: function(oid, story, feature) {
@@ -53898,22 +53374,6 @@ var game = {
         }
     },
 
-    cleanup: function() {
-        console.log("pending", game.PENDING_REMOVE);
-        _.each(game.PENDING_REMOVE, function(remove) {
-            me.game.world.removeChild(remove);
-        });
-
-        game.PENDING_REMOVE = [];
-    },
-
-    cleanupOld: function() {
-        console.log("pending", game.PENDING_REMOVE);
-        for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
-            me.game.world.removeChild(game.PENDING_REMOVE.shift());
-        }
-    },
-
     // TODO hacky!  Another query and then callback instead?
     getIdFromFeature: function(feature) {
         if (feature && feature._ref) {
@@ -53941,8 +53401,57 @@ var game = {
                 // not displayed - do nothing for now
             }
         }
-    }
+    },
 
+    createItem: function(oid, record) {
+
+    },
+
+    updateItem: function(oid, record) {
+        // update the state of the given oid with the given record
+    },
+
+    removeItem: function(oid) {
+        // removing a ship
+        var item = game.OID_MAP[oid];
+        if (item && item.displayed) {
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            game.itemFlyOff(oid, pendingRemove);
+        } else if (item && item.queueColumn) {
+            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
+            if (arr) {
+                arr.filter(function(shipData) {
+                    return oid != shipData.ObjectID;
+                });
+                delete game.OID_MAP[oid];
+                game.log.addItem(item.formattedId + " recycled");
+            }
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
+    },
+
+
+    /**
+     * Cleanup animations
+     */
+    cleanup: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        _.each(game.PENDING_REMOVE, function(remove) {
+            me.game.world.removeChild(remove);
+        });
+
+        game.PENDING_REMOVE = [];
+    },
+
+    cleanupOld: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
+            me.game.world.removeChild(game.PENDING_REMOVE.shift());
+        }
+    }
 };
 
                 game.resources = [
@@ -55330,6 +54839,8 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         App = this;
+
+
     }
 });
 
@@ -55363,31 +54874,619 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
     };
 }]);
 
-                module.factory('RealtimeService', function () {
+                module.factory('LookbackService', function () {
         var realtime = new Realtime();
-
-        //var formattedId = '55c5512a-1518-4944-8597-3eb91875e8d1';
+        var realtimeHandler = new RealtimeDataHandler();
+        var gameHandler = new GameRealtimeHandler(realtimeHandler);
 
         return {
             connect: function(uuids) {
                 var websocket = realtime.connectTo(uuids);
                 console.log(realtime);
-                game.realtimeHandler = new RealtimeDataHandler();   
+
                 websocket.onmessage = Ext.bind(function(e) {
                     var data = JSON.parse(e.data);
-                    console.log(data);
-
-                    // TODO if realtime connection error, display connection state to user?
-
                     realtime.publishObjectChanged(data, this);
 
-                    game.realtimeHandler.handleRealtimeMessage(data);
-                    
+                    realtimeHandler.handleRealtimeMessage(data);
                 }, this);
             }
         };
 });
 
+                // MIT License:
+//
+// Copyright (c) 2010-2012, Joe Walnes
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+/**
+ * This behaves like a WebSocket in every way, except if it fails to connect,
+ * or it gets disconnected, it will repeatedly poll until it succesfully connects
+ * again.
+ *
+ * It is API compatible, so when you have:
+ *   ws = new WebSocket('ws://....');
+ * you can replace with:
+ *   ws = new ReconnectingWebSocket('ws://....');
+ *
+ * The event stream will typically look like:
+ *  onconnecting
+ *  onopen
+ *  onmessage
+ *  onmessage
+ *  onclose // lost connection
+ *  onconnecting
+ *  onopen  // sometime later...
+ *  onmessage
+ *  onmessage
+ *  etc... 
+ *
+ * It is API compatible with the standard WebSocket API.
+ *
+ * Latest version: https://github.com/joewalnes/reconnecting-websocket/
+ * - Joe Walnes
+ */
+function ReconnectingWebSocket(url, protocols) {
+    protocols = protocols || [];
+
+    // These can be altered by calling code.
+    this.debug = false;
+    this.reconnectInterval = 1000;
+    this.timeoutInterval = 2000;
+
+    var self = this;
+    var ws;
+    var forcedClose = false;
+    var timedOut = false;
+    
+    this.url = url;
+    this.protocols = protocols;
+    this.readyState = WebSocket.CONNECTING;
+    this.URL = url; // Public API
+
+    this.onopen = function(event) {
+    };
+
+    this.onclose = function(event) {
+    };
+
+    this.onconnecting = function(event) {
+    };
+
+    this.onmessage = function(event) {
+    };
+
+    this.onerror = function(event) {
+    };
+
+    function connect(reconnectAttempt) {
+        ws = new WebSocket(url, protocols);
+        
+        self.onconnecting();
+        if (self.debug || ReconnectingWebSocket.debugAll) {
+            console.debug('ReconnectingWebSocket', 'attempt-connect', url);
+        }
+        
+        var localWs = ws;
+        var timeout = setTimeout(function() {
+                if (self.debug || ReconnectingWebSocket.debugAll) {
+                    console.debug('ReconnectingWebSocket', 'connection-timeout', url);
+                }
+                timedOut = true;
+                localWs.close();
+                timedOut = false;
+            }, self.timeoutInterval);
+        
+        ws.onopen = function(event) {
+            clearTimeout(timeout);
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'onopen', url);
+            }
+            self.readyState = WebSocket.OPEN;
+            reconnectAttempt = false;
+            self.onopen(event);
+        };
+        
+        ws.onclose = function(event) {
+            clearTimeout(timeout);
+            ws = null;
+            if (forcedClose) {
+                self.readyState = WebSocket.CLOSED;
+                self.onclose(event);
+            } else {
+                self.readyState = WebSocket.CONNECTING;
+                self.onconnecting();
+                if (!reconnectAttempt && !timedOut) {
+                    if (self.debug || ReconnectingWebSocket.debugAll) {
+                        console.debug('ReconnectingWebSocket', 'onclose', url);
+                    }
+                    self.onclose(event);
+                }
+                setTimeout(function() {
+                        connect(true);
+                    }, self.reconnectInterval);
+            }
+        };
+        ws.onmessage = function(event) {
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'onmessage', url, event.data);
+            }
+            self.onmessage(event);
+        };
+        ws.onerror = function(event) {
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'onerror', url, event);
+            }
+            self.onerror(event);
+        };
+    }
+    connect(url);
+
+    this.send = function(data) {
+        if (ws) {
+            if (self.debug || ReconnectingWebSocket.debugAll) {
+                console.debug('ReconnectingWebSocket', 'send', url, data);
+            }
+            return ws.send(data);
+        } else {
+            throw 'INVALID_STATE_ERR : Pausing to reconnect websocket';
+        }
+    };
+
+    this.close = function() {
+        if (ws) {
+            forcedClose = true;
+            ws.close();
+        }
+    };
+
+    /**
+     * Additional public API method to refresh the connection if still open (close, re-open).
+     * For example, if the app suspects bad data / missed heart beats, it can try to refresh.
+     */
+    this.refresh = function() {
+        if (ws) {
+            ws.close();
+        }
+    };
+}
+
+/**
+ * Setting this to true is the equivalent of setting all instances of ReconnectingWebSocket.debug to true.
+ */
+ReconnectingWebSocket.debugAll = false;
+
+                function Realtime() {
+    this.ENDPOINT = "wss://realtime.rally1.rallydev.com/_websocket";
+
+    this.getSubscribeMessage = function() {
+        var projectUuid = Rally.environment.getContext().getProject()._refObjectUUID;
+        console.log('project', Rally.environment.getContext().getProject());
+        console.log('ProjectUuid', projectUuid);
+        return JSON.stringify({
+                uri: '/_subscribe',
+                    "request-method": "post",
+                    body: { topic: projectUuid }
+            });
+    }
+
+    this.getSubscribeMessageByUuid = function(projectUuid) {
+        return JSON.stringify({
+                uri: '/_subscribe',
+                    "request-method": "post",
+                    body: { topic: projectUuid }
+            });
+    }
+
+    this.getStateFieldValue = function(data, name) {
+        var field = _.find(_.values(data.data.state), { name: name });
+
+        return field && field.value;
+    }
+
+    this.getExtCompatibleRecordData = function(data, Model, useOldValue) {
+        var values = _.values(data.data.state).concat(_.values(data.data.changes));
+
+        var recordData = _.reduce(values, function(rd, v) {
+                rd[v.name] = useOldValue ? v.old_value : v.value;
+                return rd;
+            }, {});
+
+        recordData._type = Model.typePath;
+
+        return recordData;
+    }
+
+    this.getTypeFromScope = function(data) {
+        if(!data || !data.data || !data.data.scope) {
+            return;
+        }
+
+        // pull type out of "/alm-prod/<type>"
+        var match = data.data.scope.match(/([^\/]*)$/);
+
+        if(!match) {
+            return;
+        }
+
+        var typeString = match.pop();
+
+        var typeMap = {
+            'user-story': 'UserStory'
+        };
+
+        return typeMap[typeString] || typeString;
+    }
+
+    this.buildRecord = function(data, callback) {
+        var recordType = this.getStateFieldValue(data, 'object_type') || this.getTypeFromScope(data);
+
+        if(!recordType) {
+            console.log("failed to get the type of artifact that changed", data);
+            return;
+        }
+        var me = this;
+        Rally.data.WsapiModelFactory.getModel({
+                type: recordType,
+                success: function(Model) {
+                    var record = new Model(me.getExtCompatibleRecordData(data, Model, data.data.action === 'Recycled'));
+                    callback(record);
+                }
+            });
+    }
+
+    this.getChangedFields = function(data) {
+        return _.pluck(_.values(data.data.changes), 'name');
+    }
+
+    this.getMessageToPublish = function(data) {
+        if (!data || !data.data || !data.data.action) {
+            return;
+        }
+
+        var action = data.data.action;
+
+        console.log('action: ', action);
+
+        var actionMap = {
+            Updated: Rally.Message.objectUpdate,
+            Created: Rally.Message.objectCreate,
+            Recycled: Rally.Message.objectDestroy
+        };
+
+        return actionMap[action];
+    }
+
+    this.getArgsForMessage = function(message, record, changedFields, cmp) {
+        if(message === Rally.Message.objectUpdate || message === Rally.Message.objectCreate) {
+            return [message, record, changedFields, cmp];
+        }
+        return [message, record, cmp, []];
+    }
+
+    this.publishObjectChanged = function(data, cmp) {
+        var message = this.getMessageToPublish(data);
+        var me = this;
+        if(message) {
+            this.buildRecord(data, function(record) {
+                    var changedFields = me.getChangedFields(data);
+                    var args = me.getArgsForMessage(message, record, changedFields, cmp);
+                    var mb = Rally.environment.getMessageBus();
+                    mb.publish.apply(mb, args);
+                });
+        }
+    }
+
+    // this.connect = function() {
+    //     console.log('realtime: connecting');
+    //     var connection = new ReconnectingWebSocket(this.ENDPOINT);
+    //     var me = this;
+    //     connection.onopen = function() {
+    //         console.log("realtime: connected");
+    //         connection.send(me.getSubscribeMessage());
+    //     };
+    //     connection.onerror = function(e) {
+    //         console.log('realtime: error', arguments);
+    //     };
+
+    //     return connection;
+    // }
+
+    this.connectTo = function(uuids) {
+        console.log('realtime: connecting');
+        var connection = new ReconnectingWebSocket(this.ENDPOINT);
+        var me = this;
+        connection.onopen = function() {
+            console.log("realtime: connected");
+            _.each(uuids, function(uuid) {
+                connection.send(me.getSubscribeMessageByUuid(uuid));
+            });
+        };
+        connection.onerror = function(e) {
+            console.log('realtime: error', arguments);
+        };
+
+        return connection;
+    }
+};
+
+
+
+                function RealtimeDataHandler() {
+    var oidUUID = '06841c63-ebce-4b6f-a2fc-8fd4ed0776ce';
+    var typeUUID = '7d92c78a-8273-4784-99c5-c9187dc4fe8c';
+
+    var subscriptions = {};
+    var eventTrigger = $('body');
+
+    var wsapiAggregator = new WSAPIAggregator();
+
+    this.handleRealtimeMessage = function(data) {
+        console.log(data);
+        // do we have enough information to act on this
+        if (data && data.type == 'event' && data.data && data.data.action) {
+            var offset, valueOffset;
+            if (data.data.state && data.data.state[typeUUID]) {
+                offset = 'state';
+                valueOffset = 'value';
+            } else if (data.data.changes && data.data.changes[typeUUID]) {
+                offset = 'changes';
+                valueOffset = 'old_value';
+            }
+
+            var changed = _.uniq(_.pluck(data.data.changes, 'name'));
+            
+            // if the event was recycling the item, then you will not get any info back
+            if (data.data.action == 'Recycled') {
+                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" +data.data.action, {record: null, oid: data.data[offset][oidUUID][valueOffset], changes: null}); // everything changed!
+            } else {
+                // query wsapi for more information
+                wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
+                    console.log("got ", record);
+                    console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
+                    eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action, {record: record, oid: data.data[offset][oidUUID][valueOffset], changes: changed});
+                });
+            }
+        } else if (data.status) {
+            console.info("trigger status");
+            eventTrigger.trigger('RealtimeConnection-Status', data.status);
+        } else {
+            console.info("trigger other");
+            eventTrigger.trigger('RealtimeConnection-Other', data);
+        }
+    }
+
+    this.setEventTrigger = function(el) {
+        if (el && typeof el === 'string') {
+            eventTrigger = $(el);
+        }
+    }
+}
+
+
+/*
+    var taskStateUUID = 'bf4ba1fd-feb5-4e84-9f16-3f9836e15399';
+    var storyScheduleStateUUID = 'bc9d8dd6-1b7d-473b-99f5-adaf28270089';
+
+    var handle = function(data) {
+        if (data.type && data.type == "event" && data.data && data.data.action) {
+            // TODO Pigeon does not always send back the correct events.  Here, we will handle 2 simple events
+            //      Create - User Story created
+            //      Recycle - User Story recycled
+            // A defect has been filed to make sure that these events are propagating correctly
+
+            // TODO question do we get events "in order" (is that guaranteed?)
+            var offset;
+            var secondOffset;
+            if (data.data.state && data.data.state[typeUUID]) {
+                offset = 'state';
+                secondOffset = 'value';
+            } else if (data.data.changes && data.data.changes[typeUUID]) {
+                offset = 'changes';
+                secondOffset = 'old_value';
+            } else {
+                console.error('neither matched');
+                return;
+            }
+
+            console.log("interpreting", data.data[offset][typeUUID].value);
+            switch(vv) {
+                case "UserStory"    :
+                                        handleUserStory(data, offset, secondOffset);
+                                        break;
+                case "Defect"         :
+                                        handleDefect(data, offset, secondOffset);
+                                        break;
+                case "Task"         :
+                                        handleTask(data, offset, secondOffset);
+                                        break;
+                case "Feature"      :
+                                        handleFeature(data, offset, secondOffset);
+                                        break;
+                case "Initiative"   :
+                                        handleInitiative(data, offset, secondOffset);
+                                        break;
+                default: // ignore
+            }
+        } // handle other cases?
+    }
+
+    var handleUserStory = function(data, prop, prop2) {
+        if (data.data.action == "Created") {
+            console.info('Add Story');
+            game.addWorkItem(data.data[prop][oidUUID][prop2], 'HierarchicalRequirement');
+            return;
+        } else if (data.data.action == "Recycled") {
+            console.info('Remove Story');
+            game.removeShip(data.data[prop][oidUUID][prop2]);
+            return;
+        } else if (data.data.action == "Updated" && data.data.changes[storyScheduleStateUUID]) {
+            checkStoryUpdate(data, prop, prop2);
+            return;
+        }// ignore all other cases for now
+    }
+
+    var checkStoryUpdate = function(data, prop, prop2) {
+        var oldValues = ["Idea", "Defined", "In-Progress"];
+        var newValues = ["Completed", "Accepted", "Released"];
+        if (_.indexOf(oldValues, data.data.changes[storyScheduleStateUUID].old_value) >= 0 &&
+                _.indexOf(newValues, data.data.changes[storyScheduleStateUUID].value) >= 0) {
+            game.completeItem(data.data[prop][oidUUID][prop2]);
+        }
+    }
+
+    var handleDefect = function(data, prop, prop2) {
+        // same cases as a story, just going to use a different model for queries
+        if (data.data.action == "Created") {
+            console.info('Add Defect');
+            game.addWorkItem(data.data[prop][oidUUID][prop2], 'Defect'); // send OID to game side
+            return;
+        } else if (data.data.action == "Recycled") {
+            console.info('Remove Defect');
+            game.removeShip(data.data[prop][oidUUID][prop2]);
+            return;
+        } else if (data.data.action == "Updated" && data.data.changes[storyScheduleStateUUID]) {
+            checkStoryUpdate(data, prop, prop2);
+            return;
+        }// ignore all other cases for now
+    }
+
+    var handleTask = function(data, prop, prop2) {
+        console.log('handle task', data, "checking " + taskStateUUID);
+        if (data.data.action == "Created") {
+            console.info('Add Task');
+            game.addTask(data.data[prop][oidUUID][prop2]); // send OID to game side
+            return;
+        } else if (data.data.action == "Recycled") {
+            console.info('Remove Task');
+            game.removeShip(data.data[prop][oidUUID][prop2]);
+            return;
+        } else if (data.data.action == "Updated" && data.data.changes && data.data.changes[taskStateUUID] && data.data.changes[taskStateUUID].value == "Completed") {
+            game.completeItem(data.data[prop][oidUUID][prop2]);
+            // completed?
+            // points changed?
+            return;
+        } // ignore all other cases for now
+    }
+
+    var handleFeature = function(data) {
+        // the only events for an feature that are of value
+        // if it is updated to be completed
+        if (data.data.action == "Updated") {
+            // completed?
+        }
+    }
+
+
+    var handleInitiative = function(data) {
+        // the only events for an initiative that are of value
+        // if it is updated to be completed
+        if (data.data.action == "Updated") {
+            // completed?
+        }
+    }
+    */
+
+                module.factory('RealtimeService', function () {
+        var realtime = new Realtime();
+        var realtimeHandler = new RealtimeDataHandler();
+        var gameHandler = new GameEventHandler(realtimeHandler);
+
+        return {
+            connect: function(uuids) {
+                var websocket = realtime.connectTo(uuids);
+                console.log(realtime);
+
+                websocket.onmessage = Ext.bind(function(e) {
+                    var data = JSON.parse(e.data);
+                    realtime.publishObjectChanged(data, this);
+
+                    realtimeHandler.handleRealtimeMessage(data);
+                }, this);
+            }
+        };
+});
+
+                var GameEventHandler = function(realtime) {
+    var listenTo = '#root';
+    if (realtime && _.isFunction(realtime)) {
+        realtime.setEventTrigger(listenTo);
+    } else {
+        listenTo = 'body'; // default to listen to events on the body
+    }
+
+    /**
+     * Listen to all task related changes
+     *
+     */
+    $(listenTo).on("Task-Updated", null, null, function(event, data) {
+        if (data && data.record && data.oid) {
+            game.updateItem(data.oid, data.record);
+        }
+    }); 
+
+    $(listenTo).on("Task-Recycled", null, null, function(event, data) {
+        if (data && data.oid) {
+            game.removeItem(data.oid);
+        }
+    });
+
+    $(listenTo).on("Task-Created", null, null, function(event, data) {
+        if (data && data.record && data.oid) {
+            game.createItem(data.oid, data.record);
+        }
+    });
+
+    /**
+     * Listen to all story related changes
+     *
+     */
+    $(listenTo).on("UserStory-Updated", null, null, function(event, data) {
+        if (data && data.record && data.oid) {
+            game.updateItem(data.oid, data.record);
+        }
+    }); 
+
+    $(listenTo).on("UserStory-Recycled", null, null, function(event, data) {
+        if (data && data.oid) {
+            game.removeItem(data.oid);
+        }
+    });
+
+    $(listenTo).on("UserStory-Created", null, null, function(event, data) {
+        if (data && data.record && data.oid) {
+            game.createItem(data.oid, data.record);
+        }
+    });
+
+    /**
+     * Check on the realtime connection
+     */
+    $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {
+        if (data && data.status && data.status != 200) {
+            // handle error in connection
+            // in an idempotent manner! realtime tries to reconnect and could just loop on the same error
+            // TODO game.realtimeConnectionError();
+        }
+    });
+}
                 module.service('RallyDataService', function (RealtimeService) {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
         fetch: true,
@@ -55577,7 +55676,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
                                         RealtimeService.connect(projectUUIDs);
                                     };
                                     scope.realtimeConnection(); // listen for changes in realtime
-                                    callbackData(organizedData);
+                                    //callbackData(organizedData);
                                 }
                             });
                         }

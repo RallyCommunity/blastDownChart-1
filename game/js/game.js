@@ -128,57 +128,8 @@ var game = {
         Ext.getBody().unmask();
     },
 
-    getWorkItem: function(oid, workModel, callback) {
-        Ext.create('Rally.data.WsapiDataStore', {
-            model   : workModel,
-            fetch   : ['Name','Feature','Feature.ObjectID'],
-            filters : [{
-                property : 'ObjectID',
-                value    : oid
-            }],
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri(),
-
-                //all projects
-                project: null
-            }
-        }).load({
-            callback : function(records, operation, success) {
-                console.log(records);
-                var story     = records[0];
-                var feature   = story.get('Feature');
-                console.log("story, feature", story, feature);
-                callback(story, feature);
-            }
-        });
-    },
-
-    addWorkItem: function(oid, workModel) {
-        this.getWorkItem(oid, workModel, function(story, feature) {
-            game.displayStory(oid, story, feature);
-        });
-    },
-
-    removeShip: function(oid) {
-        // removing a ship
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            game.itemFlyOff(oid, pendingRemove);
-        } else if (item && item.queueColumn) {
-            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
-            if (arr) {
-                arr.filter(function(shipData) {
-                    return oid != shipData.ObjectID;
-                });
-                delete game.OID_MAP[oid];
-                game.log.addItem(item.formattedId + " recycled");
-            }
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
+    addWorkItem: function(oid, record) {
+        game.displayStory(oid, record, record.get('Feature'));
     },
 
     itemFlyOff: function(oid, pendingRemove) {
@@ -192,41 +143,14 @@ var game = {
         }
     },
 
-    getTask: function(oid, callback) {
-        Ext.create('Rally.data.WsapiDataStore', {
-            model   : 'Task',
-            fetch   : ['WorkProduct','Name','Feature','Feature.ObjectID'],
-            filters : [{
-                property : 'ObjectID',
-                value    : oid
-            }],
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri(),
+    addTask: function(oid, record) {
+        var userStory = record.get('WorkProduct');
+        if (userStory) {
+            var feature   = userStory.Feature;
 
-                //all projects
-                project: null
-            }
-        }).load({
-            callback : function(records, operation, success) {
-                console.log("LOOKUP " + oid, records, operation, success);
-                if (records.length > 0) {
-                    var task      = records[0];
-                    var userStory = task.get('WorkProduct');
-                    if (userStory) {
-                        var feature   = userStory.Feature;
-
-                        console.log(task, userStory, feature);
-                        callback(task, userStory, feature);
-                    }
-                }
-            }
-        });
-    },
-
-    addTask: function(oid) {
-        this.getTask(oid, function(task, story, feature) {
-            game.displayTask(oid, task, story, feature);
-        });
+            console.log(task, userStory, feature);
+            game.displayTask(oid, record, userStory, feature);
+        }
     },
 
     displayStory: function(oid, story, feature) {
@@ -324,22 +248,6 @@ var game = {
         }
     },
 
-    cleanup: function() {
-        console.log("pending", game.PENDING_REMOVE);
-        _.each(game.PENDING_REMOVE, function(remove) {
-            me.game.world.removeChild(remove);
-        });
-
-        game.PENDING_REMOVE = [];
-    },
-
-    cleanupOld: function() {
-        console.log("pending", game.PENDING_REMOVE);
-        for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
-            me.game.world.removeChild(game.PENDING_REMOVE.shift());
-        }
-    },
-
     // TODO hacky!  Another query and then callback instead?
     getIdFromFeature: function(feature) {
         if (feature && feature._ref) {
@@ -367,6 +275,55 @@ var game = {
                 // not displayed - do nothing for now
             }
         }
-    }
+    },
 
+    createItem: function(oid, record) {
+
+    },
+
+    updateItem: function(oid, record) {
+        // update the state of the given oid with the given record
+    },
+
+    removeItem: function(oid) {
+        // removing a ship
+        var item = game.OID_MAP[oid];
+        if (item && item.displayed) {
+            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
+            game.itemFlyOff(oid, pendingRemove);
+        } else if (item && item.queueColumn) {
+            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
+            if (arr) {
+                arr.filter(function(shipData) {
+                    return oid != shipData.ObjectID;
+                });
+                delete game.OID_MAP[oid];
+                game.log.addItem(item.formattedId + " recycled");
+            }
+        } else if (item) {
+            // not currently displayed, just remove it from the map and log it
+            delete game.OID_MAP[oid];
+            game.log.addItem(item.formattedId + " recycled");
+        }
+    },
+
+
+    /**
+     * Cleanup animations
+     */
+    cleanup: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        _.each(game.PENDING_REMOVE, function(remove) {
+            me.game.world.removeChild(remove);
+        });
+
+        game.PENDING_REMOVE = [];
+    },
+
+    cleanupOld: function() {
+        console.log("pending", game.PENDING_REMOVE);
+        for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
+            me.game.world.removeChild(game.PENDING_REMOVE.shift());
+        }
+    }
 };
