@@ -1,4 +1,15 @@
 game.PlayScreen = me.ScreenObject.extend({
+    zIndex        : 1,
+    numInitiative : 0,
+    numFeatures   : 0,
+    numStories    : 0,
+    numTasks      : 0,
+    PADDING       : 8,
+    WIDTH         : game.WINDOW_WIDTH - (this.PADDING * 2),
+    
+    MAX_FEATURE_ROWS : 2,
+    MAX_STORY_ROWS   : 3,
+    MAX_TASK_ROWS    : 4,
     /**
      *  action to perform on state change
      */
@@ -10,8 +21,70 @@ game.PlayScreen = me.ScreenObject.extend({
 
         this.showLegend();
 
-        this.setupShips();
+        //this.setupShips(); when you have data aggregated from the lbapi, use this
+        // otherwise, act on a purely event-driven approach
+        this.eventDrivenSetup();
+        game.shipScreen = this;
     },
+
+    eventDrivenSetup: function() {
+        var scope = angular.element($("#root")).scope();
+        scope.connect(); // TODO after lbapi data exhuasted, subscribe to realtime service
+    },
+
+    addInitiative: function(record) {
+        if (this.numInitiative < 1) {
+            this.addEnemy(record, "xlarge", game.MOTHERSHIP.height, game.MOTHERSHIP.width, this.WIDTH / 2 - game.MOTHERSHIP.width / 2, this.PADDING);
+            this.numInitiative = 1;
+        }
+    },
+
+    addFeature: function(record) {
+        if (this.numFeatures < 10) {
+            this.addEnemy(record, "large", game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, Math.floor(Math.random() * (this.WIDTH - game.FEATURE_SHIP.width) + this.PADDING), this.PADDING + game.MOTHERSHIP.height);
+            this.numFeatures++;
+        }
+    },
+
+    addStory: function(record) {
+        if (this.numStories < 20) {
+            this.addEnemy(record, "medium", game.STORY_SHIP.height, game.STORY_SHIP.width, Math.floor(Math.random() * (this.WIDTH - game.STORY_SHIP.width) + this.PADDING), this.PADDING + game.MOTHERSHIP.height + game.FEATURE_SHIP.height);
+            this.numStories++;
+        }
+    },
+
+    addTask: function(record) {
+        if (this.numTasks < 30) {
+            this.addEnemy(record, "small", game.TASK_SHIP.height, game.TASK_SHIP.width, Math.floor(Math.random() * (this.WIDTH - game.TASK_SHIP.width) + this.PADDING), this.PADDING + game.MOTHERSHIP.height+ game.FEATURE_SHIP.height + game.STORY_SHIP.height);
+            this.numTasks++;
+        }
+    },
+
+
+    // Add at a random position within its range
+    //WIDTH / 2 - game.MOTHERSHIP.width / 2
+    addEnemy: function(record, image, height, width, x, y) {
+        var ship = me.pool.pull("enemyShip", x, y, {
+            height: height,
+            image: image,
+            spriteheight: height,
+            spritewidth: width,
+            width: width,
+            objectID: record.get('ObjectID'),
+            z: this.zIndex,
+            // formattedId: data.initiative.FormattedID,
+            // type: game.ENEMY_ENTITY_SUPER,
+            // delay: MOTHERSHIP_DELAY,
+            // waitFor: TOTAL_DELAY,
+            // date: initDate,
+            record: record
+        });
+
+        me.game.world.addChild(ship, this.zIndex);
+        this.zIndex++;
+    },
+
+
 
 
     /*

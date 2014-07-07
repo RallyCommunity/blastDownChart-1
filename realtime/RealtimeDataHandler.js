@@ -22,23 +22,37 @@ function RealtimeDataHandler() {
 
             var changed = _.uniq(_.pluck(data.data.changes, 'name'));
             
-            // if the event was recycling the item, then you will not get any info back
+            // if the event was recycling the item, then you will not get any info back from wsapi
             if (data.data.action == 'Recycled') {
-                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" +data.data.action, {record: null, oid: data.data[offset][oidUUID][valueOffset], changes: null}); // everything changed!
+                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
+                    {
+                        record: null,
+                        oid: data.data[offset][oidUUID][valueOffset],
+                        changes: null,
+                        date: new Date()
+                    }
+                ); // everything changed!
             } else {
                 // query wsapi for more information
                 wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
                     console.log("got ", record);
                     console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
-                    eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action, {record: record, oid: data.data[offset][oidUUID][valueOffset], changes: changed});
+                    eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
+                        {
+                            record: record,
+                            oid: data.data[offset][oidUUID][valueOffset],
+                            changes: changed,
+                            date: new Date()
+                        }
+                    );
                 });
             }
         } else if (data.status) {
             console.info("trigger status");
-            eventTrigger.trigger('RealtimeConnection-Status', data.status);
+            eventTrigger.trigger('RealtimeConnection-Status', {status: data.status, date: new Date()});
         } else {
             console.info("trigger other");
-            eventTrigger.trigger('RealtimeConnection-Other', data);
+            eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
     }
 

@@ -114,8 +114,6 @@ var game = {
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
-
-
         me.state.change(me.state.MENU);
 
         // Reveal the game

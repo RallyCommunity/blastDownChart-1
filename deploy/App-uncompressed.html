@@ -54848,7 +54848,7 @@ Ext.define('CustomApp', {
 
                 module = angular.module('angularBlastdown', []);
 
-module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeService', function($scope, RallyDataService, RealtimeService) {
+module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeService', 'LookbackService', function($scope, RallyDataService, RealtimeService, LookbackService) {
     $scope.organizedData = {};
     $scope.RallyDataService = RallyDataService;
 
@@ -54857,6 +54857,14 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         $scope.$apply();
         // Start the game
         game.onload();
+    });
+
+    LookbackService.connect(GLOBAL.ObjectID, function(data) {
+        // $scope.organizedData = data;
+        // $scope.$apply();
+        // // Start the game
+        // game.onload();
+        console.log("got data", data);
     });
 
     $scope.logItems = [{
@@ -54875,21 +54883,25 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 }]);
 
                 module.factory('LookbackService', function () {
-        var realtime = new Realtime();
-        var realtimeHandler = new RealtimeDataHandler();
         var gameHandler = new GameRealtimeHandler(realtimeHandler);
 
         return {
-            connect: function(uuids) {
-                var websocket = realtime.connectTo(uuids);
-                console.log(realtime);
+            connect: function(itemHierarchy, callbackData) {
+                var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
+                    fetch: true,
+                    findConfig: {
+                        "ObjectID": itemHierarchy
+                    }
+                });
 
-                websocket.onmessage = Ext.bind(function(e) {
-                    var data = JSON.parse(e.data);
-                    realtime.publishObjectChanged(data, this);
+                lookbackStore.load({
+                    scope: this,
+                    callback: function (records, operation, success) {
+                        console.log(records);
 
-                    realtimeHandler.handleRealtimeMessage(data);
-                }, this);
+                        // callbackData(data);
+                    }
+                });
             }
         };
 });

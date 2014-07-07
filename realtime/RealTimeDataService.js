@@ -1,7 +1,6 @@
 module.factory('RealtimeService', function () {
         var realtime = new Realtime();
         var realtimeHandler = new RealtimeDataHandler();
-        var gameHandler = new GameEventHandler(realtimeHandler);
 
         return {
             connect: function(uuids) {
