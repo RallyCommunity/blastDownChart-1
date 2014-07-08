@@ -119,8 +119,14 @@
                 </div>
                 <div id="log">
                     <div class="content">
+                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                          <option value="">All</option>
+                          <option value="created">Created</option>
+                          <option value="completed">Completed</option>
+                          <option value="recycled">Recycled</option>
+                        </select>
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems">[{{logItem.date}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

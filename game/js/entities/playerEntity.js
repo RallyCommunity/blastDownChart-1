@@ -17,13 +17,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
     // update position
     update: function(dt) {
-        if (this.delay == 0) {
-            game.realtimeHandler.handlePendingReatimeMessages();
-            this.delay = -1;
-        } else if (this.delay > 0) {
-            this.delay--;
-            return true;
-        }
+        
 
         this.hunting--;
 
@@ -164,7 +158,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
     removeTarget: function(target) {
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        console.log("destroyed", destroyed);
         if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.VICTORY_ANIMATIONS = {
@@ -177,6 +170,21 @@ game.PlayerEntity = me.ObjectEntity.extend({
             me.state.change(me.state.VICTORY);
         }
         this.hunting = 0;
+    },
+
+    removePotentialTarget: function(target) {
+        var oid = target.objectID;
+        var index = -1;
+        for (var i = 0; i < this.targets.length; i++) {
+            if (oid == this.targets[i].objectID) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index != -1) {
+            this.targets.splice(index, 1);
+        }
     },
 
     setDelay: function(delay) {

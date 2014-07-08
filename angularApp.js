@@ -4,7 +4,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
     $scope.organizedData = {};
     $scope.RallyDataService = RallyDataService;
 
-    var gameHandler = new GameEventHandler();
+    $scope.eventHandler = new GameEventHandler();
 
 /*
     RallyDataService.getData(true, function(data) {
@@ -14,23 +14,41 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         game.onload();
     });
 */
+    $scope.selectedTypes = [];
+
+    $scope.filters = {};
+
+    $scope.setSelectedOption = function(option) {
+        $scope.filters.class = option;
+    };
 
     $scope.logItems = [{
         date: Ext.Date.format(new Date(), "m-d H:i"),
-        note: "Space Invaders Blast Down Initialized"
+        note: "Space Invaders Blast Down Initialized",
+        class: 'init'
     }];
 
-    game.onload();
-
-    $scope.connect = function() {
-        LookbackService.connect(GLOBAL.ObjectID);
+    $scope.connectRealtime = function(uuids) {
+        // connect to realtime, which now just fires events
+        RealtimeService.connect(uuids);
     };
 
-    $scope.addLogItem = function(logItem, date) {
-        var dateString = date || Ext.Date.format(new Date(), "m-d H:i");
+    LookbackService.connect(GLOBAL.ObjectID);
+    game.onload();
+
+    $scope.addLogItem = function(logItem, date, className) {
+        var dateString ;
+        if (!date) {
+            dateString = Ext.Date.format(new Date(), "m-d H:i");
+        } else if (date instanceof Date) {
+            dateString = Ext.Date.format(date, "m-d H:i");
+        } else {
+            dateString = date;
+        }
         $scope.logItems.unshift({
             date: dateString,
-            note: logItem
+            note: logItem,
+            class: className
         });
         $scope.$apply();
     };

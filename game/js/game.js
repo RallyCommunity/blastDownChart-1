@@ -7,6 +7,9 @@ var game = {
     WINDOW_WIDTH: 1024,
     WINDOW_HEIGHT: 512,
 
+    PADDING: 8,
+    WIDTH: 1000,
+
     ENEMY_ENTITY_SMALL:  96, // small enemy type
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
     ENEMY_ENTITY_LARGE:  98, // large enemy type
@@ -26,7 +29,7 @@ var game = {
 
     PENDING_REMOVE: [],
 
-    OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
+    OID_MAP : {}, // map OID -> {displayed: boolean, formattedId: string}
 
     FEATURE_COLUMN: {},
 
@@ -62,8 +65,8 @@ var game = {
     },
 
     log : {
-        addItem: function(logEvent, date) {
-            angular.element($("#root")).scope().addLogItem(logEvent, date);
+        addItem: function(logEvent, date, className) {
+            angular.element($("#root")).scope().addLogItem(logEvent, date, className);
         }
     },
 
@@ -115,7 +118,9 @@ var game = {
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
         me.state.change(me.state.MENU);
+    },
 
+    reveal: function() {
         // Reveal the game
         $($('.rally-app')[0]).hide();
         $('#root').show();
@@ -124,6 +129,24 @@ var game = {
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
         Ext.getBody().unmask();
+    },
+
+    addAvailablePosition: function(ship) {
+        switch(ship.type) {
+            case game.ENEMY_ENTITY_SMALL:
+                    game.AVAILABLE_POSITIONS.tasks.push(new Point(ship.startingX, ship.startingY));
+                    break;
+            case game.ENEMY_ENTITY_MEDIUM:
+                    console.log("before length", game.AVAILABLE_POSITIONS.stories.length);
+                    game.AVAILABLE_POSITIONS.stories.push(new Point(ship.startingX, ship.startingY));
+                    console.log("after length", game.AVAILABLE_POSITIONS.stories.length);
+                    break;
+            case game.ENEMY_ENTITY_LARGE:
+                    game.AVAILABLE_POSITIONS.features.push(new Point(ship.startingX, ship.startingY));
+                    break;
+            default:
+                    console.log("default", ship, ship.type);
+        }
     },
 
     addWorkItem: function(oid, record) {

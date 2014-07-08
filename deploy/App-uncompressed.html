@@ -53133,6 +53133,9 @@ var game = {
     WINDOW_WIDTH: 1024,
     WINDOW_HEIGHT: 512,
 
+    PADDING: 8,
+    WIDTH: 1000,
+
     ENEMY_ENTITY_SMALL:  96, // small enemy type
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
     ENEMY_ENTITY_LARGE:  98, // large enemy type
@@ -53152,7 +53155,7 @@ var game = {
 
     PENDING_REMOVE: [],
 
-    OID_MAP : {}, // map OID -> boolean (true if displayed on the screen, else false)
+    OID_MAP : {}, // map OID -> {displayed: boolean, formattedId: string}
 
     FEATURE_COLUMN: {},
 
@@ -53188,8 +53191,8 @@ var game = {
     },
 
     log : {
-        addItem: function(logEvent, date) {
-            angular.element($("#root")).scope().addLogItem(logEvent, date);
+        addItem: function(logEvent, date, className) {
+            angular.element($("#root")).scope().addLogItem(logEvent, date, className);
         }
     },
 
@@ -53240,10 +53243,10 @@ var game = {
         me.input.bindKey(me.input.KEY.RIGHT, "right");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
-
-
         me.state.change(me.state.MENU);
+    },
 
+    reveal: function() {
         // Reveal the game
         $($('.rally-app')[0]).hide();
         $('#root').show();
@@ -53252,6 +53255,24 @@ var game = {
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
         Ext.getBody().unmask();
+    },
+
+    addAvailablePosition: function(ship) {
+        switch(ship.type) {
+            case game.ENEMY_ENTITY_SMALL:
+                    game.AVAILABLE_POSITIONS.tasks.push(new Point(ship.startingX, ship.startingY));
+                    break;
+            case game.ENEMY_ENTITY_MEDIUM:
+                    console.log("before length", game.AVAILABLE_POSITIONS.stories.length);
+                    game.AVAILABLE_POSITIONS.stories.push(new Point(ship.startingX, ship.startingY));
+                    console.log("after length", game.AVAILABLE_POSITIONS.stories.length);
+                    break;
+            case game.ENEMY_ENTITY_LARGE:
+                    game.AVAILABLE_POSITIONS.features.push(new Point(ship.startingX, ship.startingY));
+                    break;
+            default:
+                    console.log("default", ship, ship.type);
+        }
     },
 
     addWorkItem: function(oid, record) {
@@ -53536,13 +53557,7 @@ var game = {
 
     // update position
     update: function(dt) {
-        if (this.delay == 0) {
-            game.realtimeHandler.handlePendingReatimeMessages();
-            this.delay = -1;
-        } else if (this.delay > 0) {
-            this.delay--;
-            return true;
-        }
+        
 
         this.hunting--;
 
@@ -53683,7 +53698,6 @@ var game = {
     removeTarget: function(target) {
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        console.log("destroyed", destroyed);
         if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.VICTORY_ANIMATIONS = {
@@ -53696,6 +53710,21 @@ var game = {
             me.state.change(me.state.VICTORY);
         }
         this.hunting = 0;
+    },
+
+    removePotentialTarget: function(target) {
+        var oid = target.objectID;
+        var index = -1;
+        for (var i = 0; i < this.targets.length; i++) {
+            if (oid == this.targets[i].objectID) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index != -1) {
+            this.targets.splice(index, 1);
+        }
     },
 
     setDelay: function(delay) {
@@ -53714,7 +53743,7 @@ var game = {
     // pass the correct image, width/height and x, y for any type of ship that moves in the same pattern
     init: function(x, y, settings) {
         // call the constructor
-        this.parent(x, -settings.height + 1, settings);
+        this.parent(x, 1 - settings.height, settings);
 
         this.startingX = x;
         this.startingY = y;
@@ -53723,29 +53752,44 @@ var game = {
         this.gravity = 0.0;
         this.setVelocity(0, 0);
 
+        this.type = settings.type;
+
         this.numSteps = 0;                  // how many steps have I gone - used to determine direction
         this.moveRight = true;              // which direction to move
         this.collidable = true;             // Can be hit by bullet entities
         this.objectID = settings.objectID;  // ObjectID used for ship destruction and removal
-
-        this.formattedId = settings.formattedId;
-        this.featureId = settings.featureId;
+        this.record = settings.record;
+        this.date = settings.date;
         
         this.isVulnerable = false;          // can this ship be destroyed
-        this.delay = settings.delay;        // Delay before moving to my y position
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
 
+        /**
+         * Returns whether or not this ship is vulnerable to attack
+         * @return true if this ship can be destroyed, else false
+         */
+        this.isDestructable =  function() {
+            return this.isVulnerable;
+        };
 
-        this.programmaticallyAdded = settings.programmaticallyAdded || false;
-        this.date = settings.date;
+
+        //this.programmaticallyAdded = settings.programmaticallyAdded || false;
+        //this.date = settings.date;
         // wait for the others to get setup
-        this.waitFor = settings.waitFor;
+        //this.waitFor = settings.waitFor;
 
         this.flyOff = function() {
+            var right = Math.floor(Math.random() * 2);
             this.update = function() {
-                this.pos.y++;
-                if (this.pos.y >= game.WINDOW_HEIGHT - 1) {
+                this.pos.y--;
+                if (right == 0) {
+                    this.pos.x--;
+                } else {
+                    this.pos.x++;
+                }
+                
+                if (this.pos.y <= 1 - this.height) {
                     delete game.OID_MAP[this.objectID];
                     me.game.world.removeChild(this);
                 }
@@ -53757,86 +53801,39 @@ var game = {
     // Called many times to refresh the ships on the screen
     // to optimize performance, minimize the cost of calling this
     update: function() {
-        // count every set of the process
-        this.waitFor--;
         // fly in from the top
-        if (!this.setupComplete && this.delay <= 0) {
+        if (!this.setupComplete) {
             // move in to position
-            
             this.pos.y++;
             if (this.pos.y == this.goToY) {
                 this.setupComplete = true;
             }
             return true;
-        } else if (!this.setupComplete) {
-            // wait!
-            this.delay--;
-            return true;
         }
 
-        if (this.programmaticallyAdded) {
-            var initiative = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_SUPER);
-            if (initiative.length == 1 && initiative[0].numSteps == 1 && !initiative[0].moveRight) {
-                // wait for the movement mattern to line ups
-                this.setupComplete = true;
-                this.programmaticallyAdded = false;
-                this.numSteps = 1;
-                this.pos.x += 1;
-                this.moveRight = initiative[0].moveRight;
-                this.update = function() {
-                   this.normalMovement();
-                }
+        if (this.type == game.ENEMY_ENTITY_SUPER) {
+            this.update = function() {
+               this.normalMovement();
             }
-            return true;
         }
 
-        // show the label
-        if (game.SHOW_LABEL && this.formattedId) {
-            var label = me.pool.pull("label", this.pos.x, this.pos.y, {
-                formattedId: this.formattedId,
-                height: this.height,
-                width: this.width
-            });
-            me.game.world.addChild(label, Number.POSITIVE_INFINITY);
-            this.formattedId = false; // dont draw it again
+        if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 1 && !game.INITIATIVE_SHIP.moveRight) {
+            // wait for the movement mattern to line ups
+            this.setupComplete = true;
+            this.numSteps = 1;
+            this.pos.x += 1;
+            this.moveRight = game.INITIATIVE_SHIP.moveRight;
+            this.update = function() {
+               this.normalMovement();
+            }
         }
 
-        // wait for the others to get setup
-        if (this.waitFor > 0) {
-            return true;
-        } else {
-            this.waitFor = 0; // dont let it wrap around
-        }
-
-        if (game.SHOW_LABEL) {
-            game.SHOW_LABEL = false;
-        }
-
-        this.update = function() {
-           this.normalMovement();
-        }
+        return true;
     },
 
     // Use this function to eliminate unnecessary checks for ship entities
     // optimization
     normalMovement: function() {
-        // ships randomly shoot at the player if they are not being targeted
-        // optimization => lots of random number generation each time!
-        // if (!this.isVulnerable && Math.floor(Math.random() * game.FIRE_PROBABILITY) === 0) {
-        //     var x = this.pos.x + this.width / 2;
-        //     var shot = me.pool.pull("bullet", x, this.pos.y, {
-        //         height: 16,
-        //         image: "bullet",
-        //         name: "shot",
-        //         spriteheight: 16,
-        //         spritewidth: 16,
-        //         width: 16,
-        //         shootDown: true
-        //     });
-        //     this.shootLeft = !this.shootLeft;
-        //     me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
-        // }
-
         // movement pattern
         if (this.numSteps % 3 === 0) {
             if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight) * 3) === 0) {
@@ -53859,14 +53856,7 @@ var game = {
      */
     setVulnerable: function(vulnerability) {
         this.isVulnerable = vulnerability;
-    },
-
-    /**
-     * Returns whether or not this ship is vulnerable to attack
-     * @return true if this ship can be destroyed, else false
-     */
-    isDestructable: function() {
-        return this.isVulnerable;
+        this.z = Number.POSITIVE_INFINITY;
     },
 
     flashShields: function() {
@@ -53934,7 +53924,6 @@ var game = {
                     framesToSkip: 1
                 });
                 emitter.name = 'fire'; // TODO use radial explosion instead?
-
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     game.OID_MAP[res.obj.objectID].displayed = false;
@@ -53949,73 +53938,10 @@ var game = {
                 game.PENDING_REMOVE.push(emitter);
                 game.PENDING_REMOVE.push(emitter.container);
 
+                // this slot is now open!
+                game.addAvailablePosition(res.obj);
 
-                if (res.obj.featureId && game.OID_MAP[res.obj.featureId]) {
-                    if (res.obj.type == game.ENEMY_ENTITY_SMALL) { // task
-
-                        // was there a task waiting for this spot?
-                        if (game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingTasks.length > 0) {
-                            var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingTasks.shift();
-                            var taskShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
-                                height: game.TASK_SHIP.height,
-                                image: "small",
-                                name: "[TASK] - " + ship.Name,
-                                spriteheight: game.TASK_SHIP.height,
-                                spritewidth: game.TASK_SHIP.width,
-                                width: game.TASK_SHIP.width,
-                                objectID: ship.ObjectID,
-                                z: res.obj.z,
-                                health: 2,
-                                type: game.ENEMY_ENTITY_SMALL,
-                                delay: 0,
-                                programmaticallyAdded: true,
-                                featureId: res.obj.featureId,
-                                waitFor: 0
-                            });
-
-                            me.game.world.addChild(taskShip, res.obj.z);
-
-                        } else {
-                            game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].taskPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
-                        }
-                    } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM) {
-
-                        // was there a story waiting for this spot?
-                        if (game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.length > 0) {
-
-                            var ship = game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].pendingStories.shift();
-
-                            if (game.OID_MAP[ship.ObjectID]) {
-                                game.OID_MAP[ship.ObjectID].displayed = true;
-
-                                var storyShip = me.pool.pull("enemyShip", res.obj.startingX, res.obj.startingY, {
-                                    height: game.STORY_SHIP.height,
-                                    image: "medium",
-                                    name: "[STORY/DEFECT] - " + ship.Name,
-                                    spriteheight: game.STORY_SHIP.height,
-                                    spritewidth: game.STORY_SHIP.width,
-                                    width: game.STORY_SHIP.width,
-                                    objectID: ship.ObjectID,
-                                    z: res.obj.z,
-                                    health: 2,
-                                    type: game.ENEMY_ENTITY_MEDIUM,
-                                    delay: 0,
-                                    programmaticallyAdded: true,
-                                    featureId: res.obj.featureId,
-                                    waitFor: 0
-                                });
-
-                                me.game.world.addChild(storyShip, res.obj.z);
-                            }
-                            
-                        } else {
-                            game.AVAILABLE_POSITIONS[game.OID_MAP[res.obj.featureId].column].storyPositions.unshift(new Point(res.obj.startingX, res.obj.startingY));
-                        }
-                    }
-                    
-                }
-
-                game.log.addItem(res.obj.name + " COMPLETED", Ext.Date.format(new Date(res.obj.date), "m-d H:i"));
+                game.log.addItem(res.obj.record.get('Name') + " completed", Ext.Date.format(new Date(res.obj.date), "m-d H:i"), 'completed');
 
                 game.PLAYER_SHIP.removeTarget(res.obj);
 
@@ -54292,6 +54218,15 @@ game.TitleScreen = me.ScreenObject.extend({
    }
 });
                 game.PlayScreen = me.ScreenObject.extend({
+    zIndex        : 10,
+    numInitiative : 0,
+    numFeatures   : 0,
+    numStories    : 0,
+    numTasks      : 0,
+    
+    MAX_FEATURE_ROWS : 2,
+    MAX_STORY_ROWS   : 3,
+    MAX_TASK_ROWS    : 4,
     /**
      *  action to perform on state change
      */
@@ -54303,9 +54238,213 @@ game.TitleScreen = me.ScreenObject.extend({
 
         this.showLegend();
 
-        this.setupShips();
+        //this.setupShips(); when you have data aggregated from the lbapi, use this
+        // otherwise, act on a purely event-driven approach
+        game.farRight = game.WIDTH;
+        game.shipScreen = this;
+        this.eventDrivenSetup();
+
     },
 
+    eventDrivenSetup: function() {
+        game.AVAILABLE_POSITIONS.features = [];
+        game.AVAILABLE_POSITIONS.stories = [];
+        game.AVAILABLE_POSITIONS.tasks = [];
+        var numFeatures = Math.floor(game.WIDTH / game.FEATURE_SHIP.width);
+        var numStories = Math.floor(game.WIDTH / game.STORY_SHIP.width);
+        var numTasks = Math.floor(game.WIDTH / game.TASK_SHIP.width);
+
+        var i;
+        for (i = 0; i < numFeatures; i++) {
+            game.AVAILABLE_POSITIONS.features.push(new Point(i * game.FEATURE_SHIP.width, game.PADDING + game.MOTHERSHIP.height));
+        }
+
+        for (i = 0; i < numStories * 3; i++) {
+            game.AVAILABLE_POSITIONS.stories.push(new Point((i % numStories) * game.STORY_SHIP.width, game.PADDING + game.MOTHERSHIP.height + game.FEATURE_SHIP.height + game.STORY_SHIP.height * Math.floor(i/numStories)));
+        }
+
+        for (i = 0; i < numTasks * 2; i++) {
+            
+            game.AVAILABLE_POSITIONS.tasks.push(new Point((i % numTasks) * game.STORY_SHIP.width, game.PADDING + game.MOTHERSHIP.height+ game.FEATURE_SHIP.height + game.STORY_SHIP.height * 3 + game.TASK_SHIP.height * Math.floor(i/numTasks)));
+        }
+
+        var scope = angular.element($("#root")).scope();
+        scope.eventHandler.playThrough();
+
+        var players = me.game.world.getChildByProp('type', game.PLAYER);
+        if (players.length == 1) {
+            game.PLAYER_SHIP = players[0];
+        } else {
+            console.error("no player"); // should never happen
+        }
+    },
+
+    addInitiative: function(record, oid, date) {
+        if (this.numInitiative < 1) {
+            console.log("game.WIDTH", game.WIDTH);
+            console.log("game.Mothership.widht", game.MOTHERSHIP.width);
+            console.log("x", (game.WIDTH / 2 - game.MOTHERSHIP.width / 2));
+            this.addEnemy(record, oid, date, "xlarge", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2, game.PADDING);
+            this.numInitiative = 1;
+            game.initiative = record;
+        }
+    },
+
+    addFeature: function(record, oid, date) {
+        //if (this.numFeatures < 10) {
+            var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.features.length);
+            var point = game.AVAILABLE_POSITIONS.features[index];
+            if (point) {
+                this.addEnemy(record, oid, date, "large", game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+                game.AVAILABLE_POSITIONS.features.splice(index, 1);
+                this.numFeatures++;
+                this.updateFeature(record, oid, date);
+            } else {
+                console.log('no room for a feature!', game.AVAILABLE_POSITIONS);
+            }
+        //}
+    },
+
+    addStory: function(record, oid, date) {
+        var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.stories.length);
+        var point = game.AVAILABLE_POSITIONS.stories[index];
+        if (point) {
+            this.addEnemy(record, oid, date, "medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y);
+            game.AVAILABLE_POSITIONS.stories.splice(index, 1);
+            this.numStories++;
+            this.updateStory(record, oid, date);
+        } else {
+            console.log('no room for story!', game.AVAILABLE_POSITIONS);
+        }
+    },
+
+    addTask: function(record, oid, date) {
+        var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.tasks.length);
+        var point = game.AVAILABLE_POSITIONS.tasks[index];
+
+        var point = game.AVAILABLE_POSITIONS.stories[index];
+        if (point) {
+            this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y);
+            game.AVAILABLE_POSITIONS.tasks.splice(index, 1);
+            this.numTasks++;
+            this.updateTask(record, oid, date);
+        } else {
+            console.log('no room for task!', game.AVAILABLE_POSITIONS);
+        }
+    },
+
+    recycleShip: function(oid, date) {
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.displayed && obj.ship) {
+            var ship = obj.ship;
+            game.log.addItem(ship.record.get('Name') + " recycled", date, 'recycled');
+            ship.flyOff();
+
+        // TODO add back this point as available
+            console.log("recycling", ship, ship.type);
+            game.addAvailablePosition(ship);
+
+            game.PLAYER_SHIP.removePotentialTarget(ship);
+        }
+    },
+
+    updateInitiative: function(record, oid, date) {
+        if (game.INITIATIVE_SHIP) {
+            game.INITIATIVE_SHIP.record = record;
+        }
+    },
+
+    // TODO store these in temps since updates will likely trigger many times on each feature?
+    updateFeature: function(record, oid, date) {
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.displayed && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
+            var state = record.get('State');
+            if (!obj.targeted && (state == "Completed")) {
+                obj.targeted = true;
+                game.PLAYER_SHIP.addTarget(ship);
+            }
+        }
+        // var ships = me.game.world.getChildByProp('objectID', oid);
+        // if (ships && ships.length == 1) {
+        //     var ship = ship[0];
+        //     ship.record = record;
+        // }
+    },
+
+    updateStory: function(record, oid, date) {
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.displayed && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
+            var state = record.get('ScheduleState');
+            if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
+                obj.targeted = true;
+                game.PLAYER_SHIP.addTarget(ship);
+            }
+        }
+    },
+
+    updateTask: function(record, oid, date) {
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.displayed && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
+            var state = record.get('State');
+            if (!obj.targeted && (state == "Completed")) {
+                obj.targeted = true;
+                game.PLAYER_SHIP.addTarget(ship);
+            }
+        }
+    },
+
+    /*
+
+    updateShip: function(record, oid, date) {
+        // var ship = me.game.world.getChildByProp('objectID', oid);
+        // if (ship && ship.length == 1) {
+        //     game.log.addItem(ship[0].record.get('Name') + " recycled", date);
+        //     //ship[0].flyOff();
+        // }
+        console.log('UPDATE');
+
+        // general case: just update the record associated with this ship oid
+    },
+
+    */
+
+
+    // Add at a random position within its range
+    //WIDTH / 2 - game.MOTHERSHIP.width / 2
+    addEnemy: function(record, oid, date, image, type, height, width, x, y) {
+        var ship = me.pool.pull("enemyShip", x, y, {
+            height: height,
+            image: image,
+            spriteheight: height,
+            spritewidth: width,
+            width: width,
+            objectID: oid,
+            z: this.zIndex,
+            type: type,
+            date: date,
+            record: record
+        });
+
+        if (image == 'xlarge') {
+            game.INITIATIVE_SHIP = ship;
+        }
+
+        game.log.addItem(record.get('Name') + " created", date, 'created');
+
+        game.OID_MAP[oid] = {
+            displayed: true,
+            formattedId: record.get('FormattedID'),
+            ship: ship
+        };
+
+        me.game.world.addChild(ship, this.zIndex++);
+    },
 
     /*
      * Set up the enemy ships and scoreboard like this:
@@ -54390,7 +54529,7 @@ game.TitleScreen = me.ScreenObject.extend({
             initiativeComplete = mothership;
         }
 
-        game.initiative = data.initiative
+        game.initiative = data.initiative;
 
         me.game.world.addChild(mothership, zAxis);
         zAxis++;
@@ -54852,60 +54991,287 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
     $scope.organizedData = {};
     $scope.RallyDataService = RallyDataService;
 
+    $scope.eventHandler = new GameEventHandler();
+
+/*
     RallyDataService.getData(true, function(data) {
         $scope.organizedData = data;
         $scope.$apply();
         // Start the game
         game.onload();
     });
+*/
+    $scope.selectedTypes = [];
 
-    LookbackService.connect(GLOBAL.ObjectID, function(data) {
-        // $scope.organizedData = data;
-        // $scope.$apply();
-        // // Start the game
-        // game.onload();
-        console.log("got data", data);
-    });
+    $scope.filters = {};
+
+    $scope.setSelectedOption = function(option) {
+        $scope.filters.class = option;
+    };
+
+    // $scope.isChecked = function (id) {
+    //     if (_.contains($scope.selectedCompany, id)) {
+    //         return 'icon-ok pull-right';
+    //     }
+    //     return false;
+    // };
+
+    // $scope.checkAll = function () {
+    //     $scope.selectedCompany = _.pluck($scope.companyList, 'id');
+    // };
+
+    // $scope.listItemTypes = [{
+    //     class: 'created',
+    //     name: 'Created'
+    // }, {
+    //     class: 'completed',
+    //     name: 'Completed'
+    // }, {
+    //     class: 'recycled',
+    //     name: 'Recycled'
+    // }];
 
     $scope.logItems = [{
         date: Ext.Date.format(new Date(), "m-d H:i"),
-        note: "Space Invaders Blast Down Initialized"
+        note: "Space Invaders Blast Down Initialized",
+        class: 'init'
     }];
 
-    $scope.addLogItem = function(logItem, date) {
-        var dateString = date || Ext.Date.format(new Date(), "m-d H:i");
+    $scope.connectRealtime = function(uuids) {
+        // connect to realtime, which now just fires events
+        RealtimeService.connect(uuids);
+    };
+
+    LookbackService.connect(GLOBAL.ObjectID);
+    game.onload();
+
+    $scope.addLogItem = function(logItem, date, className) {
+        var dateString ;
+        if (!date) {
+            dateString = Ext.Date.format(new Date(), "m-d H:i");
+        } else if (date instanceof Date) {
+            dateString = Ext.Date.format(date, "m-d H:i");
+        } else {
+            dateString = date;
+        }
         $scope.logItems.unshift({
             date: dateString,
-            note: logItem
+            note: logItem,
+            class: className
         });
         $scope.$apply();
     };
 }]);
 
-                module.factory('LookbackService', function () {
-        var gameHandler = new GameRealtimeHandler(realtimeHandler);
+                /**
+ *  A data service that triggers events from historical data by querying the lbapi
+ *  Intended to use the same interface as the Realtime Data service to abstract the backend away.
+ *  The service will trigger a number of events in short succession, (most likely) unlike the realtime service
+ *
+ *  It is important to note that this service operates on a few assumptions, namely:
+ *      - the lbapi will not aggregate multiple changes of the same type into one instance
+ *          (e.g. multiple tasks deleted will be broken into multiple changes)
+ *      - event ordering is 'logical'
+ *          (e.g. a feature will not be created after a story is parented to it)
+ */
 
-        return {
-            connect: function(itemHierarchy, callbackData) {
-                var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-                    fetch: true,
-                    findConfig: {
-                        "ObjectID": itemHierarchy
+module.factory('LookbackService', function() {
+    var eventTrigger = $('body');
+    var pageSize = 50;
+    var projects = [];
+    var lookbackStore;
+    var oids = {};
+    var parentMap = {};
+
+    var triggerEvents = function(records, operation, success) {
+        console.log(records);
+        
+        _.each(records, function(record) {
+            var prev = oids[record.get('ObjectID')];
+
+            var feature = record.get('Feature');
+            if (feature) {
+                var mapping = parentMap[feature];
+                if (mapping) {
+                    if (!_.contains(mapping, record.get('ObjectID'))) {
+                        mapping.push(record.get('ObjectID'));
                     }
-                });
-
-                lookbackStore.load({
-                    scope: this,
-                    callback: function (records, operation, success) {
-                        console.log(records);
-
-                        // callbackData(data);
-                    }
-                });
+                } else {
+                    parentMap[feature] = [record.get('ObjectID')];
+                }
             }
-        };
-});
 
+            var currentOid = record.get('ObjectID');
+            Ext.Array.include(projects, record.get('Project'));
+
+            if (prev) {
+                // Did the feature lose a user story?
+                if (prev.type == 'PortfolioItem/Feature') {
+                    if (prev.record.get('DirectChildrenCount') > record.get('DirectChildrenCount') && parentMap[currentOid]) {
+                        var children = record.get('UserStories');
+                        var j;
+                        var remove = -1;
+                        for (var j = 0; j < parentMap[currentOid].length; j++) {
+                            // compare the children
+                            if (!_.contains(children, parentMap[currentOid][j])) {
+                                // this oid needs to get deleted
+                                remove = j;
+                                break;
+                            }
+                        }
+
+                        if (remove != -1 && oids[parentMap[currentOid][remove]]) {
+                            // trigger recycle event and update our data structures
+                            eventTrigger.trigger(oids[parentMap[currentOid][remove]].type + '-Recycled', {record: null, oid: parentMap[currentOid][remove], date: new Date(record.get('_ValidFrom'))});
+                            delete oids[parentMap[currentOid][remove]];
+                            parentMap[currentOid].splice(remove, 1);
+                        }
+                    }
+                } else if (prev.type == 'UserStory') {
+                    var previousTasks = prev.record.get('Tasks');
+                    var currentTasks = record.get('Tasks');
+                    if (previousTasks && currentTasks && previousTasks.length > currentTasks.length) { // task deleted
+
+                        var removeOid = -1;
+                        for (var i = 0; i < previousTasks.length; i++) {
+                            if (!_.contains(currentTasks, previousTasks[i])) {
+                                removeOid = previousTasks[i];
+                                break;
+                            }
+                        }
+
+                        if (removeOid != -1 && oids[removeOid]) {
+                            eventTrigger.trigger(oids[removeOid].type + '-Recycled', {record: null, oid: removeOid, date: new Date(record.get('_ValidFrom'))});
+                            //delete oids[removeOid]; // task gets updated afterwards which would create a new task!
+                        }
+                    }
+                    
+                } else if (prev.type == 'PortfolioItem/Initiative') {
+                    // handle Feature destruction
+                    var previousFeatures = prev.record.get('Children');
+                    var currentFeatures = record.get('Children');
+                    if (previousFeatures && currentFeatures && previousFeatures.length > currentFeatures.length) { // feature deleted
+                        var removeOid = -1;
+                        for (var i = 0; i < previousFeatures.length; i++) {
+                            if (!_.contains(currentFeatures, previousFeatures[i])) {
+                                removeOid = previousFeatures[i];
+                                break;
+                            }
+                        }
+
+                        if (removeOid != -1 && oids[removeOid]) {
+                            eventTrigger.trigger(oids[removeOid].type + '-Recycled', {record: null, oid: removeOid, date: new Date(record.get('_ValidFrom'))});
+                            delete oids[removeOid];
+                        }
+                    }
+                }
+
+                // update this item
+                var changes = new Array();
+
+                _.each(oids[currentOid].record.data, function(prevValue, prevIdx) {
+                    if (prevValue != record.get(prevIdx)) {
+                        changes.push(prevIdx);
+                    }
+                });
+
+                changes = _.without(changes, "_ValidFrom", "_ValidTo", "_TypeHierarchy");
+
+                if (changes.length > 0) { // only trigger the event if something meaningful changed
+                    oids[currentOid] = {
+                        type: oids[currentOid].type,
+                        record: record
+                    }
+                    eventTrigger.trigger(oids[currentOid].type + '-Updated', {record: record, oid: currentOid, changes: changes, date: new Date(record.get('_ValidFrom'))});
+                }
+            } else {
+                // creation!
+                var types = record.get('_TypeHierarchy');
+                if (types && types.length > 0) {
+                    var dataType = types[types.length - 1];
+                    if (dataType === "HierarchicalRequirement") {
+                        dataType = "UserStory";
+                    }
+                    oids[currentOid] = {
+                        type: dataType,
+                        record: record
+                    }
+
+                    eventTrigger.trigger(dataType + '-Created', {record: record, oid: currentOid, changes: [], date: new Date(record.get('_ValidTo'))});
+                }
+            }
+        });
+    };
+
+
+    var loadPage = function(page) {
+        console.log("loading page: " + page);
+        lookbackStore.loadPage(page, {
+            scope: this,
+            callback: function (records, operation, success) {
+                console.log("page " + page, records);
+                page++;
+                triggerEvents(records, operation, success);
+                if (records.length == pageSize) {
+                    loadPage(page);
+                } else {
+                    setupRealtime();
+                }
+            }   
+        });
+    };
+
+    var setupRealtime = function() {
+        // Get project UUIDs and connect to realtime, then reveal the game
+        // TODO optimize if possible
+        Ext.create('Rally.data.WsapiDataStore', {
+            model: 'Project',
+            fetch: ['Name', 'ObjectID'],
+            limit: Infinity,
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri(),
+                project: null
+            }
+        }).load({
+            scope: this,
+            callback: function (records, operation, success) {
+                var projectUUIDs = [];
+                var allProjects = [];
+                _.each(records, function (record) {
+                    if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
+                        Ext.Array.push(allProjects, record);
+                    }
+                });
+
+                _.each(allProjects, function(project) {
+                    console.log(project);
+                    Ext.Array.push(projectUUIDs, project.get('_refObjectUUID'));
+                    //organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
+                });
+                
+                var scope = angular.element($("#root")).scope();
+                
+                scope.connectRealtime(projectUUIDs); // listen for changes in realtime
+            }
+        });
+    };
+
+    return {
+        connect: function(itemHierarchy) {
+            lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
+                fetch: ["ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
+                hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Children", "UserStories", "Project"],
+                pageSize: pageSize,
+                findConfig: {
+                    "_ItemHierarchy": itemHierarchy
+                }
+            });
+            
+            loadPage(1); 
+            game.reveal();    
+        }
+    };
+});
                 // MIT License:
 //
 // Copyright (c) 2010-2012, Joe Walnes
@@ -55265,23 +55631,37 @@ ReconnectingWebSocket.debugAll = false;
 
             var changed = _.uniq(_.pluck(data.data.changes, 'name'));
             
-            // if the event was recycling the item, then you will not get any info back
+            // if the event was recycling the item, then you will not get any info back from wsapi
             if (data.data.action == 'Recycled') {
-                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" +data.data.action, {record: null, oid: data.data[offset][oidUUID][valueOffset], changes: null}); // everything changed!
+                eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
+                    {
+                        record: null,
+                        oid: data.data[offset][oidUUID][valueOffset],
+                        changes: null,
+                        date: new Date()
+                    }
+                ); // everything changed!
             } else {
                 // query wsapi for more information
                 wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
                     console.log("got ", record);
                     console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
-                    eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action, {record: record, oid: data.data[offset][oidUUID][valueOffset], changes: changed});
+                    eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
+                        {
+                            record: record,
+                            oid: data.data[offset][oidUUID][valueOffset],
+                            changes: changed,
+                            date: new Date()
+                        }
+                    );
                 });
             }
         } else if (data.status) {
             console.info("trigger status");
-            eventTrigger.trigger('RealtimeConnection-Status', data.status);
+            eventTrigger.trigger('RealtimeConnection-Status', {status: data.status, date: new Date()});
         } else {
             console.info("trigger other");
-            eventTrigger.trigger('RealtimeConnection-Other', data);
+            eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
     }
 
@@ -55419,7 +55799,6 @@ ReconnectingWebSocket.debugAll = false;
                 module.factory('RealtimeService', function () {
         var realtime = new Realtime();
         var realtimeHandler = new RealtimeDataHandler();
-        var gameHandler = new GameEventHandler(realtimeHandler);
 
         return {
             connect: function(uuids) {
@@ -55436,68 +55815,97 @@ ReconnectingWebSocket.debugAll = false;
         };
 });
 
-                var GameEventHandler = function(realtime) {
-    var listenTo = '#root';
-    if (realtime && _.isFunction(realtime)) {
-        realtime.setEventTrigger(listenTo);
-    } else {
-        listenTo = 'body'; // default to listen to events on the body
+                /**
+ * Sets up event listeners to listen for new data
+ * The data could come from the lbapi or the realtime service
+ * so it is important to buffer the events coming in until
+ * the front-end can catch up
+ */
+var GameEventHandler = function(realtime) {
+    var listenTo = 'body';
+    var eventQueue = [];
+    var handler = this;
+    var timer = null;
+
+    var dequeue = function() {
+        if (eventQueue.length > 0) {
+            return eventQueue.shift();
+        }
+        return null;
     }
 
-    /**
-     * Listen to all task related changes
-     *
-     */
-    $(listenTo).on("Task-Updated", null, null, function(event, data) {
-        if (data && data.record && data.oid) {
-            game.updateItem(data.oid, data.record);
-        }
-    }); 
-
-    $(listenTo).on("Task-Recycled", null, null, function(event, data) {
-        if (data && data.oid) {
-            game.removeItem(data.oid);
-        }
+    $(listenTo).on("Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
+            null, null, function(event, data) {
+        eventQueue.push({
+            event: event,
+            data: data 
+        });
     });
 
-    $(listenTo).on("Task-Created", null, null, function(event, data) {
-        if (data && data.record && data.oid) {
-            game.createItem(data.oid, data.record);
+    this.playThrough = function() {
+        if (!timer) {
+            timer = setInterval(function() {
+                var object = dequeue();
+                if (object && object.event && object.event.type) {
+                    var func = handler[object.event.type.replace('/','').replace('-', '_')];
+                    if (func) {
+                        func(object.data);
+                    }
+                } else {
+                    // clearInterval(timer);
+                    // timer = null;
+                } // TODO else
+            }, 50);
         }
-    });
+    }
 
-    /**
-     * Listen to all story related changes
-     *
-     */
-    $(listenTo).on("UserStory-Updated", null, null, function(event, data) {
-        if (data && data.record && data.oid) {
-            game.updateItem(data.oid, data.record);
-        }
-    }); 
+    this.PortfolioItemInitiative_Created = function(data) {
+        game.shipScreen.addInitiative(data.record, data.oid, data.date);
+    }
 
-    $(listenTo).on("UserStory-Recycled", null, null, function(event, data) {
-        if (data && data.oid) {
-            game.removeItem(data.oid);
-        }
-    });
+    this.PortfolioItemFeature_Created = function(data) {
+        game.shipScreen.addFeature(data.record, data.oid, data.date);
+    }
 
-    $(listenTo).on("UserStory-Created", null, null, function(event, data) {
-        if (data && data.record && data.oid) {
-            game.createItem(data.oid, data.record);
-        }
-    });
+    this.UserStory_Created = function(data) {
+        game.shipScreen.addStory(data.record, data.oid, data.date);
+    }
 
-    /**
-     * Check on the realtime connection
-     */
-    $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {
-        if (data && data.status && data.status != 200) {
-            // handle error in connection
-            // in an idempotent manner! realtime tries to reconnect and could just loop on the same error
-            // TODO game.realtimeConnectionError();
-        }
-    });
+    this.Task_Created = function(data) {
+        game.shipScreen.addTask(data.record, data.oid, data.date);
+    }
+
+    this.PortfolioItemInitiative_Updated = function(data) {
+        game.shipScreen.updateInitiative(data.record, data.oid, data.date);
+    }
+
+    this.PortfolioItemFeature_Updated = function(data) {
+        game.shipScreen.updateFeature(data.record, data.oid, data.date);
+    }
+
+    this.UserStory_Updated = function(data) {
+        game.shipScreen.updateStory(data.record, data.oid, data.date);
+    }
+
+    this.Task_Updated = function(data) {
+        game.shipScreen.updateTask(data.record, data.oid, data.date);
+    }
+
+    this.PortfolioItemInitiative_Recycled = function(data) {
+        game.shipScreen.recycleShip(data.oid, data.date);
+    }
+
+    this.PortfolioItemFeature_Recycled = function(data) {
+        game.shipScreen.recycleShip(data.oid, data.date);
+    }
+
+    this.UserStory_Recycled = function(data) {
+        game.shipScreen.recycleShip(data.oid, data.date);
+    }
+
+    this.Task_Recycled = function(data) {
+        game.shipScreen.recycleShip(data.oid, data.date);
+    }
 }
                 module.service('RallyDataService', function (RealtimeService) {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
@@ -55710,7 +56118,8 @@ ReconnectingWebSocket.debugAll = false;
 
     <style type="text/css">
         body {
-  background-color: #000;
+  background-color: #222;
+  /* $gre9 */
   color: #fff;
   /* Allow mouse dragging. */
   -moz-user-select: none;
@@ -55821,6 +56230,26 @@ ReconnectingWebSocket.debugAll = false;
 }
 .logo {
   display: block;
+}
+ul {
+  list-style-type: none;
+}
+li {
+  margin: 0 0 5px 0;
+}
+.completed {
+  color: #EE1C25;
+}
+.recycled {
+  color: #E6E6E6;
+  font-style: italic;
+}
+.created {
+  font-weight: bold;
+}
+.init {
+  font-family: pressStart;
+  font-size: 10px;
 }
 /*#screen {
     width: 80%;
@@ -55990,8 +56419,14 @@ td.dataColumn {
                 </div>
                 <div id="log">
                     <div class="content">
+                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                          <option value="">All</option>
+                          <option value="created">Created</option>
+                          <option value="completed">Completed</option>
+                          <option value="recycled">Recycled</option>
+                        </select>
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems">[{{logItem.date}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

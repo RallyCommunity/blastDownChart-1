@@ -1,5 +1,5 @@
 body {
-    background-color: #000;
+    background-color: #222; /* $gre9 */
     color: #fff;
 
     /* Allow mouse dragging. */
@@ -134,6 +134,34 @@ body {
 .logo {
     display: block;
 }
+
+ul {
+    list-style-type: none;
+}
+
+li {
+    margin: 0 0 5px 0;
+}
+
+.completed {
+    color: #EE1C25;
+}
+
+.recycled {
+    color: #E6E6E6;
+    font-style: italic;
+}
+
+.created {
+    font-weight: bold;
+}
+
+.init {
+    font-family: pressStart;
+    font-size: 10px;
+}
+
+
 /*#screen {
     width: 80%;
 }
