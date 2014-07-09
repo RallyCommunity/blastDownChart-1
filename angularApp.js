@@ -1,22 +1,9 @@
 module = angular.module('angularBlastdown', []);
 
-module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeService', 'LookbackService', function($scope, RallyDataService, RealtimeService, LookbackService) {
-    $scope.organizedData = {};
-    $scope.RallyDataService = RallyDataService;
-
+module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackService', function($scope, RealtimeService, LookbackService) {
     $scope.eventHandler = new GameEventHandler();
 
-/*
-    RallyDataService.getData(true, function(data) {
-        $scope.organizedData = data;
-        $scope.$apply();
-        // Start the game
-        game.onload();
-    });
-*/
     $scope.selectedTypes = [];
-
-
 
     $scope.filters = {};
 
@@ -35,7 +22,6 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
         RealtimeService.connect(uuids);
     };
 
-    LookbackService.connect(GLOBAL.ObjectID);
     game.onload();
 
     $scope.addLogItem = function(logItem, date, className) {

@@ -96,8 +96,6 @@ var game = {
                     game.PENDING_SCORES[team] = [{team: team, points: points}]
                 }
             }
-            console.log("update scoreboard: ", team, points);
-            //angular.element($("#root")).scope().addPoints(team, points);
         }
     },
 

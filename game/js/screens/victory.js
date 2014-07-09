@@ -43,60 +43,10 @@ game.VictoryScreen = me.ScreenObject.extend({
 
         delete game.VICTORY_ANIMATIONS.SUPER;
         var time = -1;
+        this.explosions(time);
+        var victory = this;
         setInterval(function() {
-            time++;
-            if (time > 0) {
-                game.cleanup();
-            }
-            _.each(game.VICTORY_ANIMATIONS, function(el, index) {
-                var image;
-
-                if (index == "LARGE") {
-                    image = me.loader.getImage('explosionLarge');
-                } else if (index == "MEDIUM") {
-                    image = me.loader.getImage('explosionMedium');
-                } else if (index == "SMALL"){
-                    image = me.loader.getImage('explosionSmall');
-                } else {
-                    image = me.loader.getImage('explosionSuper');
-                }
-
-                _.each(el, function(point) {
-                    var emitter = new me.ParticleEmitter(point.x, point.y, {
-                        image: image,
-                        width: 4,
-                        totalParticles: 12,
-                        angle: 0.0856797996433583,
-                        angleVariation: 3.14159265358979,
-                        minLife: 400,
-                        maxLife: 1800,
-                        speed: 0.954545454545454,
-                        speedVariation: 9.95454545454546,
-                        minRotation: 1.34231686107927,
-                        minStartScale: 1.43181818181818,
-                        maxParticles: 17,
-                        frequency: 19,
-                        duration: 400,
-                        framesToSkip: 1
-                    });
-                    emitter.name = 'fire';
-
-                    emitter.z = Number.POSITIVE_INFINITY;
-
-                    me.game.world.addChild(emitter);
-                    me.game.world.addChild(emitter.container);
-                    emitter.streamParticles();
-
-                    game.PENDING_REMOVE.push(emitter);
-                    game.PENDING_REMOVE.push(emitter.container);
-                });
-            });
-            game.VICTORY_ANIMATIONS = {
-                SUPER: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
-            }
+            victory.explosions(time++);
         }, 1500);
         
      
@@ -135,6 +85,63 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.scrollertween.stop();
             }
         }))(), 2);
+    },
+
+    explosions: function(time) {
+        time++;
+        if (time > 0) {
+            game.cleanup();
+        }
+
+        _.each(game.VICTORY_ANIMATIONS, function(el, index) {
+            var image;
+
+            if (index == "LARGE") {
+                image = me.loader.getImage('explosionLarge');
+            } else if (index == "MEDIUM") {
+                image = me.loader.getImage('explosionMedium');
+            } else if (index == "SMALL"){
+                image = me.loader.getImage('explosionSmall');
+            } else {
+                image = me.loader.getImage('explosionSuper');
+            }
+
+            _.each(el, function(point) {
+                var emitter = new me.ParticleEmitter(point.x, point.y, {
+                    image: image,
+                    width: 4,
+                    totalParticles: 12,
+                    angle: 0.0856797996433583,
+                    angleVariation: 3.14159265358979,
+                    minLife: 400,
+                    maxLife: 1800,
+                    speed: 0.954545454545454,
+                    speedVariation: 9.95454545454546,
+                    minRotation: 1.34231686107927,
+                    minStartScale: 1.43181818181818,
+                    maxParticles: 17,
+                    frequency: 19,
+                    duration: 400,
+                    framesToSkip: 1
+                });
+                emitter.name = 'fire';
+
+                emitter.z = Number.POSITIVE_INFINITY;
+
+                me.game.world.addChild(emitter, emitter.z);
+                me.game.world.addChild(emitter.container, emitter.z - 1);
+                emitter.streamParticles();
+
+                game.PENDING_REMOVE.push(emitter);
+                game.PENDING_REMOVE.push(emitter.container);
+            });
+        });
+        game.VICTORY_ANIMATIONS = {
+            SUPER: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+            LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+            MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+            SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+        }
     },
  
     /**    

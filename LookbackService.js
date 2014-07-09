@@ -17,16 +17,14 @@ module.factory('LookbackService', function() {
     var lookbackStore;
     var oids = {};
     //var parentMap = {};
+    var initiative;
 
-    var triggerEvents = function(records, operation, success) {
-        //console.log(records);
-        
+    var triggerEvents = function(records, operation, success) {    
         _.each(records, function(record) {
-            //console.log(record.get('Recycled') + " " + record.get('FormattedID'), record);
             var prev = oids[record.get('ObjectID')];
 
             var currentOid = record.get('ObjectID');
-            Ext.Array.include(projects, record.get('Project'));
+            projects.push(record.get('Project'));
 
             if (prev) {
                 // Did the feature lose a user story?
@@ -34,24 +32,14 @@ module.factory('LookbackService', function() {
                     var previousStories = prev.record.get('UserStories');
                     var currentStories = record.get('UserStories');
                     if (previousStories && currentStories && previousStories.length > currentStories.length) {
-                        
-                        var j;
-                        var remove = -1;
-                        var deleteOid = -1;
-                        for (var j = 0; j < previousStories.length; j++) {
-                            // compare the children
-                            if (!_.contains(currentStories, previousStories[j])) {
-                                // this oid needs to get deleted
-                                remove = j;
-                                deleteOid = previousStories[j];
-                                break;
-                            }
-                        }
+                        var remove = _.find(previousStories, function(story) {
+                            return !_.contains(currentStories, story);
+                        });
 
-                        if (remove != -1 && oids[deleteOid]) {
+                        if (remove && oids[remove]) {
                             // trigger recycle event and update our data structures
-                            eventTrigger.trigger(oids[deleteOid].type + '-Recycled', {record: null, oid: deleteOid, date: new Date(record.get('_ValidFrom'))});
-                            delete oids[deleteOid];
+                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
+                            delete oids[remove];
                         }
                     }
                 } else if (prev.type == 'UserStory') {
@@ -59,17 +47,13 @@ module.factory('LookbackService', function() {
                     var currentTasks = record.get('Tasks');
                     if (previousTasks && currentTasks && previousTasks.length > currentTasks.length) { // task deleted
 
-                        var removeOid = -1;
-                        for (var i = 0; i < previousTasks.length; i++) {
-                            if (!_.contains(currentTasks, previousTasks[i])) {
-                                removeOid = previousTasks[i];
-                                break;
-                            }
-                        }
+                        var remove = _.find(previousTasks, function(task) {
+                            return !_.contains(currentTasks, previousTasks[i]);
+                        });
 
-                        if (removeOid != -1 && oids[removeOid]) {
-                            eventTrigger.trigger(oids[removeOid].type + '-Recycled', {record: null, oid: removeOid, date: new Date(record.get('_ValidFrom'))});
-                            //delete oids[removeOid]; // task gets updated afterwards which would create a new task!
+                        if (remove && oids[remove]) {
+                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
+                            //delete oids[remove]; // task gets updated afterwards which would create a new task!
                         }
                     }
                     
@@ -78,17 +62,13 @@ module.factory('LookbackService', function() {
                     var previousFeatures = prev.record.get('Children');
                     var currentFeatures = record.get('Children');
                     if (previousFeatures && currentFeatures && previousFeatures.length > currentFeatures.length) { // feature deleted
-                        var removeOid = -1;
-                        for (var i = 0; i < previousFeatures.length; i++) {
-                            if (!_.contains(currentFeatures, previousFeatures[i])) {
-                                removeOid = previousFeatures[i];
-                                break;
-                            }
-                        }
+                        var remove = _.find(previousFeatures, function(feature) {
+                            return !_.contains(currentFeatures, feature);
+                        });
 
-                        if (removeOid != -1 && oids[removeOid]) {
-                            eventTrigger.trigger(oids[removeOid].type + '-Recycled', {record: null, oid: removeOid, date: new Date(record.get('_ValidFrom'))});
-                            delete oids[removeOid];
+                        if (remove != -1 && oids[remove]) {
+                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
+                            delete oids[remove];
                         }
                     }
                 }
@@ -109,7 +89,6 @@ module.factory('LookbackService', function() {
                         type: oids[currentOid].type,
                         record: record
                     }
-                    //console.info("Triggering: " + oids[currentOid].type + '-Updated');
                     eventTrigger.trigger(oids[currentOid].type + '-Updated', {record: record, oid: currentOid, changes: changes, date: new Date(record.get('_ValidFrom'))});
                 }
             } else {
@@ -124,21 +103,19 @@ module.factory('LookbackService', function() {
                         type: dataType,
                         record: record
                     }
-
-                    //console.info("Triggering: " + dataType + '-Created');
                     eventTrigger.trigger(dataType + '-Created', {record: record, oid: currentOid, changes: [], date: new Date(record.get('_ValidTo'))});
                 }
             }
         });
+
+        projects = _.uniq(projects);
     };
 
 
     var loadPage = function(page) {
-        console.log("loading page: " + page);
         lookbackStore.loadPage(page, {
             scope: this,
             callback: function (records, operation, success) {
-                //console.log("page " + page, records);
                 page++;
                 triggerEvents(records, operation, success);
                 if (records.length == PAGE_SIZE) {
@@ -166,17 +143,16 @@ module.factory('LookbackService', function() {
             callback: function (records, operation, success) {
                 var projectUUIDs = [];
                 var allProjects = [];
+
                 _.each(records, function (record) {
                     if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
-                        Ext.Array.push(allProjects, record);
+                        allProjects.push(record);
                     }
                 });
 
                 _.each(allProjects, function(project) {
-                    console.log(project);
-                    Ext.Array.push(projectUUIDs, project.get('_refObjectUUID'));
+                    projectUUIDs.push(project.get('_refObjectUUID'));
                     eventTrigger.trigger("Project", {record: project});
-                    //organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
                 });
                 
                 var scope = angular.element($("#root")).scope();

@@ -1,4 +1,3 @@
-GLOBAL = {}; // TODO how do you get around this?
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -12,9 +11,8 @@ Ext.define('CustomApp', {
             title: 'Choose an Initiative',
             storeConfig: {
                 context: {
-                    //specify the workspace to search this.getContext().getWorkspace()
-                    workspace: Rally.util.Ref.getRelativeUri(), //Rally.Environment.getContext().getWorkspace(),
-
+                    //specify the workspace to search
+                    workspace: Rally.util.Ref.getRelativeUri(),
                     //all projects
                     project: null
                 }
@@ -23,22 +21,21 @@ Ext.define('CustomApp', {
                 scope: this,
                 artifactchosen: function(picker, selectedRecord) {
                     Ext.getBody().mask("Loading");
-                    GLOBAL = selectedRecord.data;
-                    angular.bootstrap(document.body, ['angularBlastdown']);
+
+                    var injector = angular.bootstrap(document.body, ['angularBlastdown']);
+                    injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
                     
                     var scope = angular.element(document.body).scope();
-                    scope.app = App.getContext().map.map;
+                    scope.app = Rally.getApp().getContext().map.map;
                     
                     scope.$digest();                  
                 }
             }
         }
-    ],
-    launch: function() {
-        App = this;
-
-
-    }
+    ]
 });
+
+
+
 
 

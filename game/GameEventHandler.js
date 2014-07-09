@@ -41,8 +41,6 @@ var GameEventHandler = function(realtime) {
                         func(object.data);
                     }
                 } else {
-                    // clearInterval(timer);
-                    // timer = null;
                 } // TODO else
             }, 50);
         }

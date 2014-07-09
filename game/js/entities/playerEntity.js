@@ -5,7 +5,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(5, 0);
+        this.setVelocity(10, 0);
         
         this.type = game.PLAYER;
         
