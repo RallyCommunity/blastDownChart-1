@@ -17,19 +17,26 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         class: 'init'
     }];
 
+    $scope.realtimeStatus = 'Waiting';
+
     $scope.connectRealtime = function(uuids) {
         // connect to realtime, which now just fires events
+        $scope.realtimeStatus = 'Connecting'; // listen for events to change to connected
         RealtimeService.connect(uuids);
     };
+
+    $scope.updateStatus = function(status) {
+        $scope.realtimeStatus = status;
+    }
 
     game.onload();
 
     $scope.addLogItem = function(logItem, date, className) {
         var dateString;
         if (!date) {
-            dateString = Ext.Date.format(new Date(), "m-d H:i");
+            dateString = moment().format("MM-DD HH:mm");
         } else if (date instanceof Date) {
-            dateString = Ext.Date.format(date, "m-d H:i");
+            dateString = moment(date).format("MM-DD HH:mm");
         } else {
             dateString = date;
         }
@@ -46,7 +53,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
-            $scope.scoreboard[team].points += points;
+            $scope.scoreboard[team].points += points || 0;
 
         } else {
             var newPoints = points || 0;

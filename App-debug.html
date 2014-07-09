@@ -114,6 +114,9 @@
                 </div>
                 <div id="log">
                     <div class="content">
+                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                            Realtime Status: {{realtimeStatus}}
+                        </div>
                         <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
                           <option value="">All</option>
                           <option value="created">Created</option>

@@ -166,7 +166,7 @@ module.factory('LookbackService', function() {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
                 fetch: ["Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
-                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Children", "UserStories", "Project"],
+                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Project"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy

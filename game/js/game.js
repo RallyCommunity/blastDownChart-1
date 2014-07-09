@@ -67,6 +67,9 @@ var game = {
     log : {
         addItem: function(logEvent, date, className) {
             angular.element($("#root")).scope().addLogItem(logEvent, date, className);
+        },
+        updateStatus: function(status) {
+            angular.element($("#root")).scope().updateStatus(status);
         }
     },
 
@@ -86,8 +89,8 @@ var game = {
             });
         },
         addPoints: function(team, points) {
-            if (game.PROJECT_MAPPING[team]) {
-                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], points);
+            if (game.PROJECT_MAPPING[team] && points) {
+                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
                 // queue it!
                 if (game.PENDING_SCORES[team]) {

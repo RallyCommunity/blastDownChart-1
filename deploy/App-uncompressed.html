@@ -22504,6 +22504,9 @@ var game = {
     log : {
         addItem: function(logEvent, date, className) {
             angular.element($("#root")).scope().addLogItem(logEvent, date, className);
+        },
+        updateStatus: function(status) {
+            angular.element($("#root")).scope().updateStatus(status);
         }
     },
 
@@ -23132,7 +23135,7 @@ var game = {
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                game.log.addItem(res.obj.record.get('Name') + " completed", Ext.Date.format(new Date(res.obj.date), "m-d H:i"), 'completed');
+                game.log.addItem(res.obj.record.get('Name') + " completed", moment(res.obj.date).format("MM-DD HH:mm"), 'completed');
 
                 game.PLAYER_SHIP.removeTarget(res.obj);
 
@@ -23754,19 +23757,26 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         class: 'init'
     }];
 
+    $scope.realtimeStatus = 'Waiting';
+
     $scope.connectRealtime = function(uuids) {
         // connect to realtime, which now just fires events
+        $scope.realtimeStatus = 'Connecting'; // listen for events to change to connected
         RealtimeService.connect(uuids);
     };
+
+    $scope.updateStatus = function(status) {
+        $scope.realtimeStatus = status;
+    }
 
     game.onload();
 
     $scope.addLogItem = function(logItem, date, className) {
         var dateString;
         if (!date) {
-            dateString = Ext.Date.format(new Date(), "m-d H:i");
+            dateString = moment().format("MM-DD HH:mm");
         } else if (date instanceof Date) {
-            dateString = Ext.Date.format(date, "m-d H:i");
+            dateString = moment(date).format("MM-DD HH:mm");
         } else {
             dateString = date;
         }
@@ -23962,7 +23972,7 @@ module.factory('LookbackService', function() {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
                 fetch: ["Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
-                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Children", "UserStories", "Project"],
+                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Project"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy
@@ -24319,7 +24329,7 @@ ReconnectingWebSocket.debugAll = false;
     var wsapiAggregator = new WSAPIAggregator();
 
     this.handleRealtimeMessage = function(data) {
-        console.log(data);
+        //console.log(data);
         // do we have enough information to act on this
         if (data && data.type == 'event' && data.data && data.data.action) {
             var offset, valueOffset;
@@ -24346,8 +24356,8 @@ ReconnectingWebSocket.debugAll = false;
             } else {
                 // query wsapi for more information
                 wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
-                    console.log("got ", record);
-                    console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
+                    //console.log("got ", record);
+                    //console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
                     eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
                         {
                             record: record,
@@ -24359,10 +24369,10 @@ ReconnectingWebSocket.debugAll = false;
                 });
             }
         } else if (data.status) {
-            console.info("trigger status");
+            //console.info("trigger status");
             eventTrigger.trigger('RealtimeConnection-Status', {status: data.status, date: new Date()});
         } else {
-            console.info("trigger other");
+            //console.info("trigger other");
             eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
     }
@@ -24421,9 +24431,14 @@ var GameEventHandler = function(realtime) {
     });
 
     $(listenTo).on("Project", null, null, function(event, data) {
-        console.log("Project data", data);
+        //console.log("Project data", data);
         game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
         game.scoreboard.checkPending();
+    });
+
+    $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {
+        var status = data && data.status && data.status == 200 ? 'Connected' : 'Disconnected';
+        game.log.updateStatus(status);
     });
 
     this.playThrough = function() {
@@ -24827,6 +24842,27 @@ li {
   font-family: pressStart;
   font-size: 10px;
 }
+#realtimeStatus {
+  text-align: center;
+  -webkit-border-radius: 20px;
+  -moz-border-radius: 20px;
+  border-radius: 20px;
+}
+.waiting {
+  background-color: #D6D6D6;
+  /* $grey3 */
+}
+.connected {
+  background-color: #00A9E0;
+  /* $cyan */
+}
+.connecting {
+  background-color: #A9A9A9;
+  /* $grey5 */
+}
+.disconnected {
+  background-color: #EE1C25;
+}
 
     </style>
     <style type="text/css">
@@ -24919,6 +24955,9 @@ td.dataColumn {
                 </div>
                 <div id="log">
                     <div class="content">
+                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                            Realtime Status: {{realtimeStatus}}
+                        </div>
                         <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
                           <option value="">All</option>
                           <option value="created">Created</option>

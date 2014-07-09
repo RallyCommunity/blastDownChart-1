@@ -77,7 +77,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                game.log.addItem(res.obj.record.get('Name') + " completed", Ext.Date.format(new Date(res.obj.date), "m-d H:i"), 'completed');
+                game.log.addItem(res.obj.record.get('Name') + " completed", moment(res.obj.date).format("MM-DD HH:mm"), 'completed');
 
                 game.PLAYER_SHIP.removeTarget(res.obj);
 

@@ -154,3 +154,27 @@ li {
     font-family: pressStart;
     font-size: 10px;
 }
+
+#realtimeStatus {
+    text-align: center;
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    border-radius: 20px;
+    height: 20px;
+}
+
+.waiting {
+    background-color: #666; /* $grey7 */
+}
+
+.connected {
+    background-color: #00A9E0; /* $cyan */
+}
+
+.connecting {
+    background-color: #444; /* $grey8 */
+}
+
+.disconnected {
+    background-color: #EE1C25; /* $red */
+}
