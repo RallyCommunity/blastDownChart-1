@@ -70,6 +70,37 @@ var game = {
         }
     },
 
+    PROJECT_MAPPING: {},
+
+    PENDING_SCORES: {},
+
+    scoreboard : {
+        checkPending: function() {
+            _.each(game.PENDING_SCORES, function(value, key) {
+                if (game.PROJECT_MAPPING[key]) {
+                    for (var i = 0; i < value.length; i++) {
+                        var obj = value.pop();
+                        game.scoreboard.addPoints(obj.team, obj.points);
+                    }
+                }
+            });
+        },
+        addPoints: function(team, points) {
+            if (game.PROJECT_MAPPING[team]) {
+                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], points);
+            } else {
+                // queue it!
+                if (game.PENDING_SCORES[team]) {
+                    game.PENDING_SCORES[team].push({team: team, points: points});
+                } else {
+                    game.PENDING_SCORES[team] = [{team: team, points: points}]
+                }
+            }
+            console.log("update scoreboard: ", team, points);
+            //angular.element($("#root")).scope().addPoints(team, points);
+        }
+    },
+
     // Run on page load.
     "onload" : function () {
         // Initialize the video.
@@ -135,205 +166,52 @@ var game = {
         switch(ship.type) {
             case game.ENEMY_ENTITY_SMALL:
                     game.AVAILABLE_POSITIONS.tasks.push(new Point(ship.startingX, ship.startingY));
+                    if (game.AVAILABLE_POSITIONS.pendingTasks.length > 1) {
+                        var pendingOid = game.AVAILABLE_POSITIONS.pendingTasks[0];
+                        if (game.OID_MAP[pendingOid]) {
+                            game.shipScreen.addTask(game.OID_MAP[pendingOid].record, pendingOid, game.OID_MAP[pendingOid].date);
+                            game.AVAILABLE_POSITIONS.pendingTasks.shift();
+                        }
+                    }
+                    
                     break;
             case game.ENEMY_ENTITY_MEDIUM:
-                    console.log("before length", game.AVAILABLE_POSITIONS.stories.length);
+                    if (game.AVAILABLE_POSITIONS.pendingStories.length > 0) {
+                        var pendingObj = false;
+                        while (!pendingObj) {
+                            var oid = game.AVAILABLE_POSITIONS.pendingStories.shift();
+                            if (!oid) {
+                                break;
+                            }
+                            pendingObj = game.OID_MAP[oid];
+                            if (pendingObj && !pendingObj.displayed) {
+                                game.shipScreen.addEnemy(pendingObj.record, oid, pendingObj.date, "medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, ship.startingX, ship.startingY);
+                                return;
+                            }
+                        }
+                        
+                    }
                     game.AVAILABLE_POSITIONS.stories.push(new Point(ship.startingX, ship.startingY));
-                    console.log("after length", game.AVAILABLE_POSITIONS.stories.length);
                     break;
             case game.ENEMY_ENTITY_LARGE:
                     game.AVAILABLE_POSITIONS.features.push(new Point(ship.startingX, ship.startingY));
+                    if (game.AVAILABLE_POSITIONS.pendingFeatures.length > 1) {
+                        var pendingOid = game.AVAILABLE_POSITIONS.pendingFeatures[0];
+                        if (game.OID_MAP[pendingOid]) {
+                            game.shipScreen.addFeature(game.OID_MAP[pendingOid].record, pendingOid, game.OID_MAP[pendingOid].date);
+                            game.AVAILABLE_POSITIONS.pendingFeatures.shift();
+                        }
+                    }
                     break;
             default:
                     console.log("default", ship, ship.type);
         }
     },
 
-    addWorkItem: function(oid, record) {
-        game.displayStory(oid, record, record.get('Feature'));
-    },
-
-    itemFlyOff: function(oid, pendingRemove) {
-        if (pendingRemove && pendingRemove.length > 0 && game.OID_MAP[pendingRemove[0].featureId] && game.AVAILABLE_POSITIONS[game.OID_MAP[pendingRemove[0].featureId].column]) {
-            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[pendingRemove[0].featureId].column].storyPositions;
-            if (positions) {
-                positions.unshift(new Point(pendingRemove[0].startingX, pendingRemove[0].startingY));
-                pendingRemove[0].flyOff();
-                game.log.addItem(pendingRemove[0].formattedId + " recycled");
-            }
-        }
-    },
-
-    addTask: function(oid, record) {
-        var userStory = record.get('WorkProduct');
-        if (userStory) {
-            var feature   = userStory.Feature;
-
-            console.log(task, userStory, feature);
-            game.displayTask(oid, record, userStory, feature);
-        }
-    },
-
-    displayStory: function(oid, story, feature) {
-        console.log(oid, story, feature);
-        var id = this.getIdFromFeature(feature);
-        
-        console.log(id, game.OID_MAP[id]);
-        if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
-            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions;
-            if (positions && positions.length > 0) {
-                var position = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].storyPositions.shift();
-                console.log("putting story ship at position", position);
-                game.OID_MAP[oid] = {
-                    displayed: true,
-                    formattedId: story.data.FormattedID
-                }
-                // create a new ship entitiy!
-                var STORY_SHIP = {
-                    width: 32,
-                    height: 32
-                };
-
-                var storyShip = me.pool.pull("enemyShip", position.x, position.y, {
-                    height: game.STORY_SHIP.height,
-                    image: "medium",
-                    name: "[STORY/DEFECT] - " + story.data.Name,
-                    spriteheight: game.STORY_SHIP.height,
-                    spritewidth: game.STORY_SHIP.width,
-                    width: game.STORY_SHIP.width,
-                    objectID: story.data.ObjectID,
-                    z: 10,
-                    health: 2,
-                    type: game.ENEMY_ENTITY_MEDIUM,
-                    delay: 0,
-                    programmaticallyAdded: true,
-                    featureId: id,
-                    waitFor: 0
-                });
-
-                me.game.world.addChild(storyShip, 10);
-                console.log('added storyship', storyShip);
-                game.log.addItem(story.data.Name + ":: ADDED");
-            } else {
-                game.OID_MAP[oid] = {
-                    displayed: false,
-                    formattedId: story.data.FormattedID,
-                    queueColumn: game.OID_MAP[id].column
-                }
-
-                game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].pendingStories.push(story.data);
-            }
-        }
-    },
-
-    displayTask: function(oid, task, story, feature) {
-        var id = this.getIdFromFeature(feature);
-
-        if (id && game.OID_MAP[id] && game.AVAILABLE_POSITIONS[game.OID_MAP[id].column]) {
-            var positions = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].taskPositions;
-            if (positions && positions.length > 0) {
-                var position = game.AVAILABLE_POSITIONS[game.OID_MAP[id].column].taskPositions.shift();
-                console.log("putting story ship at position", position);
-                game.OID_MAP[oid] = {
-                    displayed: true,
-                    formattedId: task.data.FormattedID
-                }
-
-                var taskShip = me.pool.pull("enemyShip", position.x, position.y, {
-                    height: game.TASK_SHIP.height,
-                    image: "small",
-                    name: "[TASK] - " + task.data.Name,
-                    spriteheight: game.TASK_SHIP.height,
-                    spritewidth: game.TASK_SHIP.width,
-                    width: game.TASK_SHIP.width,
-                    objectID: task.data.ObjectID,
-                    z: Number.POSITIVE_INFINITY,
-                    formattedId: task.data.FormattedID,
-                    health: 2,
-                    type: game.ENEMY_ENTITY_SMALL,
-                    delay: 0,
-                    featureId: id,
-                    programmaticallyAdded: true,
-                    waitFor: 0
-                });
-
-                me.game.world.addChild(taskShip, Number.POSITIVE_INFINITY);
-                console.log('added task', taskShip);
-                game.log.addItem(task.data.Name + ":: ADDED");
-            } else {
-                game.OID_MAP[oid] = {
-                    displayed: false,
-                    formattedId: "N/A"
-                }
-            }
-        }
-    },
-
-    // TODO hacky!  Another query and then callback instead?
-    getIdFromFeature: function(feature) {
-        if (feature && feature._ref) {
-            var parts = feature._ref.split("/");
-            console.log(feature._ref, parts);
-            if (parts && parts.length > 0) {
-                return parseInt(parts[parts.length - 1]);
-            }
-        }
-        return null;
-    },
-
-    completeItem: function(oid) {
-        if (game.OID_MAP[oid]) {
-            if (game.OID_MAP[oid].displayed) {
-                var destroy = me.game.world.getChildByProp('objectID', oid);
-                if (destroy.length == 1) {
-                    var players = me.game.world.getChildByProp('type', game.PLAYER);
-                    if (players.length == 1) {
-                        destroy[0].setVulnerable(true);
-                        players[0].addTarget(destroy[0]);
-                    }
-                }
-            } else {
-                // not displayed - do nothing for now
-            }
-        }
-    },
-
-    createItem: function(oid, record) {
-
-    },
-
-    updateItem: function(oid, record) {
-        // update the state of the given oid with the given record
-    },
-
-    removeItem: function(oid) {
-        // removing a ship
-        var item = game.OID_MAP[oid];
-        if (item && item.displayed) {
-            var pendingRemove = me.game.world.getChildByProp('objectID', oid);
-            game.itemFlyOff(oid, pendingRemove);
-        } else if (item && item.queueColumn) {
-            var arr = game.AVAILABLE_POSITIONS[item.queueColumn].pendingStories;
-            if (arr) {
-                arr.filter(function(shipData) {
-                    return oid != shipData.ObjectID;
-                });
-                delete game.OID_MAP[oid];
-                game.log.addItem(item.formattedId + " recycled");
-            }
-        } else if (item) {
-            // not currently displayed, just remove it from the map and log it
-            delete game.OID_MAP[oid];
-            game.log.addItem(item.formattedId + " recycled");
-        }
-    },
-
-
     /**
      * Cleanup animations
      */
     cleanup: function() {
-        console.log("pending", game.PENDING_REMOVE);
         _.each(game.PENDING_REMOVE, function(remove) {
             me.game.world.removeChild(remove);
         });
@@ -342,7 +220,6 @@ var game = {
     },
 
     cleanupOld: function() {
-        console.log("pending", game.PENDING_REMOVE);
         for (var i = 0; i < game.PENDING_REMOVE.length - 2; i++) {
             me.game.world.removeChild(game.PENDING_REMOVE.shift());
         }

@@ -25,6 +25,12 @@ var GameEventHandler = function(realtime) {
         });
     });
 
+    $(listenTo).on("Project", null, null, function(event, data) {
+        console.log("Project data", data);
+        game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
+        game.scoreboard.checkPending();
+    });
+
     this.playThrough = function() {
         if (!timer) {
             timer = setInterval(function() {

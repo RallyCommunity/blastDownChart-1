@@ -16,25 +16,14 @@ module.factory('LookbackService', function() {
     var projects = [];
     var lookbackStore;
     var oids = {};
-    var parentMap = {};
+    //var parentMap = {};
 
     var triggerEvents = function(records, operation, success) {
-        console.log(records);
+        //console.log(records);
         
         _.each(records, function(record) {
+            //console.log(record.get('Recycled') + " " + record.get('FormattedID'), record);
             var prev = oids[record.get('ObjectID')];
-
-            var feature = record.get('Feature');
-            if (feature) {
-                var mapping = parentMap[feature];
-                if (mapping) {
-                    if (!_.contains(mapping, record.get('ObjectID'))) {
-                        mapping.push(record.get('ObjectID'));
-                    }
-                } else {
-                    parentMap[feature] = [record.get('ObjectID')];
-                }
-            }
 
             var currentOid = record.get('ObjectID');
             Ext.Array.include(projects, record.get('Project'));
@@ -42,24 +31,27 @@ module.factory('LookbackService', function() {
             if (prev) {
                 // Did the feature lose a user story?
                 if (prev.type == 'PortfolioItem/Feature') {
-                    if (prev.record.get('DirectChildrenCount') > record.get('DirectChildrenCount') && parentMap[currentOid]) {
-                        var children = record.get('UserStories');
+                    var previousStories = prev.record.get('UserStories');
+                    var currentStories = record.get('UserStories');
+                    if (previousStories && currentStories && previousStories.length > currentStories.length) {
+                        
                         var j;
                         var remove = -1;
-                        for (var j = 0; j < parentMap[currentOid].length; j++) {
+                        var deleteOid = -1;
+                        for (var j = 0; j < previousStories.length; j++) {
                             // compare the children
-                            if (!_.contains(children, parentMap[currentOid][j])) {
+                            if (!_.contains(currentStories, previousStories[j])) {
                                 // this oid needs to get deleted
                                 remove = j;
+                                deleteOid = previousStories[j];
                                 break;
                             }
                         }
 
-                        if (remove != -1 && oids[parentMap[currentOid][remove]]) {
+                        if (remove != -1 && oids[deleteOid]) {
                             // trigger recycle event and update our data structures
-                            eventTrigger.trigger(oids[parentMap[currentOid][remove]].type + '-Recycled', {record: null, oid: parentMap[currentOid][remove], date: new Date(record.get('_ValidFrom'))});
-                            delete oids[parentMap[currentOid][remove]];
-                            parentMap[currentOid].splice(remove, 1);
+                            eventTrigger.trigger(oids[deleteOid].type + '-Recycled', {record: null, oid: deleteOid, date: new Date(record.get('_ValidFrom'))});
+                            delete oids[deleteOid];
                         }
                     }
                 } else if (prev.type == 'UserStory') {
@@ -117,6 +109,7 @@ module.factory('LookbackService', function() {
                         type: oids[currentOid].type,
                         record: record
                     }
+                    //console.info("Triggering: " + oids[currentOid].type + '-Updated');
                     eventTrigger.trigger(oids[currentOid].type + '-Updated', {record: record, oid: currentOid, changes: changes, date: new Date(record.get('_ValidFrom'))});
                 }
             } else {
@@ -132,6 +125,7 @@ module.factory('LookbackService', function() {
                         record: record
                     }
 
+                    //console.info("Triggering: " + dataType + '-Created');
                     eventTrigger.trigger(dataType + '-Created', {record: record, oid: currentOid, changes: [], date: new Date(record.get('_ValidTo'))});
                 }
             }
@@ -144,7 +138,7 @@ module.factory('LookbackService', function() {
         lookbackStore.loadPage(page, {
             scope: this,
             callback: function (records, operation, success) {
-                console.log("page " + page, records);
+                //console.log("page " + page, records);
                 page++;
                 triggerEvents(records, operation, success);
                 if (records.length == PAGE_SIZE) {
@@ -181,6 +175,7 @@ module.factory('LookbackService', function() {
                 _.each(allProjects, function(project) {
                     console.log(project);
                     Ext.Array.push(projectUUIDs, project.get('_refObjectUUID'));
+                    eventTrigger.trigger("Project", {record: project});
                     //organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
                 });
                 
@@ -194,8 +189,8 @@ module.factory('LookbackService', function() {
     return {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-                fetch: ["ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
-                hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Children", "UserStories", "Project"],
+                fetch: ["Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
+                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Children", "UserStories", "Project"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy

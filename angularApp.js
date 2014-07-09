@@ -16,6 +16,8 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
 */
     $scope.selectedTypes = [];
 
+
+
     $scope.filters = {};
 
     $scope.setSelectedOption = function(option) {
@@ -37,7 +39,7 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
     game.onload();
 
     $scope.addLogItem = function(logItem, date, className) {
-        var dateString ;
+        var dateString;
         if (!date) {
             dateString = Ext.Date.format(new Date(), "m-d H:i");
         } else if (date instanceof Date) {
@@ -51,5 +53,20 @@ module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeServ
             class: className
         });
         $scope.$apply();
+    };
+
+    $scope.scoreboard = {};
+
+
+    $scope.addPoints = function(team, points) {
+        if ($scope.scoreboard[team]) {
+            $scope.scoreboard[team].points += points;
+
+        } else {
+            var newPoints = points || 0;
+            $scope.scoreboard[team] = {
+                points: newPoints
+            }
+        }
     };
 }]);

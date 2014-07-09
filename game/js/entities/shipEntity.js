@@ -116,7 +116,8 @@ game.Ship = me.ObjectEntity.extend({
      */
     setVulnerable: function(vulnerability) {
         this.isVulnerable = vulnerability;
-        this.z = Number.POSITIVE_INFINITY;
+        me.game.world.moveToBottom(this);
+        me.game.world.moveUp(this); // move it above the backgrounds
     },
 
     flashShields: function() {

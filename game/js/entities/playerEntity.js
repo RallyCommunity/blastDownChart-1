@@ -54,6 +54,8 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // 5 <-------------------
         // repeat
 
+        //console.log("currently tracked oids", game.OID_MAP);
+
         if (this.stepNum === 0) {
             if (this.pos.x > game.WINDOW_WIDTH / 2) {
                 this.stepNum++;

@@ -60,7 +60,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 emitter.name = 'fire'; // TODO use radial explosion instead?
                 
                 if (game.OID_MAP[res.obj.objectID]) {
-                    game.OID_MAP[res.obj.objectID].displayed = false;
+                    delete game.OID_MAP[res.obj.objectID];
                 }
 
                 emitter.z = res.obj.z + 1;
@@ -74,6 +74,8 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 // this slot is now open!
                 game.addAvailablePosition(res.obj);
+
+                game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
                 game.log.addItem(res.obj.record.get('Name') + " completed", Ext.Date.format(new Date(res.obj.date), "m-d H:i"), 'completed');
 

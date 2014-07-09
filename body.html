@@ -9,7 +9,7 @@
                                 <th>
                                     Team
                                 </th>
-                                <th ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                <th ng-repeat="(teamName, teamInfo) in scoreboard">
                                     {{teamName}}
                                 </th>
                             </tr>
@@ -17,18 +17,18 @@
                                 <td>
                                     Score
                                 </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
-                                    {{teamInfo.score}}
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
+                                    {{teamInfo.points}}
                                 </td>
                             </tr>
-                            <tr>
+<!--                             <tr>
                                 <td>
                                     Lives
                                 </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
                                     {{teamInfo.lives}}
                                 </td>
-                            </tr>
+                            </tr> -->
                         </table>
                     </div>
                 </div>

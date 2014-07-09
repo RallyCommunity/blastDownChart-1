@@ -10,7 +10,6 @@ game.VictoryScreen = me.ScreenObject.extend({
         // title screen
         me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('background')), 1);
 
-
         // Add all destruction animations
         var largeImg = me.loader.getImage('explosionSuper');
 
@@ -34,7 +33,7 @@ game.VictoryScreen = me.ScreenObject.extend({
         superEmitter.name = 'fire';
 
         superEmitter.z = Number.POSITIVE_INFINITY;
-        // TODO removeChild?
+
         me.game.world.addChild(superEmitter);
         me.game.world.addChild(superEmitter.container);
         superEmitter.streamParticles();
@@ -43,7 +42,6 @@ game.VictoryScreen = me.ScreenObject.extend({
         game.PENDING_REMOVE.push(superEmitter.container);
 
         delete game.VICTORY_ANIMATIONS.SUPER;
-        console.log("iterate over victory animations");
         var time = -1;
         setInterval(function() {
             time++;
@@ -51,8 +49,6 @@ game.VictoryScreen = me.ScreenObject.extend({
                 game.cleanup();
             }
             _.each(game.VICTORY_ANIMATIONS, function(el, index) {
-                console.log(el, index);
-
                 var image;
 
                 if (index == "LARGE") {
@@ -86,7 +82,7 @@ game.VictoryScreen = me.ScreenObject.extend({
                     emitter.name = 'fire';
 
                     emitter.z = Number.POSITIVE_INFINITY;
-                    // TODO removeChild?
+
                     me.game.world.addChild(emitter);
                     me.game.world.addChild(emitter.container);
                     emitter.streamParticles();
@@ -115,7 +111,7 @@ game.VictoryScreen = me.ScreenObject.extend({
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
-                this.scroller = game.initiative.Name + " COMPLETED";
+                this.scroller = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
                 this.scrollerpos = 3000;
             },
              
