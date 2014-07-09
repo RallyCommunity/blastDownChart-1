@@ -1,0 +1,28 @@
+{
+  "name": "spaceInvadersBlastDown",
+  "version": "0.4.0",
+  "homepage": "https://github.com/thans/spaceInvadersBlastDown",
+  "description": "Rally Software Space Invaders",
+  "main": "App-debug.html",
+  "keywords": [
+    "space",
+    "invaders",
+    "blast",
+    "down"
+  ],
+  "authors": [
+    "Tore Hanssen"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.2.19",
+    "jquery": "~2.1.1"
+  }
+}
