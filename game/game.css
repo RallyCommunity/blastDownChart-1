@@ -1,5 +1,5 @@
 body {
-    background-color: #000;
+    background-color: #222; /* $grey9 */
     color: #fff;
 
     /* Allow mouse dragging. */
@@ -25,13 +25,7 @@ body {
     /* Hide the gap for font descenders. */
     display: block;
 
-    /* disable scaling interpolation 
-    
-    do we want image scaling or a set height/width?
-    Makes it easier to develop the log, etc around the screen if the size is more fixed
-
-
-    */
+    /* disable scaling interpolation */
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
     image-rendering: -o-crisp-edges;
@@ -134,74 +128,53 @@ body {
 .logo {
     display: block;
 }
-/*#screen {
-    width: 80%;
-}
-#screen, #gameLog {
-    float: left;
+
+ul {
+    list-style-type: none;
 }
 
-#gameLog {
-    width: 20%;
-    height: 100%;
+li {
+    margin: 0 0 5px 0;
 }
 
-#shipKey {
-    height: 100px;
-    width: 80%;
-    margin-right: 20%;
+.completed {
+    color: #EE1C25;
+}
+
+.recycled {
+    color: #E6E6E6;
+    font-style: italic;
+}
+
+.created {
+    font-weight: bold;
+}
+
+.init {
+    font-family: pressStart;
+    font-size: 10px;
+}
+
+#realtimeStatus {
     text-align: center;
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    border-radius: 20px;
+    height: 20px;
 }
 
-#gameAndLog {
-    clear: both;
+.waiting {
+    background-color: #666; /* $grey7 */
 }
 
-.shipContainer {
-    float: left;
-    font-family: arcadeClassic;
-    width: 25%;
-    text-align:center;
+.connected {
+    background-color: #00A9E0; /* $cyan */
 }
 
-.shipContainer > img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    width: auto;
-    height: 64px;
+.connecting {
+    background-color: #444; /* $grey8 */
 }
 
-.button {
-    font-family: "NotoSans";
-    font-size: .9em;
-    line-height: 1.1em;
+.disconnected {
+    background-color: #EE1C25; /* $red */
 }
-
-.button.selected {
-    font-family: "NotoSansBold";
-    color: #444;
-    background: #E6E6E6;
-}
-
-.button:hover  {
-    background: #E6E6E6;
-    color: #444; 
-    text-decoration: none;
-}
-
-.button {
-    float: left;
-    width: 50%;
-    text-align: center;
-}
-
-#logToggle {
-    display: block;
-    border-radius: 2px;
-    border: 1px solid #C0C0C0;
-}
-
-#realtimeLog {
-    display: none;
-}*/

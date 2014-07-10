@@ -9,7 +9,7 @@
                                 <th>
                                     Team
                                 </th>
-                                <th ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                <th ng-repeat="(teamName, teamInfo) in scoreboard">
                                     {{teamName}}
                                 </th>
                             </tr>
@@ -17,18 +17,18 @@
                                 <td>
                                     Score
                                 </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
-                                    {{teamInfo.score}}
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
+                                    {{teamInfo.points}}
                                 </td>
                             </tr>
-                            <tr>
+<!--                             <tr>
                                 <td>
                                     Lives
                                 </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in organizedData.scoreboard">
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
                                     {{teamInfo.lives}}
                                 </td>
-                            </tr>
+                            </tr> -->
                         </table>
                     </div>
                 </div>
@@ -36,11 +36,6 @@
                     <div class="content">
                         <div class="shipContainer logo">
                             <img src="game/data/img/rally8bit.png">
-                        </div>
-                        <div class="shipContainer">
-                            Space Invaders Blast Down
-                            <br />
-                            {{organizedData.initiative.Name}}
                         </div>
                         <div class="shipContainer">
                             Initiative
@@ -69,8 +64,17 @@
                 </div>
                 <div id="log">
                     <div class="content">
+                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                            Realtime Status: {{realtimeStatus}}
+                        </div>
+                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                          <option value="">All</option>
+                          <option value="created">Created</option>
+                          <option value="completed">Completed</option>
+                          <option value="recycled">Recycled</option>
+                        </select>
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems">[{{logItem.date}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters | orderBy:sort" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

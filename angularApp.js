@@ -1,27 +1,75 @@
 module = angular.module('angularBlastdown', []);
 
-module.controller('dataController', ['$scope', 'RallyDataService', 'RealtimeService', function($scope, RallyDataService, RealtimeService) {
-    $scope.organizedData = {};
-    $scope.RallyDataService = RallyDataService;
+module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackService', function($scope, RealtimeService, LookbackService) {
+    $scope.eventHandler = new GameEventHandler();
 
-    RallyDataService.getData(true, function(data) {
-        $scope.organizedData = data;
-        $scope.$apply();
-        // Start the game
-        game.onload();
-    });
+    $scope.selectedTypes = [];
 
-    $scope.logItems = [{
+    $scope.filters = {};
+
+    $scope.sort = function(item) {
+        return new Date(item.date);
+    };
+
+    $scope.setSelectedOption = function(option) {
+        $scope.filters.class = option;
+    };
+
+    $scope.logItems = [];
+
+    /*
+
+    {
         date: Ext.Date.format(new Date(), "m-d H:i"),
-        note: "Space Invaders Blast Down Initialized"
-    }];
+        note: "Space Invaders Blast Down Initialized",
+        class: 'init'
+    }
 
-    $scope.addLogItem = function(logItem, date) {
-        var dateString = date || Ext.Date.format(new Date(), "m-d H:i");
+    */
+
+    $scope.realtimeStatus = 'Waiting';
+
+    $scope.connectRealtime = function(uuids) {
+        // connect to realtime, which now just fires events
+        $scope.realtimeStatus = 'Connecting'; // listen for events to change to connected
+        RealtimeService.connect(uuids);
+    };
+
+    $scope.updateStatus = function(status) {
+        $scope.realtimeStatus = status;
+    }
+
+    game.onload();
+
+    $scope.addLogItem = function(logItem, date, className) {
+        var dateString;
+        if (!date) {
+            dateString = moment().format("MM-DD HH:mm");
+        } else if (date instanceof Date) {
+            dateString = moment(date).format("MM-DD HH:mm");
+        } else {
+            dateString = date;
+        }
         $scope.logItems.unshift({
             date: dateString,
-            note: logItem
+            note: logItem,
+            class: className
         });
         $scope.$apply();
+    };
+
+    $scope.scoreboard = {};
+
+
+    $scope.addPoints = function(team, points) {
+        if ($scope.scoreboard[team]) {
+            $scope.scoreboard[team].points += points || 0;
+
+        } else {
+            var newPoints = points || 0;
+            $scope.scoreboard[team] = {
+                points: newPoints
+            }
+        }
     };
 }]);

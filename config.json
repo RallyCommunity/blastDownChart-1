@@ -5,11 +5,9 @@
    "sdk": "2.0rc3",
    "javascript": [
       "moment.js",
-      "bower_components/angular/angular.js",
-      "bower_components/jquery/dist/jquery.js",
-      "realtime/reconnecting-websocket.js",
-      "realtime/alm-realtime.js",
-      "game/RealtimeDataHandler.js",
+      "angular.min.js",
+      "jquery.min.js",
+      "game/WsapiAggregator.js",
       "game/ui.js",
       "game/lib/melonJS-1.0.1.js",
       "game/lib/plugins/debugPanel.js",
@@ -25,7 +23,12 @@
       "game/js/screens/play.js",
       "App.js",
       "angularApp.js",
-      "RealTimeDataService.js",
+      "LookbackService.js",
+      "realtime/reconnecting-websocket.js",
+      "realtime/alm-realtime.js",
+      "realtime/RealtimeDataHandler.js",
+      "realtime/RealTimeDataService.js",
+      "game/GameEventHandler.js",
       "DataService.js"
    ],
    "html": [

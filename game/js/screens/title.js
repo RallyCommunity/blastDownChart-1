@@ -16,10 +16,10 @@ game.TitleScreen = me.ScreenObject.extend({
             init : function() {
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
-                this.font = new me.Font("arcadeClassic", 32, "white", "center");
+                this.font = new me.Font("pressStart", 24, "white", "center");
                  
                  // a tween to animate the arrow
-                this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollertween = new me.Tween(this).to({scrollerpos: -700}, 3000).onComplete(this.scrollover.bind(this)).start();
          
                 this.scroller = "A PORTFOLIO ITEM VISUALIZATION USING SPACE INVADERS";
                 this.scrollerpos = 3000;
@@ -28,8 +28,8 @@ game.TitleScreen = me.ScreenObject.extend({
             // some callback for the tween objects
             scrollover : function() {
                 // reset to default value
-                this.scrollerpos = 1500;
-                this.scrollertween.to({scrollerpos: -600}, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollerpos = 1800;
+                this.scrollertween.to({scrollerpos: -700}, 10000).onComplete(this.scrollover.bind(this)).start();
             },
          
             update : function (dt) {
@@ -37,8 +37,8 @@ game.TitleScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "PRESS ENTER TO PLAY", 450, 350);
-                this.font.draw(context, this.scroller, this.scrollerpos, 256);
+                this.font.draw(context, "PRESS ENTER TO PLAY", game.WINDOW_WIDTH / 2, (2 * game.WINDOW_HEIGHT) / 3);
+                this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
             },
             onDestroyEvent : function() {
                 //just in case
