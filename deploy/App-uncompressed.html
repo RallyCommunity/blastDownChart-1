@@ -22435,9 +22435,7 @@ me.DroptargetEntity = (function (Entity, Event) {
     this.x = x;
     this.y = y;
 }
-                // TODO destroy a given feature/story/task that is not on the screen
-// TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
-/* Game namespace */
+                /* Game namespace */
 var game = {
 
     // size of the game canvas
@@ -22515,25 +22513,12 @@ var game = {
     PENDING_SCORES: {},
 
     scoreboard : {
-        checkPending: function() {
-            _.each(game.PENDING_SCORES, function(value, key) {
-                if (game.PROJECT_MAPPING[key]) {
-                    for (var i = 0; i < value.length; i++) {
-                        var obj = value.pop();
-                        game.scoreboard.addPoints(obj.team, obj.points);
-                    }
-                }
-            });
-        },
         addPoints: function(team, points) {
-            if (game.PROJECT_MAPPING[team]) {
-                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], points);
+            if (game.PROJECT_MAPPING[team] && points) {
+                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
-                // queue it!
-                if (game.PENDING_SCORES[team]) {
-                    game.PENDING_SCORES[team].push({team: team, points: points});
-                } else {
-                    game.PENDING_SCORES[team] = [{team: team, points: points}]
+                if (!game.PROJECT_MAPPING[team]) {
+                    //console.error('Not in the map');
                 }
             }
         }
@@ -22734,7 +22719,7 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(10, 0);
+        this.setVelocity(20, 0);
         
         this.type = game.PLAYER;
         
@@ -22742,17 +22727,22 @@ var game = {
         this.stepNum = 0;
         this.steps = 0;
         this.hunting = 0; // set this to enable delayed history execution
+        this.shots = 0;
     },
 
     // update position
     update: function(dt) {
-        
-
         this.hunting--;
 
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
             // navigate to the target and shoot!
+            if (this.shots >= 5) {
+                this.shots = 0;
+                this.targets.shift();
+                return true;
+            }
+
             var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
@@ -22765,6 +22755,7 @@ var game = {
             } else if (game.canShoot) {
                 this.vel.x = 0;
                 this.targets[0].setVulnerable(true);
+                this.shots++;
                 this.shoot();
             } else {
                 this.vel.x = 0;
@@ -22878,8 +22869,29 @@ var game = {
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        // keep track of a queue of targets
-        Ext.Array.push(this.targets, target);
+        // TODO temporary to fix extra ships on the screen
+        if (target.type == game.ENEMY_ENTITY_SUPER) {
+            var playerShip = this;
+            // add all remaining ships as targets first
+            _.each(game.OID_MAP, function(element, index, list) {
+                if (element.displayed) {
+                    if (element.ship) {
+                        console.log("adding targets first");
+                        playerShip.targets.push(element.ship);
+                    }
+                }
+            });
+            this.targets.push(target);
+            // sort the queue by entity type
+            this.targets = _.sortBy(this.targets, function(ship) {
+                return ship.type;
+            });
+            console.log(this.targets);
+        } else {
+            // keep track of a queue of targets
+            this.targets.push(target);
+        }
+
     },
 
     /**
@@ -22887,8 +22899,10 @@ var game = {
      * @param target the target to remove
      */
     removeTarget: function(target) {
+        this.shots = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
+        this.removePotentialTarget(target); // TODO inefficient
         if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.VICTORY_ANIMATIONS = {
@@ -23063,7 +23077,7 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(0, 6);
+        this.setVelocity(0, 20);
         
         this.type = game.BULLET;
 
@@ -23072,10 +23086,10 @@ var game = {
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.y < 16 && !this.shootDown) {
+        if (this.pos.y < 30 && !this.shootDown) {
             game.canShoot = true;
             me.game.world.removeChild(this);
-        } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
+        } else if (this.pos.y > game.WINDOW_HEIGHT - 30) {
             me.game.world.removeChild(this);
         }
 
@@ -23261,8 +23275,8 @@ game.VictoryScreen = me.ScreenObject.extend({
             // some callback for the tween objects
             scrollover : function() {
                 // reset to default value
-                this.scrollerpos = 1500;
-                this.scrollertween.to({scrollerpos: -600}, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollerpos = 2000;
+                this.scrollertween.to({scrollerpos: -800}, 10000).onComplete(this.scrollover.bind(this)).start();
             },
          
             update : function (dt) {
@@ -23270,8 +23284,8 @@ game.VictoryScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "VICTORY!", 450, 350);
-                this.font.draw(context, this.scroller, this.scrollerpos, 256);
+                this.font.draw(context, "VICTORY!", game.WINDOW_WIDTH / 2, (2 * game.WINDOW_HEIGHT) / 3);
+                this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
             },
             onDestroyEvent : function() {
                 //just in case
@@ -23362,10 +23376,10 @@ game.TitleScreen = me.ScreenObject.extend({
             init : function() {
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
-                this.font = new me.Font("arcadeClassic", 32, "white", "center");
+                this.font = new me.Font("pressStart", 24, "white", "center");
                  
                  // a tween to animate the arrow
-                this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollertween = new me.Tween(this).to({scrollerpos: -700}, 3000).onComplete(this.scrollover.bind(this)).start();
          
                 this.scroller = "A PORTFOLIO ITEM VISUALIZATION USING SPACE INVADERS";
                 this.scrollerpos = 3000;
@@ -23374,8 +23388,8 @@ game.TitleScreen = me.ScreenObject.extend({
             // some callback for the tween objects
             scrollover : function() {
                 // reset to default value
-                this.scrollerpos = 1500;
-                this.scrollertween.to({scrollerpos: -600}, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollerpos = 1800;
+                this.scrollertween.to({scrollerpos: -700}, 10000).onComplete(this.scrollover.bind(this)).start();
             },
          
             update : function (dt) {
@@ -23383,8 +23397,8 @@ game.TitleScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "PRESS ENTER TO PLAY", 450, 350);
-                this.font.draw(context, this.scroller, this.scrollerpos, 256);
+                this.font.draw(context, "PRESS ENTER TO PLAY", game.WINDOW_WIDTH / 2, (2 * game.WINDOW_HEIGHT) / 3);
+                this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
             },
             onDestroyEvent : function() {
                 //just in case
@@ -23713,6 +23727,12 @@ game.TitleScreen = me.ScreenObject.extend({
                     workspace: Rally.util.Ref.getRelativeUri(),
                     //all projects
                     project: null
+                },
+                listeners: {
+                    load: function() {
+                        Ext.getBody().unmask();
+                        $('.x-mask').css("background", "none");
+                    }
                 }
             },
             listeners: {
@@ -23730,7 +23750,29 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
             }
         }
-    ]
+    ],
+    launch: function() {
+        // TODO use the recyclingbin endpoint?
+        Ext.getBody().mask('Loading');
+        Ext.create('Rally.data.WsapiDataStore', {
+            model: 'recyclebinentry',
+            fetch: true, //['Name', 'ObjectID', 'DeletionDate'],
+            limit: Infinity,
+            context: {
+                workspace: Rally.util.Ref.getRelativeUri(),
+                project: null
+            }
+        }).load({
+            scope: this,
+            callback: function (records, operation, success) {
+                console.log(records);
+                // _.each(records, function (record) {
+                //     projectOidMap[record.get('ObjectID')] = record;
+                // });
+                // callbackFn();
+            }
+        });
+    }
 });
 
 
@@ -23746,6 +23788,10 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.selectedTypes = [];
 
     $scope.filters = {};
+
+    $scope.sort = function(item) {
+        return new Date(item.date);
+    };
 
     $scope.setSelectedOption = function(option) {
         $scope.filters.class = option;
@@ -23793,7 +23839,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
-            $scope.scoreboard[team].points += points;
+            $scope.scoreboard[team].points += points || 0;
 
         } else {
             var newPoints = points || 0;
@@ -23822,15 +23868,21 @@ module.factory('LookbackService', function() {
     var projects = [];
     var lookbackStore;
     var oids = {};
-    //var parentMap = {};
     var initiative;
+
+    var projectOidMap = {};
+    var triggered = {};
 
     var triggerEvents = function(records, operation, success) {    
         _.each(records, function(record) {
-            var prev = oids[record.get('ObjectID')];
-
             var currentOid = record.get('ObjectID');
-            projects.push(record.get('Project'));
+            var projectOid = record.get('Project');
+            if (projectOidMap[projectOid] && !triggered[projectOid]) {
+                triggered[projectOid] = true;
+                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
+            }
+
+            var prev = oids[currentOid];
 
             if (prev) {
                 // Did the feature lose a user story?
@@ -23934,6 +23986,17 @@ module.factory('LookbackService', function() {
     };
 
     var setupRealtime = function() {
+        var projectUUIDs = [];
+        _.each(triggered, function(value, key) {
+            projectUUIDs.push(projectOidMap[key].get('_refObjectUUID'));
+        });
+
+        var scope = angular.element($("#root")).scope();
+                
+        scope.connectRealtime(projectUUIDs); // listen for changes in realtime
+    }
+
+    var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
         // TODO optimize if possible
         Ext.create('Rally.data.WsapiDataStore', {
@@ -23947,23 +24010,10 @@ module.factory('LookbackService', function() {
         }).load({
             scope: this,
             callback: function (records, operation, success) {
-                var projectUUIDs = [];
-                var allProjects = [];
-
                 _.each(records, function (record) {
-                    if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
-                        allProjects.push(record);
-                    }
+                    projectOidMap[record.get('ObjectID')] = record;
                 });
-
-                _.each(allProjects, function(project) {
-                    projectUUIDs.push(project.get('_refObjectUUID'));
-                    eventTrigger.trigger("Project", {record: project});
-                });
-                
-                var scope = angular.element($("#root")).scope();
-                
-                scope.connectRealtime(projectUUIDs); // listen for changes in realtime
+                callbackFn();
             }
         });
     };
@@ -23979,8 +24029,10 @@ module.factory('LookbackService', function() {
                 }
             });
             
-            loadPage(1); 
-            game.reveal();    
+            getProjects(function() {
+                loadPage(1); 
+                game.reveal();  
+            });
         }
     };
 });
@@ -24431,9 +24483,7 @@ var GameEventHandler = function(realtime) {
     });
 
     $(listenTo).on("Project", null, null, function(event, data) {
-        //console.log("Project data", data);
         game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
-        game.scoreboard.checkPending();
     });
 
     $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {
@@ -24847,21 +24897,23 @@ li {
   -webkit-border-radius: 20px;
   -moz-border-radius: 20px;
   border-radius: 20px;
+  height: 20px;
 }
 .waiting {
-  background-color: #D6D6D6;
-  /* $grey3 */
+  background-color: #666;
+  /* $grey7 */
 }
 .connected {
   background-color: #00A9E0;
   /* $cyan */
 }
 .connecting {
-  background-color: #A9A9A9;
-  /* $grey5 */
+  background-color: #444;
+  /* $grey8 */
 }
 .disconnected {
   background-color: #EE1C25;
+  /* $red */
 }
 
     </style>
@@ -24882,9 +24934,9 @@ li {
 td.dataColumn {
   text-align: center;
 }
-.x-mask {
-  background: none !important;
-}
+/*.x-mask {
+    background: none !important;
+}*/
 
     </style>
 </head>
@@ -24965,7 +25017,7 @@ td.dataColumn {
                           <option value="recycled">Recycled</option>
                         </select>
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters | orderBy:sort" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

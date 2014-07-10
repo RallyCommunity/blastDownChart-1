@@ -68,8 +68,8 @@ game.VictoryScreen = me.ScreenObject.extend({
             // some callback for the tween objects
             scrollover : function() {
                 // reset to default value
-                this.scrollerpos = 1500;
-                this.scrollertween.to({scrollerpos: -600}, 10000).onComplete(this.scrollover.bind(this)).start();
+                this.scrollerpos = 2000;
+                this.scrollertween.to({scrollerpos: -800}, 10000).onComplete(this.scrollover.bind(this)).start();
             },
          
             update : function (dt) {
@@ -77,8 +77,8 @@ game.VictoryScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "VICTORY!", 450, 350);
-                this.font.draw(context, this.scroller, this.scrollerpos, 256);
+                this.font.draw(context, "VICTORY!", game.WINDOW_WIDTH / 2, (2 * game.WINDOW_HEIGHT) / 3);
+                this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
             },
             onDestroyEvent : function() {
                 //just in case

@@ -5,7 +5,7 @@ game.BulletEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(0, 6);
+        this.setVelocity(0, 20);
         
         this.type = game.BULLET;
 
@@ -14,10 +14,10 @@ game.BulletEntity = me.ObjectEntity.extend({
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.y < 16 && !this.shootDown) {
+        if (this.pos.y < 30 && !this.shootDown) {
             game.canShoot = true;
             me.game.world.removeChild(this);
-        } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
+        } else if (this.pos.y > game.WINDOW_HEIGHT - 30) {
             me.game.world.removeChild(this);
         }
 

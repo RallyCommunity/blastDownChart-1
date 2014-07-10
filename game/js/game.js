@@ -1,5 +1,3 @@
-// TODO destroy a given feature/story/task that is not on the screen
-// TODO repopulate the screen after a few have been destroyed - fly off, fly back on again?
 /* Game namespace */
 var game = {
 
@@ -78,25 +76,12 @@ var game = {
     PENDING_SCORES: {},
 
     scoreboard : {
-        checkPending: function() {
-            _.each(game.PENDING_SCORES, function(value, key) {
-                if (game.PROJECT_MAPPING[key]) {
-                    for (var i = 0; i < value.length; i++) {
-                        var obj = value.pop();
-                        game.scoreboard.addPoints(obj.team, obj.points);
-                    }
-                }
-            });
-        },
         addPoints: function(team, points) {
             if (game.PROJECT_MAPPING[team] && points) {
                 angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
-                // queue it!
-                if (game.PENDING_SCORES[team]) {
-                    game.PENDING_SCORES[team].push({team: team, points: points});
-                } else {
-                    game.PENDING_SCORES[team] = [{team: team, points: points}]
+                if (!game.PROJECT_MAPPING[team]) {
+                    //console.error('Not in the map');
                 }
             }
         }

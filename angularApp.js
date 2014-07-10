@@ -7,15 +7,25 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.filters = {};
 
+    $scope.sort = function(item) {
+        return new Date(item.date);
+    };
+
     $scope.setSelectedOption = function(option) {
         $scope.filters.class = option;
     };
 
-    $scope.logItems = [{
+    $scope.logItems = [];
+
+    /*
+
+    {
         date: Ext.Date.format(new Date(), "m-d H:i"),
         note: "Space Invaders Blast Down Initialized",
         class: 'init'
-    }];
+    }
+
+    */
 
     $scope.realtimeStatus = 'Waiting';
 

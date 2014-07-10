@@ -16,15 +16,21 @@ module.factory('LookbackService', function() {
     var projects = [];
     var lookbackStore;
     var oids = {};
-    //var parentMap = {};
     var initiative;
+
+    var projectOidMap = {};
+    var triggered = {};
 
     var triggerEvents = function(records, operation, success) {    
         _.each(records, function(record) {
-            var prev = oids[record.get('ObjectID')];
-
             var currentOid = record.get('ObjectID');
-            projects.push(record.get('Project'));
+            var projectOid = record.get('Project');
+            if (projectOidMap[projectOid] && !triggered[projectOid]) {
+                triggered[projectOid] = true;
+                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
+            }
+
+            var prev = oids[currentOid];
 
             if (prev) {
                 // Did the feature lose a user story?
@@ -128,6 +134,17 @@ module.factory('LookbackService', function() {
     };
 
     var setupRealtime = function() {
+        var projectUUIDs = [];
+        _.each(triggered, function(value, key) {
+            projectUUIDs.push(projectOidMap[key].get('_refObjectUUID'));
+        });
+
+        var scope = angular.element($("#root")).scope();
+                
+        scope.connectRealtime(projectUUIDs); // listen for changes in realtime
+    }
+
+    var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
         // TODO optimize if possible
         Ext.create('Rally.data.WsapiDataStore', {
@@ -141,23 +158,10 @@ module.factory('LookbackService', function() {
         }).load({
             scope: this,
             callback: function (records, operation, success) {
-                var projectUUIDs = [];
-                var allProjects = [];
-
                 _.each(records, function (record) {
-                    if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
-                        allProjects.push(record);
-                    }
+                    projectOidMap[record.get('ObjectID')] = record;
                 });
-
-                _.each(allProjects, function(project) {
-                    projectUUIDs.push(project.get('_refObjectUUID'));
-                    eventTrigger.trigger("Project", {record: project});
-                });
-                
-                var scope = angular.element($("#root")).scope();
-                
-                scope.connectRealtime(projectUUIDs); // listen for changes in realtime
+                callbackFn();
             }
         });
     };
@@ -173,8 +177,10 @@ module.factory('LookbackService', function() {
                 }
             });
             
-            loadPage(1); 
-            game.reveal();    
+            getProjects(function() {
+                loadPage(1); 
+                game.reveal();  
+            });
         }
     };
 });

@@ -26,9 +26,7 @@ var GameEventHandler = function(realtime) {
     });
 
     $(listenTo).on("Project", null, null, function(event, data) {
-        //console.log("Project data", data);
         game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
-        game.scoreboard.checkPending();
     });
 
     $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {

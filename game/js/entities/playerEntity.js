@@ -5,7 +5,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(10, 0);
+        this.setVelocity(20, 0);
         
         this.type = game.PLAYER;
         
@@ -13,17 +13,22 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.stepNum = 0;
         this.steps = 0;
         this.hunting = 0; // set this to enable delayed history execution
+        this.shots = 0;
     },
 
     // update position
     update: function(dt) {
-        
-
         this.hunting--;
 
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
             // navigate to the target and shoot!
+            if (this.shots >= 5) {
+                this.shots = 0;
+                this.targets.shift();
+                return true;
+            }
+
             var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
@@ -36,6 +41,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
             } else if (game.canShoot) {
                 this.vel.x = 0;
                 this.targets[0].setVulnerable(true);
+                this.shots++;
                 this.shoot();
             } else {
                 this.vel.x = 0;
@@ -149,8 +155,29 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        // keep track of a queue of targets
-        Ext.Array.push(this.targets, target);
+        // TODO temporary to fix extra ships on the screen
+        if (target.type == game.ENEMY_ENTITY_SUPER) {
+            var playerShip = this;
+            // add all remaining ships as targets first
+            _.each(game.OID_MAP, function(element, index, list) {
+                if (element.displayed) {
+                    if (element.ship) {
+                        console.log("adding targets first");
+                        playerShip.targets.push(element.ship);
+                    }
+                }
+            });
+            this.targets.push(target);
+            // sort the queue by entity type
+            this.targets = _.sortBy(this.targets, function(ship) {
+                return ship.type;
+            });
+            console.log(this.targets);
+        } else {
+            // keep track of a queue of targets
+            this.targets.push(target);
+        }
+
     },
 
     /**
@@ -158,8 +185,10 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * @param target the target to remove
      */
     removeTarget: function(target) {
+        this.shots = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
+        this.removePotentialTarget(target); // TODO inefficient
         if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.VICTORY_ANIMATIONS = {
