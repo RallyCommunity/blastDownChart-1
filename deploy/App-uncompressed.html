@@ -53276,7 +53276,7 @@ var game = {
     // Run on page load.
     "onload" : function () {
         // Initialize the video.
-        me.sys.fps = 45;
+        me.sys.fps = 50;
         me.sys.pauseOnBlur = false;
         if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
             alert("Your browser does not support HTML5 canvas.");
@@ -53468,7 +53468,7 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(20, 0);
+        this.setVelocity(6, 0);
         
         this.type = game.PLAYER;
         
@@ -53826,7 +53826,7 @@ var game = {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(0, 20);
+        this.setVelocity(0, 6);
         
         this.type = game.BULLET;
 
@@ -53835,10 +53835,10 @@ var game = {
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.y < 30 && !this.shootDown) {
+        if (this.pos.y < 16 && !this.shootDown) {
             game.canShoot = true;
             me.game.world.removeChild(this);
-        } else if (this.pos.y > game.WINDOW_HEIGHT - 30) {
+        } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
             me.game.world.removeChild(this);
         }
 
@@ -53898,7 +53898,7 @@ var game = {
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                game.log.addItem(res.obj.record.get('Name') + " completed", moment(res.obj.date).format("MM-DD HH:mm"), 'completed');
+                game.log.addItem(res.obj.record.get('Name') + " completed", moment(res.obj.date).format("MM-DD-YY HH:mm"), 'completed');
 
                 game.PLAYER_SHIP.removeTarget(res.obj);
 
@@ -54377,7 +54377,7 @@ game.TitleScreen = me.ScreenObject.extend({
             }
         } else if (obj && !obj.displayed) {
             if (addTarget(record)) {
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD HH:mm"), 'completed');
+                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
@@ -54575,9 +54575,9 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.addLogItem = function(logItem, date, className) {
         var dateString;
         if (!date) {
-            dateString = moment().format("MM-DD HH:mm");
+            dateString = moment().format("MM-MM-DD-YY HH:mm");
         } else if (date instanceof Date) {
-            dateString = moment(date).format("MM-DD HH:mm");
+            dateString = moment(date).format("MM-DD-YY HH:mm");
         } else {
             dateString = date;
         }
@@ -55257,7 +55257,7 @@ var GameEventHandler = function(realtime) {
                     }
                 } else {
                 } // TODO else
-            }, 50);
+            }, 100);
         }
     }
 
@@ -55772,7 +55772,7 @@ td.dataColumn {
                           <option value="recycled">Recycled</option>
                         </select>
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems | filter:filters | orderBy:sort" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->
                         </ul>
                     </div>
                 </div>

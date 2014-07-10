@@ -44,9 +44,9 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.addLogItem = function(logItem, date, className) {
         var dateString;
         if (!date) {
-            dateString = moment().format("MM-DD HH:mm");
+            dateString = moment().format("MM-MM-DD-YY HH:mm");
         } else if (date instanceof Date) {
-            dateString = moment(date).format("MM-DD HH:mm");
+            dateString = moment(date).format("MM-DD-YY HH:mm");
         } else {
             dateString = date;
         }

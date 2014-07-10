@@ -124,7 +124,7 @@
                           <option value="recycled">Recycled</option>
                         </select>
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems | filter:filters | orderBy:sort" class="{{logItem.class}}">[{{logItem.date}}] - {{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->
                         </ul>
                     </div>
                 </div>

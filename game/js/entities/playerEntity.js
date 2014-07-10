@@ -5,7 +5,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(20, 0);
+        this.setVelocity(6, 0);
         
         this.type = game.PLAYER;
         
@@ -14,6 +14,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.steps = 0;
         this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
+        this.numSteps = 0;
     },
 
     // update position
@@ -23,8 +24,9 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
             // navigate to the target and shoot!
-            if (this.shots >= 5) {
+            if (this.shots >= 5 || this.numSteps >= 400) {
                 this.shots = 0;
+                this.numSteps = 0;
                 this.targets.shift();
                 return true;
             }
@@ -32,6 +34,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
             var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
+            this.numSteps++;
             if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot) {
                 if (myPos > targetPos) {
                     this.vel.x -= move;
@@ -186,10 +189,11 @@ game.PlayerEntity = me.ObjectEntity.extend({
      */
     removeTarget: function(target) {
         this.shots = 0;
+        this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target); // TODO inefficient
-        if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),

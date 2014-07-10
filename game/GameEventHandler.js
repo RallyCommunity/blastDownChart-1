@@ -45,7 +45,7 @@ var GameEventHandler = function(realtime) {
                     }
                 } else {
                 } // TODO else
-            }, 50);
+            }, 100);
         }
     }
 

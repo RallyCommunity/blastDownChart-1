@@ -54,7 +54,7 @@ module.factory('LookbackService', function() {
                     if (previousTasks && currentTasks && previousTasks.length > currentTasks.length) { // task deleted
 
                         var remove = _.find(previousTasks, function(task) {
-                            return !_.contains(currentTasks, previousTasks[i]);
+                            return !_.contains(currentTasks, task);
                         });
 
                         if (remove && oids[remove]) {

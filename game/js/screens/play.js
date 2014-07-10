@@ -115,7 +115,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.tasks.length);
         var point = game.AVAILABLE_POSITIONS.tasks[index];
 
-        var point = game.AVAILABLE_POSITIONS.stories[index];
+        var point = game.AVAILABLE_POSITIONS.tasks[index];
         if (point) {
             this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y);
             game.AVAILABLE_POSITIONS.tasks.splice(index, 1);
@@ -198,7 +198,7 @@ game.PlayScreen = me.ScreenObject.extend({
             }
         } else if (obj && !obj.displayed) {
             if (addTarget(record)) {
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD HH:mm"), 'completed');
+                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
