@@ -5,8 +5,8 @@
    "sdk": "2.0rc3",
    "javascript": [
       "moment.js",
-      "angular.min.js",
-      "jquery.min.js",
+      "angular.js",
+      "jquery.js",
       "game/WsapiAggregator.js",
       "game/ui.js",
       "game/lib/melonJS-1.0.1.js",
