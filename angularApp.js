@@ -5,6 +5,9 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.selectedTypes = [];
 
+
+    game.angularScope = $scope;
+
     $scope.filters = {};
 
     $scope.sort = function(item) {
@@ -20,7 +23,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     /*
 
     {
-        date: Ext.Date.format(new Date(), "m-d H:i"),
+        date: moment().format("MM-MM-DD-YY HH:mm"),
         note: "Space Invaders Blast Down Initialized",
         class: 'init'
     }
@@ -64,12 +67,26 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
             $scope.scoreboard[team].points += points || 0;
-
         } else {
             var newPoints = points || 0;
             $scope.scoreboard[team] = {
-                points: newPoints
+                points: newPoints,
+                color: "#000000"
             }
         }
     };
+
+    $scope.initPoints = function(team) {
+        if (!$scope.scoreboard[team]) {
+            $scope.scoreboard[team] = {
+                points: 0
+            }
+        }
+    }
+
+    $scope.addTeamColor = function(team, color) {
+        if ($scope.scoreboard[team]) {
+            $scope.scoreboard[team].color = color;
+        }
+    }
 }]);

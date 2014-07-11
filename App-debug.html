@@ -59,7 +59,7 @@
                                 <th>
                                     Team
                                 </th>
-                                <th ng-repeat="(teamName, teamInfo) in scoreboard">
+                                <th ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
                                     {{teamName}}
                                 </th>
                             </tr>
@@ -67,7 +67,7 @@
                                 <td>
                                     Score
                                 </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
                                     {{teamInfo.points}}
                                 </td>
                             </tr>

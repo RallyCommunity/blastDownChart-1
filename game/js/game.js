@@ -1,6 +1,17 @@
 /* Game namespace */
 var game = {
 
+    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFFFFF"},
+                        {name: "red", hex: "#FF0000"},
+                        {name: "blue", hex: "#0000FF"}],
+    TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
+
+
+    // ["blue", "red", "lime", "yellow", "orange", "pink", "purple", "teal"],
+    FEATURE_SHIP_COLORS: ["teal", "purple", "pink", "orange", "yellow", "lime", "red", "blue"],
+    FEATURE_SHIP_COLOR_INDEX: 0,
+    featureColorMap: {},
+
     // size of the game canvas
     WINDOW_WIDTH: 1024,
     WINDOW_HEIGHT: 512,
@@ -15,12 +26,12 @@ var game = {
 
     SHOW_LABEL: true,
 
-    PLAYER: 88,     // player type
+    TEAM_SHIP: 88,     // player type
     BULLET: 77,     // bullet type
     EXPLOSION: 66,  // explosion type
 
     // boolean - can the player shoot?
-    canShoot: true,
+    canShoot: {},
 
     // probability that enemy ships will shoot
     FIRE_PROBABILITY: 3000,
@@ -29,11 +40,9 @@ var game = {
 
     OID_MAP : {}, // map OID -> {displayed: boolean, formattedId: string}
 
-    FEATURE_COLUMN: {},
-
     AVAILABLE_POSITIONS: {},
 
-    PLAYER_SHIP: null,
+    TEAM_SHIPS: {},
 
     // Image asset sizes
     MOTHERSHIP: {
@@ -77,13 +86,27 @@ var game = {
 
     scoreboard : {
         addPoints: function(team, points) {
-            if (game.PROJECT_MAPPING[team] && points) {
-                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
+            if (game.PROJECT_MAPPING[team]) {
+                if (!points) {
+                    points = 0;
+                }
+                game.angularScope.addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
                 if (!game.PROJECT_MAPPING[team]) {
                     //console.error('Not in the map');
                 }
             }
+        },
+        initPoints: function(team) {
+            if (game.PROJECT_MAPPING[team]) {
+                game.angularScope.initPoints(game.PROJECT_MAPPING[team]);
+                return true;
+            } else {
+                return false;
+            }
+        },
+        addTeamColor: function(team, color) {
+            game.angularScope.addTeamColor(game.PROJECT_MAPPING[team], color);
         }
     },
 
@@ -146,6 +169,36 @@ var game = {
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
         Ext.getBody().unmask();
+    },
+
+    getTeam: function(teamOid) {
+        var team = game.TEAM_SHIPS[teamOid];
+
+        if (!team) {   
+            var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
+            game.TEAM_SHIP_COLOR_INDEX++;
+            // create a new one
+            team = me.pool.pull("mainPlayer", 64, game.WINDOW_HEIGHT - 64, {
+                image: "player_" + color.name,
+                spriteheight: 64,
+                spritewidth: 32,
+                width: 32,
+                height: 64,
+                z: Number.POSITIVE_INFINITY,
+                type: game.PLAYER,
+                team: teamOid
+            });
+
+            // let angular know what color you assigned to this ship
+            game.scoreboard.addTeamColor(teamOid, color.hex);
+            game.canShoot[teamOid] = true;
+
+
+            me.game.world.addChild(team, Number.POSITIVE_INFINITY);
+            game.TEAM_SHIPS[teamOid] = team;
+            console.log('team created', team);
+        }
+        return team;
     },
 
     addAvailablePosition: function(ship) {

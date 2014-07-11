@@ -56,13 +56,6 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.playThrough();
-
-        var players = me.game.world.getChildByProp('type', game.PLAYER);
-        if (players.length == 1) {
-            game.PLAYER_SHIP = players[0];
-        } else {
-            console.error("no player"); // should never happen
-        }
     },
 
     addInitiative: function(record, oid, date) {
@@ -77,7 +70,13 @@ game.PlayScreen = me.ScreenObject.extend({
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.features.length);
         var point = game.AVAILABLE_POSITIONS.features[index];
         if (point) {
-            this.addEnemy(record, oid, date, "large", game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+            
+            var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
+            
+            game.featureColorMap[oid] = color;
+            game.FEATURE_SHIP_COLOR_INDEX++;
+
+            this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             game.AVAILABLE_POSITIONS.features.splice(index, 1);
             this.numFeatures++;
             this.updateFeature(record, oid, date);
@@ -96,10 +95,20 @@ game.PlayScreen = me.ScreenObject.extend({
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.stories.length);
         var point = game.AVAILABLE_POSITIONS.stories[index];
         if (point) {
-            this.addEnemy(record, oid, date, "medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y);
-            game.AVAILABLE_POSITIONS.stories.splice(index, 1);
-            this.numStories++;
-            this.updateStory(record, oid, date);
+            var featureOid = record.get('Feature');
+            var color = game.featureColorMap[featureOid]
+            if (color) {
+                this.addEnemy(record, oid, date, "medium_" + color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y);
+                game.AVAILABLE_POSITIONS.stories.splice(index, 1);
+                this.numStories++;
+                this.updateStory(record, oid, date);
+            } else {
+                // TODO dont know what feature this belongs to
+                this.addEnemy(record, oid, date, "medium_teal", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y);
+                game.AVAILABLE_POSITIONS.stories.splice(index, 1);
+                this.numStories++;
+                this.updateStory(record, oid, date);
+            }
         } else {
             game.OID_MAP[oid] = {
                 displayed: false,
@@ -109,6 +118,9 @@ game.PlayScreen = me.ScreenObject.extend({
             };
             game.AVAILABLE_POSITIONS.pendingStories.push(oid);
         }
+
+        game.scoreboard.initPoints(record.get('Project'));
+        console.log("init points for " + record.get('Project'));
     },
 
     addTask: function(record, oid, date) {
@@ -142,7 +154,9 @@ game.PlayScreen = me.ScreenObject.extend({
             // Add back this point as available
             game.addAvailablePosition(ship);
 
-            game.PLAYER_SHIP.removePotentialTarget(ship);
+            if (game.TEAM_SHIPS[ship.team]) {
+                game.TEAM_SHIPS[ship.team].removePotentialTarget(ship);
+            }
         } else if (obj && !obj.displayed) {
             game.log.addItem(obj.record.get('Name') + " recycled", date, 'recycled');
         }
@@ -194,7 +208,15 @@ game.PlayScreen = me.ScreenObject.extend({
             ship.record = record;
             if (!obj.targeted && addTarget(record)) {
                 obj.targeted = true;
-                game.PLAYER_SHIP.addTarget(ship);
+
+
+
+                var teamShip = game.getTeam(record.get('Project'));
+                if (teamShip) {
+                    ship.team = record.get('Project')
+                    teamShip.addTarget(ship);
+                    console.log("project " + record.get('Project'), game.TEAM_SHIPS);
+                }
             }
         } else if (obj && !obj.displayed) {
             if (addTarget(record)) {

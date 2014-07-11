@@ -15,6 +15,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
         this.numSteps = 0;
+        this.team = settings.team || null;
     },
 
     // update position
@@ -35,13 +36,13 @@ game.PlayerEntity = me.ObjectEntity.extend({
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
             this.numSteps++;
-            if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot) {
+            if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot[this.team]) {
                 if (myPos > targetPos) {
                     this.vel.x -= move;
                 } else {
                     this.vel.x += move;
                 }
-            } else if (game.canShoot) {
+            } else if (game.canShoot[this.team]) {
                 this.vel.x = 0;
                 this.targets[0].setVulnerable(true);
                 this.shots++;
@@ -118,7 +119,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
             this.vel.x = 0;
         }
         */
-        if (game.canShoot && me.input.isKeyPressed('shoot')) {
+        if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
             this.shoot();
         }
 
@@ -140,6 +141,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
      */
     shoot: function() {
         var x = this.pos.x + this.width / 2;
+        var teamShip = this;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
             height: 16,
             image: "bullet",
@@ -147,9 +149,10 @@ game.PlayerEntity = me.ObjectEntity.extend({
             spriteheight: 16,
             spritewidth: 16,
             width: 16,
-            shootDown: false
+            shootDown: false,
+            teamShip: teamShip
         });
-        game.canShoot = false;
+        game.canShoot[this.team] = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
 

@@ -127,6 +127,7 @@ module.factory('LookbackService', function() {
                 if (records.length == PAGE_SIZE) {
                     loadPage(page);
                 } else {
+                    // TODO this should setup realtime after all other data has been parsed...didnt work in demo
                     setupRealtime();
                 }
             }   
@@ -146,7 +147,7 @@ module.factory('LookbackService', function() {
 
     var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
-        // TODO optimize if possible
+        // TODO optimize if possible, what about customers that have a lot of projects
         Ext.create('Rally.data.WsapiDataStore', {
             model: 'Project',
             fetch: ['Name', 'ObjectID'],

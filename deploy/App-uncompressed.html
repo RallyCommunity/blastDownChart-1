@@ -53187,6 +53187,10 @@ me.DroptargetEntity = (function (Entity, Event) {
                 /* Game namespace */
 var game = {
 
+    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFFFFF"},
+                        {name: "red", hex: "#FF0000"}],
+    TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
+
     // size of the game canvas
     WINDOW_WIDTH: 1024,
     WINDOW_HEIGHT: 512,
@@ -53201,7 +53205,7 @@ var game = {
 
     SHOW_LABEL: true,
 
-    PLAYER: 88,     // player type
+    TEAM_SHIP: 88,     // player type
     BULLET: 77,     // bullet type
     EXPLOSION: 66,  // explosion type
 
@@ -53219,7 +53223,7 @@ var game = {
 
     AVAILABLE_POSITIONS: {},
 
-    PLAYER_SHIP: null,
+    TEAM_SHIPS: {},
 
     // Image asset sizes
     MOTHERSHIP: {
@@ -53263,13 +53267,28 @@ var game = {
 
     scoreboard : {
         addPoints: function(team, points) {
-            if (game.PROJECT_MAPPING[team] && points) {
-                angular.element($("#root")).scope().addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
+            if (game.PROJECT_MAPPING[team]) {
+                if (!points) {
+                    points = 0;
+                }
+                game.angularScope.addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
                 if (!game.PROJECT_MAPPING[team]) {
                     //console.error('Not in the map');
                 }
             }
+        },
+        initPoints: function(team) {
+            if (game.PROJECT_MAPPING[team]) {
+                game.angularScope.initPoints(game.PROJECT_MAPPING[team]);
+            } else {
+                if (!game.PROJECT_MAPPING[team]) {
+                    //console.error('Not in the map');
+                }
+            }
+        },
+        addTeamColor: function(team, color) {
+            game.angularScope.addTeamColor(game.PROJECT_MAPPING[team], color);
         }
     },
 
@@ -53332,6 +53351,35 @@ var game = {
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
         Ext.getBody().unmask();
+    },
+
+    getTeam: function(teamOid) {
+        var team = game.TEAM_SHIPS[teamOid];
+
+        if (!team) {
+            var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
+            game.TEAM_SHIP_COLOR_INDEX++;
+            // create a new one
+            team = me.pool.pull("mainPlayer", 64, game.WINDOW_HEIGHT - 64, {
+                image: "player_" + color.name,
+                spriteheight: 64,
+                spritewidth: 32,
+                width: 32,
+                height: 64,
+                z: Number.POSITIVE_INFINITY,
+                type: game.PLAYER,
+                team: teamOid
+            });
+
+            // let angular know what color you assigned to this ship
+            game.scoreboard.addTeamColor(teamOid, color.hex);
+
+
+            me.game.world.addChild(team, Number.POSITIVE_INFINITY);
+            game.TEAM_SHIPS[teamOid] = team;
+            console.log('team created', team);
+        }
+        return team;
     },
 
     addAvailablePosition: function(ship) {
@@ -53401,7 +53449,8 @@ var game = {
                 game.resources = [
 
     // mainPlayer: space ship
-    {name: "player", type: "image", src: "game/data/img/player_ship.png"},
+    {name: "player_white", type: "image", src: "game/data/img/player_white.png"},
+    {name: "player_red", type: "image", src: "game/data/img/player_red.png"},
 
     // ships
     {name: "xlarge", type: "image", src: "game/data/img/shipSuper.png"},  // 320 x 160
@@ -53477,6 +53526,8 @@ var game = {
         this.steps = 0;
         this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
+        this.numSteps = 0;
+        this.team = settings.team || null;
     },
 
     // update position
@@ -53486,8 +53537,9 @@ var game = {
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
             // navigate to the target and shoot!
-            if (this.shots >= 5) {
+            if (this.shots >= 5 || this.numSteps >= 400) {
                 this.shots = 0;
+                this.numSteps = 0;
                 this.targets.shift();
                 return true;
             }
@@ -53495,6 +53547,7 @@ var game = {
             var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
+            this.numSteps++;
             if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot) {
                 if (myPos > targetPos) {
                     this.vel.x -= move;
@@ -53600,6 +53653,7 @@ var game = {
      */
     shoot: function() {
         var x = this.pos.x + this.width / 2;
+        var teamShip = this;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
             height: 16,
             image: "bullet",
@@ -53607,7 +53661,8 @@ var game = {
             spriteheight: 16,
             spritewidth: 16,
             width: 16,
-            shootDown: false
+            shootDown: false,
+            teamShip: teamShip
         });
         game.canShoot = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
@@ -53649,10 +53704,11 @@ var game = {
      */
     removeTarget: function(target) {
         this.shots = 0;
+        this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target); // TODO inefficient
-        if (destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
@@ -53697,6 +53753,8 @@ var game = {
     // pass the correct image, width/height and x, y for any type of ship that moves in the same pattern
     init: function(x, y, settings) {
         // call the constructor
+        settings.alpha = 0.5;
+        this.alpha = 0.5;
         this.parent(x, 1 - settings.height, settings);
 
         this.startingX = x;
@@ -53718,7 +53776,7 @@ var game = {
         this.isVulnerable = false;          // can this ship be destroyed
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
-
+        this.alpha = 1;
         /**
          * Returns whether or not this ship is vulnerable to attack
          * @return true if this ship can be destroyed, else false
@@ -53727,15 +53785,19 @@ var game = {
             return this.isVulnerable;
         };
 
-
         //this.programmaticallyAdded = settings.programmaticallyAdded || false;
         //this.date = settings.date;
         // wait for the others to get setup
         //this.waitFor = settings.waitFor;
-
+        var theShip = this;
         this.flyOff = function() {
             var right = Math.floor(Math.random() * 2);
+            // theShip.alpha -= 0.1;
+            // console.info('dim the lights');
             this.update = function() {
+
+            
+            
                 this.pos.y--;
                 if (right == 0) {
                     this.pos.x--;
@@ -53748,8 +53810,23 @@ var game = {
                     me.game.world.removeChild(this);
                 }
             }
+            
         }
     },
+
+    // draw: function(context) {
+    //     context.save();
+    //     // save the previous value
+    //     var local_alpha = context.globalAlpha;
+    //     // semi transparency
+    //     context.globalAlpha = 0.5;
+    //     // parent draw function
+    //     context.restore();
+    //     this.parent(context);
+    //     // restore previous value
+    //     context.globalAlpha = local_alpha;
+        
+    // },
 
     // ship behavior
     // Called many times to refresh the ships on the screen
@@ -53789,6 +53866,8 @@ var game = {
     // optimization
     normalMovement: function() {
         // movement pattern
+        this.alpha = 0.5;
+        this.setOpacity(0.5);
         if (this.numSteps % 3 === 0) {
             if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight) * 3) === 0) {
                 this.moveRight = !this.moveRight;
@@ -53828,6 +53907,11 @@ var game = {
         this.gravity = 0.0;
         this.setVelocity(0, 6);
         
+        this.teamShip = settings.teamShip;
+        if (!settings.teamShip) {
+            console.error('no team ship provided', settings);
+        }
+
         this.type = game.BULLET;
 
         this.shootDown = settings.shootDown; // true if the bullet was shot by an enemy, false if shot by the player
@@ -53896,11 +53980,12 @@ var game = {
                 // this slot is now open!
                 game.addAvailablePosition(res.obj);
 
+                console.log("adding", res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
                 game.log.addItem(res.obj.record.get('Name') + " completed", moment(res.obj.date).format("MM-DD-YY HH:mm"), 'completed');
 
-                game.PLAYER_SHIP.removeTarget(res.obj);
+                this.teamShip.removeTarget(res.obj);
 
                 me.game.world.removeChild(res.obj);
                 return true;
@@ -54235,13 +54320,6 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.playThrough();
-
-        var players = me.game.world.getChildByProp('type', game.PLAYER);
-        if (players.length == 1) {
-            game.PLAYER_SHIP = players[0];
-        } else {
-            console.error("no player"); // should never happen
-        }
     },
 
     addInitiative: function(record, oid, date) {
@@ -54288,13 +54366,16 @@ game.TitleScreen = me.ScreenObject.extend({
             };
             game.AVAILABLE_POSITIONS.pendingStories.push(oid);
         }
+
+        game.scoreboard.initPoints(record.get('Project'));
+        console.log("init points for " + record.get('Project'));
     },
 
     addTask: function(record, oid, date) {
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.tasks.length);
         var point = game.AVAILABLE_POSITIONS.tasks[index];
 
-        var point = game.AVAILABLE_POSITIONS.stories[index];
+        var point = game.AVAILABLE_POSITIONS.tasks[index];
         if (point) {
             this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y);
             game.AVAILABLE_POSITIONS.tasks.splice(index, 1);
@@ -54321,7 +54402,7 @@ game.TitleScreen = me.ScreenObject.extend({
             // Add back this point as available
             game.addAvailablePosition(ship);
 
-            game.PLAYER_SHIP.removePotentialTarget(ship);
+            //game.PLAYER_SHIP.removePotentialTarget(ship); TODO remove as target
         } else if (obj && !obj.displayed) {
             game.log.addItem(obj.record.get('Name') + " recycled", date, 'recycled');
         }
@@ -54373,7 +54454,12 @@ game.TitleScreen = me.ScreenObject.extend({
             ship.record = record;
             if (!obj.targeted && addTarget(record)) {
                 obj.targeted = true;
-                game.PLAYER_SHIP.addTarget(ship);
+
+
+
+                var teamShip = game.getTeam(record.get('Project'));
+                teamShip.addTarget(ship);
+                console.log("project " + record.get('Project'), game.TEAM_SHIPS);
             }
         } else if (obj && !obj.displayed) {
             if (addTarget(record)) {
@@ -54501,26 +54587,7 @@ game.TitleScreen = me.ScreenObject.extend({
         }
     ],
     launch: function() {
-        // TODO use the recyclingbin endpoint?
         Ext.getBody().mask('Loading');
-        Ext.create('Rally.data.WsapiDataStore', {
-            model: 'recyclebinentry',
-            fetch: true, //['Name', 'ObjectID', 'DeletionDate'],
-            limit: Infinity,
-            context: {
-                workspace: Rally.util.Ref.getRelativeUri(),
-                project: null
-            }
-        }).load({
-            scope: this,
-            callback: function (records, operation, success) {
-                console.log(records);
-                // _.each(records, function (record) {
-                //     projectOidMap[record.get('ObjectID')] = record;
-                // });
-                // callbackFn();
-            }
-        });
     }
 });
 
@@ -54535,6 +54602,9 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.eventHandler = new GameEventHandler();
 
     $scope.selectedTypes = [];
+
+
+    game.angularScope = $scope;
 
     $scope.filters = {};
 
@@ -54551,7 +54621,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     /*
 
     {
-        date: Ext.Date.format(new Date(), "m-d H:i"),
+        date: moment().format("MM-MM-DD-YY HH:mm"),
         note: "Space Invaders Blast Down Initialized",
         class: 'init'
     }
@@ -54595,14 +54665,28 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
             $scope.scoreboard[team].points += points || 0;
-
         } else {
             var newPoints = points || 0;
             $scope.scoreboard[team] = {
-                points: newPoints
+                points: newPoints,
+                color: "#000000"
             }
         }
     };
+
+    $scope.initPoints = function(team) {
+        if (!$scope.scoreboard[team]) {
+            $scope.scoreboard[team] = {
+                points: 0
+            }
+        }
+    }
+
+    $scope.addTeamColor = function(team, color) {
+        if ($scope.scoreboard[team]) {
+            $scope.scoreboard[team].color = color;
+        }
+    }
 }]);
 
                 /**
@@ -54661,7 +54745,7 @@ module.factory('LookbackService', function() {
                     if (previousTasks && currentTasks && previousTasks.length > currentTasks.length) { // task deleted
 
                         var remove = _.find(previousTasks, function(task) {
-                            return !_.contains(currentTasks, previousTasks[i]);
+                            return !_.contains(currentTasks, task);
                         });
 
                         if (remove && oids[remove]) {
@@ -54734,6 +54818,7 @@ module.factory('LookbackService', function() {
                 if (records.length == PAGE_SIZE) {
                     loadPage(page);
                 } else {
+                    // TODO this should setup realtime after all other data has been parsed...didnt work in demo
                     setupRealtime();
                 }
             }   
@@ -54753,7 +54838,7 @@ module.factory('LookbackService', function() {
 
     var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
-        // TODO optimize if possible
+        // TODO optimize if possible, what about customers that have a lot of projects
         Ext.create('Rally.data.WsapiDataStore', {
             model: 'Project',
             fetch: ['Name', 'ObjectID'],
@@ -55707,7 +55792,7 @@ td.dataColumn {
                                 <th>
                                     Team
                                 </th>
-                                <th ng-repeat="(teamName, teamInfo) in scoreboard">
+                                <th ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
                                     {{teamName}}
                                 </th>
                             </tr>
@@ -55715,7 +55800,7 @@ td.dataColumn {
                                 <td>
                                     Score
                                 </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
+                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
                                     {{teamInfo.points}}
                                 </td>
                             </tr>

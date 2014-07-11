@@ -7,6 +7,11 @@ game.BulletEntity = me.ObjectEntity.extend({
         this.gravity = 0.0;
         this.setVelocity(0, 6);
         
+        this.teamShip = settings.teamShip;
+        if (!settings.teamShip) {
+            console.error('no team ship provided', settings);
+        }
+
         this.type = game.BULLET;
 
         this.shootDown = settings.shootDown; // true if the bullet was shot by an enemy, false if shot by the player
@@ -15,7 +20,7 @@ game.BulletEntity = me.ObjectEntity.extend({
     update: function() {
         // did we hit the top wall?
         if (this.pos.y < 16 && !this.shootDown) {
-            game.canShoot = true;
+            game.canShoot[this.teamShip.team] = true;
             me.game.world.removeChild(this);
         } else if (this.pos.y > game.WINDOW_HEIGHT - 16) {
             me.game.world.removeChild(this);
@@ -37,7 +42,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
             // Did the player shoot someone destructable?
             if (image && !this.shootDown && res.obj.isDestructable()) {
-                game.canShoot = true;
+                game.canShoot[this.teamShip.team] = true;
                 me.game.world.removeChild(this);
 
                 var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
@@ -75,11 +80,12 @@ game.BulletEntity = me.ObjectEntity.extend({
                 // this slot is now open!
                 game.addAvailablePosition(res.obj);
 
+                //console.log("adding", res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                game.log.addItem(res.obj.record.get('Name') + " completed", moment(res.obj.date).format("MM-DD-YY HH:mm"), 'completed');
+                game.log.addItem(res.obj.record.get('Name') + " COMP by " + game.PROJECT_MAPPING[res.obj.record.get('Project')], moment(res.obj.date).format("MM-DD-YY HH:mm"), 'completed');
 
-                game.PLAYER_SHIP.removeTarget(res.obj);
+                this.teamShip.removeTarget(res.obj);
 
                 me.game.world.removeChild(res.obj);
                 return true;
