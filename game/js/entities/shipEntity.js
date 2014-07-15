@@ -6,8 +6,6 @@ game.Ship = me.ObjectEntity.extend({
 
         this.parent(x, 1 - settings.height, settings);
 
-
-
         this.startingX = x;
         this.startingY = y;
 

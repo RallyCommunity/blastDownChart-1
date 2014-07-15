@@ -69,12 +69,13 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addFeature: function(record, oid, date) {
+        //console.log("Adding feature " + oid);
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.features.length);
         var point = game.AVAILABLE_POSITIONS.features[index];
         if (point) {
             var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
             game.featureColorMap[oid] = color;
-
+            console.log("xxx" + oid + " " + color);
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             game.AVAILABLE_POSITIONS.features.splice(index, 1);
             this.numFeatures++;
@@ -105,7 +106,10 @@ game.PlayScreen = me.ScreenObject.extend({
         var point = game.AVAILABLE_POSITIONS.stories[index];
         if (point) {
             var featureOid = record.get('Feature');
+
             var color = game.featureColorMap[featureOid];
+            
+            //console.log("\t" + featureOid + " " + color);
             if (color) {
                 this.addEnemy(record, oid, date, "medium_" + color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
                 game.AVAILABLE_POSITIONS.stories.splice(index, 1);
@@ -113,10 +117,13 @@ game.PlayScreen = me.ScreenObject.extend({
                 this.updateStory(record, oid, date);
             } else {
                 // TODO dont know what feature this belongs to
-                this.addEnemy(record, oid, date, "medium_teal", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, "teal");
+                /*
+                This feature is not here!
+                this.addEnemy(record, oid, date, "medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, "none");
                 game.AVAILABLE_POSITIONS.stories.splice(index, 1);
                 this.numStories++;
                 this.updateStory(record, oid, date);
+                */
             }
         } else {
             game.OID_MAP[oid] = {
@@ -173,7 +180,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     });
                 }
             } else if (ship.type == game.ENEMY_ENTITY_MEDIUM) {
-                console.log("removing story", ship.record);
+                //console.log("removing story", ship.record);
                 var children = ship.record.get('Children');
                 if (children) {
                     console.log("Also removing ", children);
@@ -223,7 +230,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (teamShip) {
                     ship.team = record.get('Project')
                     var children = me.game.world.getChildByProp("featureOid", oid);
-                    console.log("Destroying " + children.length + " children first");
+                    //console.log("Destroying " + children.length + " children first");
                     // Add all remaining shown children as targets first
                     _.each(children, function(child) {
                         teamShip.addTarget(child);
@@ -231,7 +238,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     });
 
                     teamShip.addTarget(ship);
-                    console.log("project " + record.get('Project'), game.TEAM_SHIPS);
+                    //console.log("project " + record.get('Project'), game.TEAM_SHIPS);
                 }
             }
         } else if (obj && !obj.displayed) {
@@ -289,11 +296,11 @@ game.PlayScreen = me.ScreenObject.extend({
                     }
                     ship.team = teamOid;
                     teamShip.addTarget(ship);
-                    console.log("project " + record.get('Project'), game.TEAM_SHIPS);
+                    //console.log("project " + record.get('Project'), game.TEAM_SHIPS);
                 }
             }
         } else if (obj && !obj.displayed) {
-            if (addTarget(record)) {
+            if ((state == "Completed" || state == "Accepted" || state == "Released")) {
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
@@ -320,7 +327,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (teamShip) {
                     ship.team = record.get('Project')
                     teamShip.addTarget(ship);
-                    console.log("project " + record.get('Project'), game.TEAM_SHIPS);
+                    //console.log("project " + record.get('Project'), game.TEAM_SHIPS);
                 }
             }
         } else if (obj && !obj.displayed) {

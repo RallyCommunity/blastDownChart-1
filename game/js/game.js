@@ -65,6 +65,7 @@ var game = {
         height: 16
     },
 
+
     // track the score
     data : {
         // score
@@ -206,6 +207,7 @@ var game = {
     },
 
     addAvailablePosition: function(ship) {
+        /*
         switch(ship.type) {
             case game.ENEMY_ENTITY_SMALL:
                     game.AVAILABLE_POSITIONS.tasks.push(new Point(ship.startingX, ship.startingY));
@@ -249,6 +251,7 @@ var game = {
             default:
                     console.log("default", ship, ship.type);
         }
+        */
     },
 
     /**

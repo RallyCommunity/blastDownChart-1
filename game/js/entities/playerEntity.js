@@ -198,6 +198,8 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.removePotentialTarget(target); // TODO inefficient
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
+            game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
+
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
                 LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],

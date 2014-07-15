@@ -12,17 +12,201 @@
 
 module.factory('LookbackService', function() {
     var eventTrigger = $('body');
-    var PAGE_SIZE = 50;
+    var PAGE_SIZE = 200;
     var projects = [];
     var lookbackStore;
     var oids = {};
     var initiative;
+    var initiativeOid;
 
     var projectOidMap = {};
     var triggered = {};
 
-    var triggerEvents = function(records, operation, success) {    
+    var hierarchyMap = null;
+    var initiativeOffset = 0;
+    var featureOffset = 0;
+
+
+    // converty hierarchical requirement to user story
+    var getType = function(type) {
+        if (type === "HierarchicalRequirement") {
+            return "UserStory";
+        }
+        return type;
+    };
+
+    var creationEvent = function(currentType, record, oid) {
+        currentType = getType(currentType);
+        if (currentType == "PortfolioItem/Initiative") {
+            console.log("CREATED INITIATIVE");
+        }
+        eventTrigger.trigger(currentType + "-Created", {
+            record: record,
+            oid: oid,
+            date: moment(record.get('_ValidFrom'))  
+        });
+    };
+
+    var recycleEvent = function(currentType, record, oid) {
+        if (currentType == 'PortfolioItem/Initiative' || oid == initiativeOid   ) {
+            console.log("recycle initiative", currentType, record, oid, hierarchyMap.children);
+        }
+        currentType = getType(currentType);
+        eventTrigger.trigger(currentType + "-Recycled", {
+            record: null,
+            oid: oid,
+            date: moment(moment(record.get('_ValidTo')))  
+        });
+    };
+
+    var updateEvent = function(currentType, record, oid) {
+        currentType = getType(currentType);
+        eventTrigger.trigger(currentType + "-Updated", {
+            record: record,
+            oid: oid,
+            date: moment(record.get('_ValidFrom'))  
+        });
+    };
+
+    var getChildren = function(record, type) {
+        switch(type) {
+            case "PortfolioItem/Feature":
+                return record.get('UserStories');
+            default: return record.get('Children');
+        }
+    };
+
+    var setOffset = function(itemHierarchy) {
+        for (var i = 0; i < itemHierarchy.length; i++) {
+            if (itemHierarchy[i] == initiativeOid) {
+                initiativeOffset = i;
+                featureOffset = i + 1;
+                return;
+            }
+        } 
+    };
+
+    var triggerEvents = function(records, operation, success) {
+        var lbService = this;
         _.each(records, function(record) {
+            // fire events in order of what happenend historically
+            // -Created
+            // -Recycled
+            // -Updated
+            var currentOid = record.get('ObjectID');
+            var projectOid = record.get('Project');
+            if (projectOidMap[projectOid] && !triggered[projectOid]) {
+                triggered[projectOid] = true;
+                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
+            }
+
+            var typeHierarchy = record.get('_TypeHierarchy');
+            var itemHierarchy = record.get('_ItemHierarchy');
+            var currentType = typeHierarchy[typeHierarchy.length  -1];
+
+
+            if (!hierarchyMap) {
+                // map not initialized yet, we are dealing with the creation of the initiative
+                initiativeOffset = itemHierarchy.length - 1; // set the offset for the initiaitive within the itemHierarchy to base everything on
+                featureOffset = initiativeOffset + 1;
+                initiativeOid = currentOid;
+                hierarchyMap = {
+                    children: {},
+                    type: currentType,
+                    record: record
+                };
+
+                creationEvent(currentType, record, currentOid);
+                console.log('HierarchyMap', hierarchyMap, initiativeOffset);
+                return;
+            }
+
+            if (currentOid == initiativeOid) {
+                // make sure you update the feature offset as necessary
+                initiativeOffset = itemHierarchy.length - 1; // set the offset for the initiative within the itemHierarchy to base everything on
+                featureOffset = initiativeOffset + 1;
+            }
+
+            var currentObject = hierarchyMap
+
+            if (itemHierarchy.length > featureOffset) {
+                // set the feature to the oid that is in the feature position
+                if (itemHierarchy[initiativeOffset] != initiativeOid) {
+                    setOffset(itemHierarchy);
+                    // console.log("ItemHierarchy", itemHierarchy);
+                }
+                if (currentType == 'HierarchicalRequirement') {
+                    record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
+                }
+                
+            }
+
+            // traverse the hierarchy
+            if (initiativeOid != currentOid) {
+                for (var i = initiativeOffset; i < itemHierarchy.length - 1; i++) {
+                    if (currentObject && currentObject.children[itemHierarchy[i + 1]]) {
+                        currentObject = currentObject.children[itemHierarchy[i + 1]];
+                    } else {
+                        if (itemHierarchy[i + 1] == initiativeOid) {
+                            console.error("added initiative as a child of itself");
+                        }
+                        // handle creation event
+                        currentObject.children[itemHierarchy[i + 1]] = {
+                            children: {},
+                            type: currentType
+                        }
+                        currentObject = currentObject.children[itemHierarchy[i + 1]];
+
+
+                        if (currentType == 'HierarchicalRequirement' && itemHierarchy.length > featureOffset) {
+                            // set the feature to the oid that is in the feature position
+                            record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
+                        }
+                        creationEvent(currentType, record, currentOid);
+
+                        //console.log('HierarchyMap', hierarchyMap);
+                        return;
+                    }
+                }
+            }
+
+            // map has been initialized
+            // check the hierarchyMap to see if this item has lost a child
+            // TODO use a different property for children based on the type (Feature->"User Stories") or something like that?
+            var children = getChildren(record, currentType);
+            // this was some sort of update event
+            // could represent the recycling of a child - make sure to check that;
+
+            var previousChildren = _.toArray(currentObject.children);
+            if (children && previousChildren.length > children.length) {
+                //console.log('Recycle Event');
+                // TODO better way to find the missing child
+                var keys = _.toArray(Object.keys(currentObject.children));
+                var theKey = _.find(keys, function(key) {
+                    return !_.contains(children, key);
+                });
+
+                if (currentType == "PortfolioItem/Initiative") {
+                    console.log("removing features from an initiative", hierarchyMap.children);
+                }
+
+
+                recycleEvent(currentObject.children[theKey].type, record, theKey);
+                delete currentObject.children[theKey];
+                // TODO also fire the update event for this item
+                // TODO recycle all children?
+            } else {
+                // update event
+                updateEvent(currentType, record, currentOid);
+            }
+
+            
+
+
+            // keep track of everything by oid in a map
+            // rely on the item hierarchy to tell the relationship between items
+
+            /*
             var currentOid = record.get('ObjectID');
             var projectOid = record.get('Project');
             if (projectOidMap[projectOid] && !triggered[projectOid]) {
@@ -114,9 +298,9 @@ module.factory('LookbackService', function() {
                     eventTrigger.trigger(dataType + '-Created', {record: record, oid: currentOid, changes: [], date: new Date(record.get('_ValidTo'))});
                 }
             }
-        });
 
-        projects = _.uniq(projects);
+            */
+        });
     };
 
 
