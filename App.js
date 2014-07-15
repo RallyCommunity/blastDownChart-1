@@ -27,6 +27,7 @@ Ext.define('CustomApp', {
                 scope: this,
                 artifactchosen: function(picker, selectedRecord) {
                     Ext.getBody().mask("Loading");
+                    console.log("Selected", selectedRecord);
 
                     var injector = angular.bootstrap(document.body, ['angularBlastdown']);
                     injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
@@ -41,6 +42,8 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         Ext.getBody().mask('Loading');
+
+
     }
 });
 

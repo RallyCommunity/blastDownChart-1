@@ -201,6 +201,10 @@ var game = {
         return team;
     },
 
+    getExistingTeam: function(teamOid) {
+        return game.TEAM_SHIPS[teamOid];
+    },
+
     addAvailablePosition: function(ship) {
         switch(ship.type) {
             case game.ENEMY_ENTITY_SMALL:

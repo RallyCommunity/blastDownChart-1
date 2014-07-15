@@ -88,6 +88,8 @@ module.factory('LookbackService', function() {
                     }
                 });
 
+                // Remove the changes that we do not care about
+                // Changes are provided to mirror the interface to the realtime service
                 changes = _.without(changes, "_ValidFrom", "_ValidTo", "_TypeHierarchy");
 
                 if (changes.length > 0) { // only trigger the event if something meaningful changed
@@ -127,6 +129,7 @@ module.factory('LookbackService', function() {
                 if (records.length == PAGE_SIZE) {
                     loadPage(page);
                 } else {
+                    // Got less data back than an entire page size => done fetching data from the realtime
                     // TODO this should setup realtime after all other data has been parsed...didnt work in demo
                     setupRealtime();
                 }
@@ -170,8 +173,8 @@ module.factory('LookbackService', function() {
     return {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-                fetch: ["Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
-                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Project"],
+                fetch: ["Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
+                hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy

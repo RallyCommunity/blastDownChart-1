@@ -62,14 +62,14 @@ game.BulletEntity = me.ObjectEntity.extend({
                     duration: 400,
                     framesToSkip: 1
                 });
-                emitter.name = 'fire'; // TODO use radial explosion instead?
+                emitter.name = 'fire';
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     delete game.OID_MAP[res.obj.objectID];
                 }
 
                 emitter.z = res.obj.z + 1;
-                // TODO removeChild?
+
                 me.game.world.addChild(emitter);
                 me.game.world.addChild(emitter.container);
                 emitter.streamParticles();
@@ -80,20 +80,27 @@ game.BulletEntity = me.ObjectEntity.extend({
                 // this slot is now open!
                 game.addAvailablePosition(res.obj);
 
-                //console.log("adding", res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                game.log.addItem(res.obj.record.get('Name') + " COMP by " + game.PROJECT_MAPPING[res.obj.record.get('Project')], moment(res.obj.date).format("MM-DD-YY HH:mm"), 'completed');
+                var projectName = game.PROJECT_MAPPING[res.obj.record.get('Project')];
+                var pointsEarned = res.obj.record.get('PlanEstimate');
+                var time = moment(res.obj.date).format("MM-DD-YY HH:mm", 'completed');
+                if (projectName && pointsEarned) {
+                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName + " for +" + pointsEarned, time);
+                } else if (projectName) {
+                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName, time);
+                } else {
+                    game.log.addItem(res.obj.record.get('Name') + " COMP", time);
+                }
+
 
                 this.teamShip.removeTarget(res.obj);
 
                 me.game.world.removeChild(res.obj);
                 return true;
-            } else if (image && !this.shootDown && !res.obj.isDestructable()) { // let it pass through for now, target could be above us
-                // res.obj.flashShields();
-                
-                //me.game.world.removeChild(this);
             }
+            //else if (image && !this.shootDown && !res.obj.isDestructable()) {} // let it pass through for now, target could be above us
+
 
             // Did the player get hit?
             if (res.obj.type == game.PLAYER && this.shootDown) {
@@ -119,7 +126,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 explosion.name = 'fire';
                 explosion.z = res.obj.z + 1;
-                // TODO remove the emitter?
+
                 me.game.world.addChild(explosion);
                 me.game.world.addChild(explosion.container);
                 game.PENDING_REMOVE.push(explosion);

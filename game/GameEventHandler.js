@@ -44,7 +44,7 @@ var GameEventHandler = function(realtime) {
                         func(object.data);
                     }
                 } else {
-                } // TODO else
+                } // TODO else - what to do if there was nothing to dequeue?
             }, 100);
         }
     }

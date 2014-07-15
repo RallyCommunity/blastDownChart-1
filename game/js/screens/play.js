@@ -8,6 +8,8 @@ game.PlayScreen = me.ScreenObject.extend({
     MAX_FEATURE_ROWS : 2,
     MAX_STORY_ROWS   : 3,
     MAX_TASK_ROWS    : 4,
+    addedWithoutFeature : {},
+
     /**
      *  action to perform on state change
      */
@@ -18,7 +20,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
         this.showLegend();
 
-        //this.setupShips(); when you have data aggregated from the lbapi, use this
+        // this.setupShips(); when you have data aggregated from the lbapi, use this
         // otherwise, act on a purely event-driven approach
         game.farRight = game.WIDTH;
         game.shipScreen = this;
@@ -70,16 +72,13 @@ game.PlayScreen = me.ScreenObject.extend({
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.features.length);
         var point = game.AVAILABLE_POSITIONS.features[index];
         if (point) {
-            
             var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
-            
             game.featureColorMap[oid] = color;
-            game.FEATURE_SHIP_COLOR_INDEX++;
 
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             game.AVAILABLE_POSITIONS.features.splice(index, 1);
             this.numFeatures++;
-            this.updateFeature(record, oid, date);
+            game.FEATURE_SHIP_COLOR_INDEX++;
         } else {
             game.OID_MAP[oid] = {
                 displayed: false,
@@ -92,19 +91,29 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addStory: function(record, oid, date) {
+        var feature = record.get('Feature');
+        // TODO
+        // Added without feature?
+        // @see addStory
+        // if (!feature || feature == "") {
+        //     //
+        //     console.log('added without feature');
+        //     this.addedWithoutFeature[oid] = record;
+        //     return;
+        // }
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.stories.length);
         var point = game.AVAILABLE_POSITIONS.stories[index];
         if (point) {
             var featureOid = record.get('Feature');
-            var color = game.featureColorMap[featureOid]
+            var color = game.featureColorMap[featureOid];
             if (color) {
-                this.addEnemy(record, oid, date, "medium_" + color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y);
+                this.addEnemy(record, oid, date, "medium_" + color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
                 game.AVAILABLE_POSITIONS.stories.splice(index, 1);
                 this.numStories++;
                 this.updateStory(record, oid, date);
             } else {
                 // TODO dont know what feature this belongs to
-                this.addEnemy(record, oid, date, "medium_teal", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y);
+                this.addEnemy(record, oid, date, "medium_teal", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, "teal");
                 game.AVAILABLE_POSITIONS.stories.splice(index, 1);
                 this.numStories++;
                 this.updateStory(record, oid, date);
@@ -119,8 +128,9 @@ game.PlayScreen = me.ScreenObject.extend({
             game.AVAILABLE_POSITIONS.pendingStories.push(oid);
         }
 
+        // a lot of unnecessary calls
         game.scoreboard.initPoints(record.get('Project'));
-        console.log("init points for " + record.get('Project'));
+        //console.log("init points for " + record.get('Project'));
     },
 
     addTask: function(record, oid, date) {
@@ -129,7 +139,10 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var point = game.AVAILABLE_POSITIONS.tasks[index];
         if (point) {
-            this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y);
+            var featureOid = record.get('Feature');
+            var color = game.featureColorMap[featureOid] || "none";
+            // TODO color tasks
+            this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
             game.AVAILABLE_POSITIONS.tasks.splice(index, 1);
             this.numTasks++;
             this.updateTask(record, oid, date);
@@ -148,6 +161,31 @@ game.PlayScreen = me.ScreenObject.extend({
         var obj = game.OID_MAP[oid];
         if (obj && obj.displayed && obj.ship) {
             var ship = obj.ship;
+            if (ship.type == game.ENEMY_ENTITY_LARGE) {
+                // remove all children of the feature
+                var children = me.game.world.getChildByProp("featureOid", oid);
+                if (children) {
+                    console.log("Destroying " + children.length + " children first");
+                    _.each(children, function(child) {
+                        // add back this position as available
+                        game.addAvailablePosition(child);
+                        child.flyOff();
+                    });
+                }
+            } else if (ship.type == game.ENEMY_ENTITY_MEDIUM) {
+                console.log("removing story", ship.record);
+                var children = ship.record.get('Children');
+                if (children) {
+                    console.log("Also removing ", children);
+                    _.each(children, function(childOid) {
+                        var childShip = me.game.world.getChildByProp("objectID", childOid);
+                        if (childShip && childShip.length > 0) {
+                            game.addAvailablePosition(childShip[0]);
+                            childShip[0].flyOff();
+                        }
+                    });
+                }
+            }
             game.log.addItem(ship.record.get('Name') + " recycled", date, 'recycled');
             ship.flyOff();
 
@@ -174,24 +212,94 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateFeature: function(record, oid, date) {
-        this.updateShip(record, oid, date, function(rec) {
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.displayed && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
             var endDate = record.get('ActualEndDate');
-            return endDate && moment(endDate).isBefore(moment());
-        });
+            if (!obj.targeted && endDate && moment(endDate).isBefore(moment())) {
+                obj.targeted = true;
+                var teamShip = game.getTeam(record.get('Project'));
+                if (teamShip) {
+                    ship.team = record.get('Project')
+                    var children = me.game.world.getChildByProp("featureOid", oid);
+                    console.log("Destroying " + children.length + " children first");
+                    // Add all remaining shown children as targets first
+                    _.each(children, function(child) {
+                        teamShip.addTarget(child);
+                        console.log("My feature was destroyed", child);
+                    });
+
+                    teamShip.addTarget(ship);
+                    console.log("project " + record.get('Project'), game.TEAM_SHIPS);
+                }
+            }
+        } else if (obj && !obj.displayed) {
+            if (addTarget(record)) {
+                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+                delete game.OID_MAP[oid];
+            } else {
+                game.OID_MAP[oid].record = record;
+            }
+        }
     },
 
     updateStory: function(record, oid, date) {
+        var feature = record.get('Feature');
+        // TODO
+        // @see addStory
+        // if (this.addedWithoutFeature[oid] && feature && feature != "") {
+        //     console.log('parented to a feature');
+        //     addStory(record, oid, date);
+        //     delete addedWithoutFeature[oid];
+        //     return;
+        // }
+
         // TODO check if it moved from a non completed state?
-        this.updateShip(record, oid, date, function(rec) {
-            var state = rec.get('ScheduleState');
-            // base it on a change in the validTo date not the Recycled field
-            var recycle = rec.get('Recycled');
-            if (recycle) {
-                console.error(">>>story recycled");
-                // This is never updated
+        // this.updateShip(record, oid, date, function(rec) {
+        //     var state = rec.get('ScheduleState');
+        //     // base it on a change in the validTo date not the Recycled field
+
+        //     return (state == "Completed" || state == "Accepted" || state == "Released");
+        // });
+
+
+        var state = record.get('ScheduleState');
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.displayed && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
+            if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
+                obj.targeted = true;
+                var children = record.get('Children');
+
+                var teamShip = game.getTeam(record.get('Project'));
+                var teamOid = record.get('Project');
+                if (teamShip) {
+                    if (children) {
+                        _.each(children, function(child) {
+                            var childShip = me.game.world.getChildByProp("objectID", childOid);
+                            if (childShip && childShip.length > 0) {
+                                childShip[0].team = teamOid;
+                                teamShip.addTarget(childShip[0]);
+                            }
+
+                            // also check pending ships?
+                        });
+                    }
+                    ship.team = teamOid;
+                    teamShip.addTarget(ship);
+                    console.log("project " + record.get('Project'), game.TEAM_SHIPS);
+                }
             }
-            return (state == "Completed" || state == "Accepted" || state == "Released");
-        });
+        } else if (obj && !obj.displayed) {
+            if (addTarget(record)) {
+                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+                delete game.OID_MAP[oid];
+            } else {
+                game.OID_MAP[oid].record = record;
+            }
+        }
     },
 
     updateTask: function(record, oid, date) {
@@ -200,17 +308,14 @@ game.PlayScreen = me.ScreenObject.extend({
         });
     },
 
-    updateShip: function(record, oid, date, addTarget) {
+    updateShip: function(record, oid, date, shouldAddTarget) {
         //console.log('update ' + record.get('Name'));
         var obj = game.OID_MAP[oid];
         if (obj && obj.displayed && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
-            if (!obj.targeted && addTarget(record)) {
+            if (!obj.targeted && shouldAddTarget(record)) {
                 obj.targeted = true;
-
-
-
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project')
@@ -228,8 +333,8 @@ game.PlayScreen = me.ScreenObject.extend({
         }
     },
 
-    addEnemy: function(record, oid, date, image, type, height, width, x, y) {
-        var ship = me.pool.pull("enemyShip", x, y, {
+    addEnemy: function(record, oid, date, image, type, height, width, x, y, featureOid) {
+        var shipSettings = {
             height: height,
             image: image,
             spriteheight: height,
@@ -240,7 +345,13 @@ game.PlayScreen = me.ScreenObject.extend({
             type: type,
             date: date,
             record: record
-        });
+        };
+
+        if (featureOid) {
+            shipSettings.featureOid = featureOid;
+        }
+
+        var ship = me.pool.pull("enemyShip", x, y, shipSettings);
 
         if (image == 'xlarge') {
             game.INITIATIVE_SHIP = ship;
@@ -295,7 +406,6 @@ game.PlayScreen = me.ScreenObject.extend({
                     game.VICTORY_ANIMATIONS[offset].push(new Point(destroy.pos.x + destroy.width / 2, destroy.pos.y + destroy.height / 2));
 
                     me.game.world.removeChild(destroy);
-                    // TODO animate destruction of remaining ships?
                 }
             }
         });

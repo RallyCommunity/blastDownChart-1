@@ -3,9 +3,10 @@ game.Ship = me.ObjectEntity.extend({
     // pass the correct image, width/height and x, y for any type of ship that moves in the same pattern
     init: function(x, y, settings) {
         // call the constructor
-        settings.alpha = 0.5;
-        this.alpha = 0.5;
+
         this.parent(x, 1 - settings.height, settings);
+
+
 
         this.startingX = x;
         this.startingY = y;
@@ -22,11 +23,14 @@ game.Ship = me.ObjectEntity.extend({
         this.objectID = settings.objectID;  // ObjectID used for ship destruction and removal
         this.record = settings.record;
         this.date = settings.date;
+
+        this.featureOid = settings.featureOid || null;
         
         this.isVulnerable = false;          // can this ship be destroyed
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
         this.alpha = 1;
+
         /**
          * Returns whether or not this ship is vulnerable to attack
          * @return true if this ship can be destroyed, else false
@@ -35,32 +39,21 @@ game.Ship = me.ObjectEntity.extend({
             return this.isVulnerable;
         };
 
-        //this.programmaticallyAdded = settings.programmaticallyAdded || false;
-        //this.date = settings.date;
-        // wait for the others to get setup
-        //this.waitFor = settings.waitFor;
-        var theShip = this;
         this.flyOff = function() {
-            var right = Math.floor(Math.random() * 2);
-            // theShip.alpha -= 0.1;
-            // console.info('dim the lights');
-            this.update = function() {
-
-            
-            
-                this.pos.y--;
-                if (right == 0) {
-                    this.pos.x--;
-                } else {
-                    this.pos.x++;
-                }
-                
-                if (this.pos.y <= 1 - this.height) {
+            // fade off the screen instead of flying off
+            (new me.Tween(this.renderable))
+                .to({
+                    alpha: 0
+                }, 3000)
+                .onComplete((function() {
+                    var teamShip = game.getExistingTeam(this.featureOid);
+                    if (teamShip) {
+                        teamShip.removePotentialTarget(this);
+                    }
                     delete game.OID_MAP[this.objectID];
                     me.game.world.removeChild(this);
-                }
-            }
-            
+                }).bind(this))
+                .start();
         }
     },
 
@@ -141,9 +134,5 @@ game.Ship = me.ObjectEntity.extend({
         this.isVulnerable = vulnerability;
         me.game.world.moveToBottom(this);
         me.game.world.moveUp(this); // move it above the backgrounds
-    },
-
-    flashShields: function() {
-        // TODO
     }
 });
