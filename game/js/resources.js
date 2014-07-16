@@ -56,5 +56,10 @@ game.resources = [
     {name: "sprites", type:"image", src: "game/data/sprites.png"},
 
     // map
-    {name: "area51", type: "tmx", src: "game/data/map/area51-1024.tmx"}
+    {name: "area51", type: "tmx", src: "game/data/map/area51-1024.tmx"},
+
+    // sound effects:
+
+    {name: "shoot",  type: "audio", src: "game/data/sfx/"},
+    {name: "explode",  type: "audio", src: "game/data/sfx/"}
 ];

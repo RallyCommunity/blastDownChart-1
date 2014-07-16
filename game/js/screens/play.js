@@ -386,7 +386,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 me.game.world.removeChild(destroy);
             }
         });
-
-        game.eventHandler.stopEvents();
+        var scope = angular.element($("#root")).scope();
+        scope.eventHandler.stopEvents();
     }
 });

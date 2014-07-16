@@ -152,6 +152,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
             shootDown: false,
             teamShip: teamShip
         });
+        me.audio.play("shoot");
         game.canShoot[this.team] = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },

@@ -79,6 +79,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 // this slot is now open!
                 game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
+                me.audio.play("explode");
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
