@@ -42,8 +42,6 @@ Ext.define('CustomApp', {
     ],
     launch: function() {
         Ext.getBody().mask('Loading');
-
-
     }
 });
 

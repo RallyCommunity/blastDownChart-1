@@ -1,8 +1,8 @@
-Space Invaders Blast Down Chart
+Blast Down Chart
 =========================
 
 ## Overview
-A data visualization for Rally Software projects based on Space Invaders.
+A data visualization for Rally Software projects inspired by Space Invaders.
 This is a Summer 2014 Intern project.
 
 ## License

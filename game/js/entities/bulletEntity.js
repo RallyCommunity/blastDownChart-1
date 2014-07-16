@@ -78,7 +78,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 game.PENDING_REMOVE.push(emitter.container);
 
                 // this slot is now open!
-                game.addAvailablePosition(res.obj);
+                game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 

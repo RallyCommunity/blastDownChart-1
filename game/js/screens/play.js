@@ -24,37 +24,16 @@ game.PlayScreen = me.ScreenObject.extend({
         // otherwise, act on a purely event-driven approach
         game.farRight = game.WIDTH;
         game.shipScreen = this;
+
+        game.removedFeatures = {};
+
+
         this.eventDrivenSetup();
+
     },
 
     eventDrivenSetup: function() {
-        // list of points where there is currently room for a ship
-        // if these fill up, add the item to the correct "pending" log
-        game.AVAILABLE_POSITIONS.features = [];
-        game.AVAILABLE_POSITIONS.stories = [];
-        game.AVAILABLE_POSITIONS.tasks = [];
-
-        // lists of items that cannot fit on the screen at the time of their addition
-        game.AVAILABLE_POSITIONS.pendingFeatures = [];
-        game.AVAILABLE_POSITIONS.pendingStories = [];
-        game.AVAILABLE_POSITIONS.pendingTasks = [];
-
-        var numFeatures = Math.floor(game.WIDTH / game.FEATURE_SHIP.width);
-        var numStories = Math.floor(game.WIDTH / game.STORY_SHIP.width);
-        var numTasks = Math.floor(game.WIDTH / game.TASK_SHIP.width);
-
-        var i;
-        for (i = 0; i < numFeatures; i++) {
-            game.AVAILABLE_POSITIONS.features.push(new Point(i * game.FEATURE_SHIP.width, game.PADDING + game.MOTHERSHIP.height));
-        }
-
-        for (i = 0; i < numStories * 2; i++) {
-            game.AVAILABLE_POSITIONS.stories.push(new Point((i % numStories) * game.STORY_SHIP.width, game.PADDING + game.MOTHERSHIP.height + game.FEATURE_SHIP.height + game.STORY_SHIP.height * Math.floor(i/numStories)));
-        }
-
-        for (i = 0; i < numTasks * 2; i++) {
-            game.AVAILABLE_POSITIONS.tasks.push(new Point((i % numTasks) * game.STORY_SHIP.width, game.PADDING + game.MOTHERSHIP.height+ game.FEATURE_SHIP.height + game.STORY_SHIP.height * 2 + game.TASK_SHIP.height * Math.floor(i/numTasks)));
-        }
+        game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height);
 
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.playThrough();
@@ -68,71 +47,55 @@ game.PlayScreen = me.ScreenObject.extend({
         }
     },
 
-    addFeature: function(record, oid, date) {
-        //console.log("Adding feature " + oid);
-        var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.features.length);
-        var point = game.AVAILABLE_POSITIONS.features[index];
+    addFeature: function(record, oid, date, pt) {
+        var point = pt ? pt : game.POSITION_MANAGER.getFeaturePosition();
         if (point) {
             var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
             game.featureColorMap[oid] = color;
             console.log("xxx" + oid + " " + color);
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
-            game.AVAILABLE_POSITIONS.features.splice(index, 1);
             this.numFeatures++;
             game.FEATURE_SHIP_COLOR_INDEX++;
         } else {
             game.OID_MAP[oid] = {
-                displayed: false,
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
-            game.AVAILABLE_POSITIONS.pendingFeatures.push(oid);
+            game.POSITION_MANAGER.addPending(oid, "PortfolioItem/Feature");
         }
     },
 
-    addStory: function(record, oid, date) {
-        var feature = record.get('Feature');
-        // TODO
-        // Added without feature?
-        // @see addStory
-        // if (!feature || feature == "") {
-        //     //
-        //     console.log('added without feature');
-        //     this.addedWithoutFeature[oid] = record;
-        //     return;
-        // }
-        var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.stories.length);
-        var point = game.AVAILABLE_POSITIONS.stories[index];
-        if (point) {
-            var featureOid = record.get('Feature');
+    addStory: function(record, oid, date, pt) {
+        if (record.get('ObjectID') != oid) {
+            console.error("object id not equal to oid", record, oid);
+            return;
+        }
+        if (game.OID_MAP[oid] && game.OID_MAP[oid].ship) {
+            console.log("Creating: ", record, oid, date, pt);
+            return;
+        }
+        var featureOid = record.get('Feature');
+        var x = 0;
+        var color = 'medium';
+        if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
+            x = game.OID_MAP[featureOid].ship.startingX;
+            color = 'medium_' + game.featureColorMap[featureOid] || 'medium';
+        }
 
-            var color = game.featureColorMap[featureOid];
-            
-            //console.log("\t" + featureOid + " " + color);
-            if (color) {
-                this.addEnemy(record, oid, date, "medium_" + color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
-                game.AVAILABLE_POSITIONS.stories.splice(index, 1);
-                this.numStories++;
-                this.updateStory(record, oid, date);
-            } else {
-                // TODO dont know what feature this belongs to
-                /*
-                This feature is not here!
-                this.addEnemy(record, oid, date, "medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, "none");
-                game.AVAILABLE_POSITIONS.stories.splice(index, 1);
-                this.numStories++;
-                this.updateStory(record, oid, date);
-                */
-            }
+        var point = pt ? pt : game.POSITION_MANAGER.getStoryPosition(x);
+        if (point) {
+            this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
+            this.numStories++;
+            //this.updateStory(record, oid, date);
+
         } else {
             game.OID_MAP[oid] = {
-                displayed: false,
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
-            game.AVAILABLE_POSITIONS.pendingStories.push(oid);
+            game.POSITION_MANAGER.addPending(oid, "HierarchicalRequirement");
         }
 
         // a lot of unnecessary calls
@@ -141,6 +104,7 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addTask: function(record, oid, date) {
+        /*
         var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.tasks.length);
         var point = game.AVAILABLE_POSITIONS.tasks[index];
 
@@ -150,59 +114,87 @@ game.PlayScreen = me.ScreenObject.extend({
             var color = game.featureColorMap[featureOid] || "none";
             // TODO color tasks
             this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
-            game.AVAILABLE_POSITIONS.tasks.splice(index, 1);
             this.numTasks++;
             this.updateTask(record, oid, date);
         } else {
             game.OID_MAP[oid] = {
-                displayed: false,
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.AVAILABLE_POSITIONS.pendingTasks.push(oid);
+            game.POSITION_MANAGER.addPending(oid, "Task");
         }
+        */
     },
 
     recycleShip: function(oid, date) {
         var obj = game.OID_MAP[oid];
-        if (obj && obj.displayed && obj.ship) {
+        if (obj && obj.ship) {
             var ship = obj.ship;
             if (ship.type == game.ENEMY_ENTITY_LARGE) {
                 // remove all children of the feature
+                game.removedFeatures[oid] = [];
                 var children = me.game.world.getChildByProp("featureOid", oid);
-                if (children) {
-                    console.log("Destroying " + children.length + " children first");
-                    _.each(children, function(child) {
-                        // add back this position as available
-                        game.addAvailablePosition(child);
-                        child.flyOff();
-                    });
-                }
+                console.log("children", children);
+                _.each(game.OID_MAP, function(entry, key) {
+                    if (entry.ship && entry.ship.featureOid == oid) {
+                        game.removedFeatures[oid].push(entry.ship.objectID);
+                        entry.ship.flyOff();
+                    } else if (entry.record && entry.record.get('Feature') == oid) {
+                        // TODO remove this as a pending story
+                        game.removedFeatures[oid].push(entry.record.get('ObjectID'));
+                        game.POSITION_MANAGER.removePending(oid, "HierarchicalRequirement");
+                    }
+                });
+
+                /*
+                TODO ???
+
+                _.each(childShips, function(ship) {
+                    // ship.flyOff(); 
+                    
+                    if (entry.ship && entry.ship.featureOid == oid) {
+                        game.removedFeatures[oid].push(entry.ship.objectID);
+                        console.log("Removing", game.OID_MAP[key], entry.ship.featureOid);
+                        entry.ship.flyOff();
+                    } else if (entry.record && entry.record.get('Feature') == oid) {
+                        // TODO remove this as a pending story
+                        game.removedFeatures[oid].push(entry.record.get('ObjectID'));
+                        game.POSITION_MANAGER.removePending(oid, "HierarchicalRequirement");
+                    }
+
+                    
+                });
+                
+*/
+                
+                setTimeout(function() {
+                    console.log(game.removedFeatures);
+                    console.log(game.OID_MAP);
+                    console.log();
+                }, 5000);
             } else if (ship.type == game.ENEMY_ENTITY_MEDIUM) {
-                //console.log("removing story", ship.record);
+                console.log("Removing", oid, game.OID_MAP[oid].ship.featureOid);
                 var children = ship.record.get('Children');
                 if (children) {
                     console.log("Also removing ", children);
                     _.each(children, function(childOid) {
-                        var childShip = me.game.world.getChildByProp("objectID", childOid);
-                        if (childShip && childShip.length > 0) {
-                            game.addAvailablePosition(childShip[0]);
-                            childShip[0].flyOff();
+                        var entity = game.OID_MAP[childOid];
+                        if (entity && entity.ship) {
+                            entity.ship.flyOff();
                         }
                     });
                 }
             }
             game.log.addItem(ship.record.get('Name') + " recycled", date, 'recycled');
-            ship.flyOff();
-
-            // Add back this point as available
-            game.addAvailablePosition(ship);
+            ship.flyOff(); // also adds this point back as available
 
             if (game.TEAM_SHIPS[ship.team]) {
                 game.TEAM_SHIPS[ship.team].removePotentialTarget(ship);
             }
-        } else if (obj && !obj.displayed) {
+        } else if (obj && obj.record) {
+            game.POSITION_MANAGER.removePending(oid);
             game.log.addItem(obj.record.get('Name') + " recycled", date, 'recycled');
         }
         delete game.OID_MAP[oid];
@@ -220,7 +212,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
     updateFeature: function(record, oid, date) {
         var obj = game.OID_MAP[oid];
-        if (obj && obj.displayed && obj.ship) {
+        if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
             var endDate = record.get('ActualEndDate');
@@ -230,7 +222,6 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (teamShip) {
                     ship.team = record.get('Project')
                     var children = me.game.world.getChildByProp("featureOid", oid);
-                    //console.log("Destroying " + children.length + " children first");
                     // Add all remaining shown children as targets first
                     _.each(children, function(child) {
                         teamShip.addTarget(child);
@@ -238,11 +229,10 @@ game.PlayScreen = me.ScreenObject.extend({
                     });
 
                     teamShip.addTarget(ship);
-                    //console.log("project " + record.get('Project'), game.TEAM_SHIPS);
                 }
             }
-        } else if (obj && !obj.displayed) {
-            if (addTarget(record)) {
+        } else if (obj && obj.record) {
+            if (endDate && moment(endDate).isBefore(moment())) {
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
@@ -252,28 +242,12 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateStory: function(record, oid, date) {
+        
         var feature = record.get('Feature');
-        // TODO
-        // @see addStory
-        // if (this.addedWithoutFeature[oid] && feature && feature != "") {
-        //     console.log('parented to a feature');
-        //     addStory(record, oid, date);
-        //     delete addedWithoutFeature[oid];
-        //     return;
-        // }
-
-        // TODO check if it moved from a non completed state?
-        // this.updateShip(record, oid, date, function(rec) {
-        //     var state = rec.get('ScheduleState');
-        //     // base it on a change in the validTo date not the Recycled field
-
-        //     return (state == "Completed" || state == "Accepted" || state == "Released");
-        // });
-
-
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];
-        if (obj && obj.displayed && obj.ship) {
+
+        if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
             if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
@@ -285,10 +259,10 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (teamShip) {
                     if (children) {
                         _.each(children, function(child) {
-                            var childShip = me.game.world.getChildByProp("objectID", childOid);
-                            if (childShip && childShip.length > 0) {
-                                childShip[0].team = teamOid;
-                                teamShip.addTarget(childShip[0]);
+                            var childShip = game.OID_MAP[child];
+                            if (childShip && childShip.ship) {
+                                childShip.team = teamOid;
+                                teamShip.addTarget(childShip);
                             }
 
                             // also check pending ships?
@@ -296,10 +270,9 @@ game.PlayScreen = me.ScreenObject.extend({
                     }
                     ship.team = teamOid;
                     teamShip.addTarget(ship);
-                    //console.log("project " + record.get('Project'), game.TEAM_SHIPS);
                 }
             }
-        } else if (obj && !obj.displayed) {
+        } else if (obj && obj.record) {
             if ((state == "Completed" || state == "Accepted" || state == "Released")) {
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
@@ -318,7 +291,7 @@ game.PlayScreen = me.ScreenObject.extend({
     updateShip: function(record, oid, date, shouldAddTarget) {
         //console.log('update ' + record.get('Name'));
         var obj = game.OID_MAP[oid];
-        if (obj && obj.displayed && obj.ship) {
+        if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
             if (!obj.targeted && shouldAddTarget(record)) {
@@ -327,10 +300,9 @@ game.PlayScreen = me.ScreenObject.extend({
                 if (teamShip) {
                     ship.team = record.get('Project')
                     teamShip.addTarget(ship);
-                    //console.log("project " + record.get('Project'), game.TEAM_SHIPS);
                 }
             }
-        } else if (obj && !obj.displayed) {
+        } else if (obj && obj.record) {
             if (addTarget(record)) {
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
@@ -366,8 +338,8 @@ game.PlayScreen = me.ScreenObject.extend({
 
         game.log.addItem(record.get('Name') + " created", date, 'created');
 
+        
         game.OID_MAP[oid] = {
-            displayed: true,
             formattedId: record.get('FormattedID'),
             ship: ship
         };
@@ -396,25 +368,25 @@ game.PlayScreen = me.ScreenObject.extend({
     onDestroyEvent: function() {
         // remove all remaining ships
         _.each(game.OID_MAP, function(element, index, list) {
-            if (element.displayed) {
-                if (element.ship) {
-                    destroy = element.ship;
-                    var offset;
-                    switch (destroy.type) {
-                        case game.ENEMY_ENTITY_LARGE:
-                            offset = 'LARGE';
-                            break;
+            if (element.ship) {
+                destroy = element.ship;
+                var offset;
+                switch (destroy.type) {
+                    case game.ENEMY_ENTITY_LARGE:
+                        offset = 'LARGE';
+                        break;
 
-                        case game.ENEMY_ENTITY_MEDIUM:
-                            offset = 'MEDIUM'; 
-                            break;
-                        default: offset = 'SMALL';
-                    }
-                    game.VICTORY_ANIMATIONS[offset].push(new Point(destroy.pos.x + destroy.width / 2, destroy.pos.y + destroy.height / 2));
-
-                    me.game.world.removeChild(destroy);
+                    case game.ENEMY_ENTITY_MEDIUM:
+                        offset = 'MEDIUM'; 
+                        break;
+                    default: offset = 'SMALL';
                 }
+                game.VICTORY_ANIMATIONS[offset].push(new Point(destroy.pos.x + destroy.width / 2, destroy.pos.y + destroy.height / 2));
+
+                me.game.world.removeChild(destroy);
             }
         });
+
+        game.eventHandler.stopEvents();
     }
 });

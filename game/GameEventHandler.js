@@ -34,6 +34,12 @@ var GameEventHandler = function(realtime) {
         game.log.updateStatus(status);
     });
 
+    this.stopEvents = function() {
+        clearInterval(timer);
+        timer = null;
+        // TODO disconnect from realtime service
+    }
+
     this.playThrough = function() {
         if (!timer) {
             timer = setInterval(function() {

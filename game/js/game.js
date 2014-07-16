@@ -38,7 +38,7 @@ var game = {
 
     PENDING_REMOVE: [],
 
-    OID_MAP : {}, // map OID -> {displayed: boolean, formattedId: string}
+    OID_MAP : {}, // map OID -> record/ship
 
     AVAILABLE_POSITIONS: {},
 
@@ -206,53 +206,6 @@ var game = {
         return game.TEAM_SHIPS[teamOid];
     },
 
-    addAvailablePosition: function(ship) {
-        /*
-        switch(ship.type) {
-            case game.ENEMY_ENTITY_SMALL:
-                    game.AVAILABLE_POSITIONS.tasks.push(new Point(ship.startingX, ship.startingY));
-                    if (game.AVAILABLE_POSITIONS.pendingTasks.length > 1) {
-                        var pendingOid = game.AVAILABLE_POSITIONS.pendingTasks[0];
-                        if (game.OID_MAP[pendingOid]) {
-                            game.shipScreen.addTask(game.OID_MAP[pendingOid].record, pendingOid, game.OID_MAP[pendingOid].date);
-                            game.AVAILABLE_POSITIONS.pendingTasks.shift();
-                        }
-                    }
-                    
-                    break;
-            case game.ENEMY_ENTITY_MEDIUM:
-                    if (game.AVAILABLE_POSITIONS.pendingStories.length > 0) {
-                        var pendingObj = false;
-                        while (!pendingObj) {
-                            var oid = game.AVAILABLE_POSITIONS.pendingStories.shift();
-                            if (!oid) {
-                                break;
-                            }
-                            pendingObj = game.OID_MAP[oid];
-                            if (pendingObj && !pendingObj.displayed) {
-                                game.shipScreen.addEnemy(pendingObj.record, oid, pendingObj.date, "medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, ship.startingX, ship.startingY);
-                                return;
-                            }
-                        }
-                        
-                    }
-                    game.AVAILABLE_POSITIONS.stories.push(new Point(ship.startingX, ship.startingY));
-                    break;
-            case game.ENEMY_ENTITY_LARGE:
-                    game.AVAILABLE_POSITIONS.features.push(new Point(ship.startingX, ship.startingY));
-                    if (game.AVAILABLE_POSITIONS.pendingFeatures.length > 1) {
-                        var pendingOid = game.AVAILABLE_POSITIONS.pendingFeatures[0];
-                        if (game.OID_MAP[pendingOid]) {
-                            game.shipScreen.addFeature(game.OID_MAP[pendingOid].record, pendingOid, game.OID_MAP[pendingOid].date);
-                            game.AVAILABLE_POSITIONS.pendingFeatures.shift();
-                        }
-                    }
-                    break;
-            default:
-                    console.log("default", ship, ship.type);
-        }
-        */
-    },
 
     /**
      * Cleanup animations

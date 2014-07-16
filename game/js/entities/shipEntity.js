@@ -23,6 +23,7 @@ game.Ship = me.ObjectEntity.extend({
         this.date = settings.date;
 
         this.featureOid = settings.featureOid || null;
+        //console.log("featureOid", this.featureOid);
         
         this.isVulnerable = false;          // can this ship be destroyed
         this.goToY = y;                     // final y position
@@ -36,23 +37,27 @@ game.Ship = me.ObjectEntity.extend({
         this.isDestructable =  function() {
             return this.isVulnerable;
         };
+    },
 
-        this.flyOff = function() {
-            // fade off the screen instead of flying off
-            (new me.Tween(this.renderable))
-                .to({
-                    alpha: 0
-                }, 3000)
-                .onComplete((function() {
-                    var teamShip = game.getExistingTeam(this.featureOid);
-                    if (teamShip) {
-                        teamShip.removePotentialTarget(this);
-                    }
-                    delete game.OID_MAP[this.objectID];
-                    me.game.world.removeChild(this);
-                }).bind(this))
-                .start();
+    flyOff : function() {
+        // fade off the screen instead of flying off
+        // have to remove it from data structures immediately in case they are restored
+        game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
+        delete game.OID_MAP[this.objectID];
+        var teamShip = game.getExistingTeam(this.featureOid);
+        if (teamShip) {
+            teamShip.removePotentialTarget(this);
         }
+        
+        (new me.Tween(this.renderable))
+            .to({
+                alpha: 0
+            }, 3000)
+            .onComplete((function() {               
+                me.game.world.removeChild(this);
+            }).bind(this))
+            .start();
+
     },
 
     // draw: function(context) {
