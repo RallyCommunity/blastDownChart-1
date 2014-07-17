@@ -64,8 +64,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
         // 5 <-------------------
         // repeat
 
-        //console.log("currently tracked oids", game.OID_MAP);
-
         if (this.stepNum === 0) {
             if (this.pos.x > game.WINDOW_WIDTH / 2) {
                 this.stepNum++;
@@ -122,7 +120,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
         if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
             this.shoot();
         }
-
 
         // check & update player movement
         this.updateMovement();

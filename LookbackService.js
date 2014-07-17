@@ -329,7 +329,7 @@ module.factory('LookbackService', function() {
 
         var scope = angular.element($("#root")).scope();
                 
-        //scope.connectRealtime(projectUUIDs); // listen for changes in realtime
+        scope.connectRealtime(projectUUIDs); // listen for changes in realtime
     }
 
     var getProjects = function(callbackFn) {

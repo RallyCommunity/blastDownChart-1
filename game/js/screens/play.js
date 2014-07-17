@@ -25,11 +25,7 @@ game.PlayScreen = me.ScreenObject.extend({
         game.farRight = game.WIDTH;
         game.shipScreen = this;
 
-        game.removedFeatures = {};
-
-
         this.eventDrivenSetup();
-
     },
 
     eventDrivenSetup: function() {
@@ -134,46 +130,14 @@ game.PlayScreen = me.ScreenObject.extend({
             var ship = obj.ship;
             if (ship.type == game.ENEMY_ENTITY_LARGE) {
                 // remove all children of the feature
-                game.removedFeatures[oid] = [];
                 var children = me.game.world.getChildByProp("featureOid", oid);
-                console.log("children", children);
                 _.each(game.OID_MAP, function(entry, key) {
                     if (entry.ship && entry.ship.featureOid == oid) {
-                        game.removedFeatures[oid].push(entry.ship.objectID);
                         entry.ship.flyOff();
                     } else if (entry.record && entry.record.get('Feature') == oid) {
-                        // TODO remove this as a pending story
-                        game.removedFeatures[oid].push(entry.record.get('ObjectID'));
                         game.POSITION_MANAGER.removePending(oid, "HierarchicalRequirement");
                     }
                 });
-
-                /*
-                TODO ???
-
-                _.each(childShips, function(ship) {
-                    // ship.flyOff(); 
-                    
-                    if (entry.ship && entry.ship.featureOid == oid) {
-                        game.removedFeatures[oid].push(entry.ship.objectID);
-                        console.log("Removing", game.OID_MAP[key], entry.ship.featureOid);
-                        entry.ship.flyOff();
-                    } else if (entry.record && entry.record.get('Feature') == oid) {
-                        // TODO remove this as a pending story
-                        game.removedFeatures[oid].push(entry.record.get('ObjectID'));
-                        game.POSITION_MANAGER.removePending(oid, "HierarchicalRequirement");
-                    }
-
-                    
-                });
-                
-*/
-                
-                setTimeout(function() {
-                    console.log(game.removedFeatures);
-                    console.log(game.OID_MAP);
-                    console.log();
-                }, 5000);
             } else if (ship.type == game.ENEMY_ENTITY_MEDIUM) {
                 console.log("Removing", oid, game.OID_MAP[oid].ship.featureOid);
                 var children = ship.record.get('Children');
@@ -242,7 +206,6 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateStory: function(record, oid, date) {
-        
         var feature = record.get('Feature');
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];
@@ -388,5 +351,7 @@ game.PlayScreen = me.ScreenObject.extend({
         });
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.stopEvents();
+        scope.disconnectRealtime();
+        game.log.updateStatus('Disconnected');
     }
 });

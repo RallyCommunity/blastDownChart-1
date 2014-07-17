@@ -1,10 +1,14 @@
 module.factory('RealtimeService', function () {
         var realtime = new Realtime();
         var realtimeHandler = new RealtimeDataHandler();
-
+        var websocket;
         return {
+            disconnect: function() {
+                websocket.close();
+            },
+
             connect: function(uuids) {
-                var websocket = realtime.connectTo(uuids);
+                websocket = realtime.connectTo(uuids);
                 console.log(realtime);
 
                 websocket.onmessage = Ext.bind(function(e) {

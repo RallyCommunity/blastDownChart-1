@@ -38,6 +38,10 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         RealtimeService.connect(uuids);
     };
 
+    $scope.disconnectRealtime = function() {
+        RealtimeService.disconnect();
+    }
+    
     $scope.updateStatus = function(status) {
         $scope.realtimeStatus = status;
     }
