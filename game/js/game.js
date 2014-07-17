@@ -6,6 +6,7 @@ var game = {
                         {name: "blue", hex: "#0000FF"}],
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
 
+    SPEED: 5, // Adjust this to adjust the speed of everything
 
     // ["blue", "red", "lime", "yellow", "orange", "pink", "purple", "teal"],
     FEATURE_SHIP_COLORS: ["teal", "purple", "pink", "orange", "yellow", "lime", "red", "blue"],
@@ -74,10 +75,10 @@ var game = {
 
     log : {
         addItem: function(logEvent, date, className) {
-            angular.element($("#root")).scope().addLogItem(logEvent, date, className);
+            game.angularScope.addLogItem(logEvent, date, className);
         },
         updateStatus: function(status) {
-            angular.element($("#root")).scope().updateStatus(status);
+            game.angularScope.updateStatus(status);
         }
     },
 
@@ -169,7 +170,22 @@ var game = {
 
         $('html').removeClass('x-viewport');
         $('#screen > canvas').focus();
+
+        $('#speed').change(function() {
+            game.setSpeed($(this).val());
+        });
+
         Ext.getBody().unmask();
+    },
+
+    // speed
+    setSpeed: function(speed) {
+        game.SPEED = speed % 11;
+
+        _.each(game.TEAM_SHIPS, function(ship) {
+            ship.setVelocity(game.SPEED, 0);
+        });
+        game.angularScope.eventHandler.resetSpeed();
     },
 
     getTeam: function(teamOid) {

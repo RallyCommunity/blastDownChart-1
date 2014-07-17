@@ -1,6 +1,6 @@
 {
    "name": "Blast Down Chart",
-   "className": "BlastDown",
+   "className": "CustomApp",
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0rc3",
    "javascript": [

@@ -351,7 +351,5 @@ game.PlayScreen = me.ScreenObject.extend({
         });
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.stopEvents();
-        scope.disconnectRealtime();
-        game.log.updateStatus('Disconnected');
     }
 });

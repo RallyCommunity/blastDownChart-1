@@ -37,8 +37,16 @@ var GameEventHandler = function(realtime) {
     this.stopEvents = function() {
         clearInterval(timer);
         timer = null;
-        // TODO disconnect from realtime service
-    }
+        var scope = angular.element($("#root")).scope();
+        scope.disconnectRealtime();
+        scope.updateStatus('Disconnected');
+    };
+
+    this.resetSpeed = function() {
+        clearInterval(timer);
+        timer = null;
+        this.playThrough();
+    };
 
     this.playThrough = function() {
         if (!timer) {
@@ -51,55 +59,55 @@ var GameEventHandler = function(realtime) {
                     }
                 } else {
                 } // TODO else - what to do if there was nothing to dequeue?
-            }, 100);
+            }, 200 / game.SPEED);
         }
-    }
+    };
 
     this.PortfolioItemInitiative_Created = function(data) {
         game.shipScreen.addInitiative(data.record, data.oid, data.date);
-    }
+    };
 
     this.PortfolioItemFeature_Created = function(data) {
         game.shipScreen.addFeature(data.record, data.oid, data.date);
-    }
+    };
 
     this.UserStory_Created = function(data) {
         game.shipScreen.addStory(data.record, data.oid, data.date);
-    }
+    };
 
     this.Task_Created = function(data) {
         game.shipScreen.addTask(data.record, data.oid, data.date);
-    }
+    };
 
     this.PortfolioItemInitiative_Updated = function(data) {
         game.shipScreen.updateInitiative(data.record, data.oid, data.date);
-    }
+    };
 
     this.PortfolioItemFeature_Updated = function(data) {
         game.shipScreen.updateFeature(data.record, data.oid, data.date);
-    }
+    };
 
     this.UserStory_Updated = function(data) {
         game.shipScreen.updateStory(data.record, data.oid, data.date);
-    }
+    };
 
     this.Task_Updated = function(data) {
         game.shipScreen.updateTask(data.record, data.oid, data.date);
-    }
+    };
 
     this.PortfolioItemInitiative_Recycled = function(data) {
         game.shipScreen.recycleShip(data.oid, data.date);
-    }
+    };
 
     this.PortfolioItemFeature_Recycled = function(data) {
         game.shipScreen.recycleShip(data.oid, data.date);
-    }
+    };
 
     this.UserStory_Recycled = function(data) {
         game.shipScreen.recycleShip(data.oid, data.date);
-    }
+    };
 
     this.Task_Recycled = function(data) {
         game.shipScreen.recycleShip(data.oid, data.date);
-    }
+    };
 }

@@ -5,7 +5,13 @@ game.BulletEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(0, 6);
+
+        if (!this.shootDown) {
+            this.setVelocity(0, game.SPEED + 5);
+        } else {
+            this.setVelocity(0, game.SPEED);
+        }
+        
         
         this.teamShip = settings.teamShip;
         if (!settings.teamShip) {
@@ -65,6 +71,8 @@ game.BulletEntity = me.ObjectEntity.extend({
                 emitter.name = 'fire';
                 
                 if (game.OID_MAP[res.obj.objectID]) {
+                    // this slot is now open - but only if it existed in the oid map
+                    game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
                     delete game.OID_MAP[res.obj.objectID];
                 }
 
@@ -77,8 +85,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 game.PENDING_REMOVE.push(emitter);
                 game.PENDING_REMOVE.push(emitter.container);
 
-                // this slot is now open!
-                game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
+                
                 me.audio.play("explode");
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));

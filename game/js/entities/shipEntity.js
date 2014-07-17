@@ -79,10 +79,14 @@ game.Ship = me.ObjectEntity.extend({
     // to optimize performance, minimize the cost of calling this
     update: function() {
         // fly in from the top
+        this.numSteps++;
         if (!this.setupComplete) {
             // move in to position
-            this.pos.y++;
-            if (this.pos.y == this.goToY) {
+            if (this.numSteps % Math.floor((50 / game.SPEED)) === 0) { // TODO increase this to make the game more choppy
+                this.pos.y += 10;
+            }
+            
+            if (this.pos.y >= this.goToY) {
                 this.setupComplete = true;
             }
             return true;
@@ -101,7 +105,7 @@ game.Ship = me.ObjectEntity.extend({
             this.pos.x += 1;
             this.moveRight = game.INITIATIVE_SHIP.moveRight;
             this.update = function() {
-               this.normalMovement();
+                this.normalMovement();
             }
         }
 
@@ -114,16 +118,16 @@ game.Ship = me.ObjectEntity.extend({
         // movement pattern
         this.alpha = 0.5;
         this.setOpacity(0.5);
-        if (this.numSteps % 3 === 0) {
-            if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight) * 3) === 0) {
+        if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
+            if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight)) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;
             }
 
             if (this.moveRight) {
-                this.pos.x -= 1;
+                this.pos.x -= 5;
             } else {
-                this.pos.x += 1;
+                this.pos.x += 5;
             }
         }
         this.numSteps++;

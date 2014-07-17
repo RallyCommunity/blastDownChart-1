@@ -4,6 +4,7 @@ module.factory('RealtimeService', function () {
         var websocket;
         return {
             disconnect: function() {
+                console.log("closing web socket");
                 websocket.close();
             },
 
