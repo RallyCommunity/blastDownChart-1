@@ -5,23 +5,24 @@ game.LabelEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x + (settings.width / 2), y, settings);
 
-        this.font = new me.Font("Arial", settings.fontSize || 24, "white", "center");
+        this.font = new me.Font("Arial", settings.fontSize || 24, settings.color || "white", "center");
         this.formattedId = settings.formattedId;
-        this.displayed = false;
-    },
-
-    update: function() {
-        this.vel.x = 0;
-        this.vel.y = 0;
-        return false;
+        this.nextAlpha = 1;
+        this.isDisplayed = false;
     },
 
     draw: function(context) {
-        if (game.SHOW_LABEL) {
-            this.font.draw(context, this.formattedId, this.pos.x, this.pos.y);
-            this.displayed = true;
-        } else {
+        this.nextAlpha -= 0.01;
+        if (this.nextAlpha < 0) {
             me.game.world.removeChild(this);
+            return;
         }
+        context.save();
+        var local_alpha = context.globalAlpha;
+        context.globalAlpha = this.nextAlpha;
+        this.parent();
+        this.font.draw(context, this.formattedId, this.pos.x, this.pos.y);
+        context.globalAlpha = local_alpha;
+        context.restore();
     }
 });

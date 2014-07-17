@@ -97,7 +97,7 @@ module.factory('LookbackService', function() {
             var projectOid = record.get('Project');
             if (projectOidMap[projectOid] && !triggered[projectOid]) {
                 triggered[projectOid] = true;
-                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
+                //eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
             }
 
             var typeHierarchy = record.get('_TypeHierarchy');
@@ -348,6 +348,7 @@ module.factory('LookbackService', function() {
             callback: function (records, operation, success) {
                 _.each(records, function (record) {
                     projectOidMap[record.get('ObjectID')] = record;
+                    eventTrigger.trigger("Project", {record: record});
                 });
                 callbackFn();
             }

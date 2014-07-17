@@ -30,9 +30,28 @@ game.PlayScreen = me.ScreenObject.extend({
 
     eventDrivenSetup: function() {
         game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height);
-
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.playThrough();
+        var i = 0;
+        setInterval(function() {
+            i++;
+            var img = game.redRectangle;
+            if (i %2 == 0) {
+                img = game.blueRectangle;
+            }
+            var ship = me.pool.pull("rallyShip", -41, 1, {
+                height: 42,
+                image: 'rectangle',
+                spriteheight: 42,
+                spritewidth: 42,
+                width: 42,
+                z: Number.POSITIVE_INFINITY,
+                type: game.RALLY_SHIP,
+                changeImage: img
+            });
+
+            me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
+        }, 10000);
     },
 
     addInitiative: function(record, oid, date) {
@@ -48,7 +67,6 @@ game.PlayScreen = me.ScreenObject.extend({
         if (point) {
             var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
             game.featureColorMap[oid] = color;
-            console.log("xxx" + oid + " " + color);
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             this.numFeatures++;
             game.FEATURE_SHIP_COLOR_INDEX++;
@@ -94,9 +112,7 @@ game.PlayScreen = me.ScreenObject.extend({
             game.POSITION_MANAGER.addPending(oid, "HierarchicalRequirement");
         }
 
-        // a lot of unnecessary calls
-        game.scoreboard.initPoints(record.get('Project'));
-        //console.log("init points for " + record.get('Project'));
+        game.getTeam(record.get('Project'));
     },
 
     addTask: function(record, oid, date) {
@@ -170,7 +186,8 @@ game.PlayScreen = me.ScreenObject.extend({
         }
         this.updateShip(record, oid, date, function(rec) {
             var endDate = record.get('ActualEndDate');
-            return endDate && moment(endDate).isBefore(moment());
+            //return false;
+            return endDate && moment(endDate).isBefore(moment()); // TODO fix
         });
     },
 

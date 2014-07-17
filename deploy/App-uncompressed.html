@@ -53210,6 +53210,7 @@ var game = {
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
+    RALLY_SHIP: 91,
 
     SHOW_LABEL: true,
 
@@ -53339,6 +53340,7 @@ var game = {
         me.pool.register("enemyShip", game.Ship);
         me.pool.register("explosion", game.ExplosionEntity);
         me.pool.register("label", game.LabelEntity);
+        me.pool.register("rallyShip", game.RallyShipEntity);
 
         // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
@@ -53358,7 +53360,6 @@ var game = {
         $('#screen > canvas').focus();
 
         $('#speed').change(function() {
-            console.log("Changed to " + $(this).val());
             game.setSpeed($(this).val());
         });
 
@@ -53367,7 +53368,7 @@ var game = {
 
     // speed
     setSpeed: function(speed) {
-        game.SPEED = speed % 11; // make it go from 1 to 11
+        game.SPEED = speed % 11;
 
         _.each(game.TEAM_SHIPS, function(ship) {
             ship.setVelocity(game.SPEED, 0);
@@ -53472,6 +53473,14 @@ var game = {
     {name: "explosionMedium", type:"image", src: "game/data/img/animations/explosionMedium.png"},
     {name: "explosionLarge", type:"image", src: "game/data/img/animations/explosionLarge.png"},
     {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
+
+    {name: "rectangle", type:"image", src: "game/data/img/svg/rectangle.svg"},
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
     /*
      * Maps and backgrounds
@@ -53736,6 +53745,31 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         }
     }
 });
+                game.RallyShipEntity = me.ObjectEntity.extend({
+
+    // constructor
+    init: function(x, y, settings) {
+        // call the constructor
+        this.parent(x, y, settings);
+        this.gravity = 0.0;
+        this.setVelocity(game.SPEED, 0);
+        
+        this.type = game.RALLY_SHIP;
+    },
+
+    update: function() {
+        // did we hit the top wall?
+        if (this.pos.x > game.WINDOW_WIDTH - 8) {
+            me.game.world.removeChild(this);
+        }
+
+        this.vel.x += this.accel.x * me.timer.tick;
+
+        this.updateMovement();
+        return true;
+    }
+});
+
                 game.PlayerEntity = me.ObjectEntity.extend({
 
     // constructor
@@ -54534,6 +54568,19 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.playThrough();
+        setInterval(function() {
+            var ship = me.pool.pull("rallyShip", 1, 1, {
+                height: 50,
+                image: "rectangle",
+                spriteheight: 50,
+                spritewidth: 100,
+                width: 100,
+                z: Number.POSITIVE_INFINITY,
+                type: game.RALLY_SHIP,
+            });
+
+            me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
+        }, 5000);
     },
 
     addInitiative: function(record, oid, date) {

@@ -3,7 +3,7 @@ game.Ship = me.ObjectEntity.extend({
     // pass the correct image, width/height and x, y for any type of ship that moves in the same pattern
     init: function(x, y, settings) {
         // call the constructor
-
+        settings.color = "red";
         this.parent(x, 1 - settings.height, settings);
 
         this.startingX = x;
@@ -24,6 +24,8 @@ game.Ship = me.ObjectEntity.extend({
 
         this.featureOid = settings.featureOid || null;
         //console.log("featureOid", this.featureOid);
+
+        this.color = "red";
         
         this.isVulnerable = false;          // can this ship be destroyed
         this.goToY = y;                     // final y position
@@ -37,6 +39,20 @@ game.Ship = me.ObjectEntity.extend({
         this.isDestructable =  function() {
             return this.isVulnerable;
         };
+    },
+
+
+    // TODO
+    draw: function(context) {
+        context.save();
+        this.parent(context);       
+        context.globalCompositeOperation = "source-in";
+
+        // context.fillStyle="green";
+        // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+
+        context.globalCompositeOperation = "source-over";
+        context.restore();
     },
 
     flyOff : function() {
@@ -60,20 +76,6 @@ game.Ship = me.ObjectEntity.extend({
 
     },
 
-    // draw: function(context) {
-    //     context.save();
-    //     // save the previous value
-    //     var local_alpha = context.globalAlpha;
-    //     // semi transparency
-    //     context.globalAlpha = 0.5;
-    //     // parent draw function
-    //     context.restore();
-    //     this.parent(context);
-    //     // restore previous value
-    //     context.globalAlpha = local_alpha;
-        
-    // },
-
     // ship behavior
     // Called many times to refresh the ships on the screen
     // to optimize performance, minimize the cost of calling this
@@ -93,8 +95,10 @@ game.Ship = me.ObjectEntity.extend({
         }
 
         if (this.type == game.ENEMY_ENTITY_SUPER) {
+
             this.update = function() {
                this.normalMovement();
+
             }
         }
 

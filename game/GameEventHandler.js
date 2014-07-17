@@ -26,7 +26,9 @@ var GameEventHandler = function(realtime) {
     });
 
     $(listenTo).on("Project", null, null, function(event, data) {
-        game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
+        if (!game.PROJECT_MAPPING[data.record.get('ObjectID')]) {
+            game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
+        }
     });
 
     $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {

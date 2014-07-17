@@ -34,7 +34,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
         // did we hit an enemy?
         var res = me.game.world.collide(this);
-        if (res) {
+        if (res && res.obj) {
             var image = null;
             if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                 image = me.loader.getImage('explosionSuper');
@@ -100,6 +100,21 @@ game.BulletEntity = me.ObjectEntity.extend({
                 } else {
                     game.log.addItem(res.obj.record.get('Name') + " COMP", time);
                 }
+
+                var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
+
+                var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
+                if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
+                    game.LABEL_INDEX = 0;
+                }
+                var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
+                    height: 32,
+                    width: 128,
+                    formattedId: res.obj.record.get('FormattedID'),
+                    color: teamColor
+                });
+
+                me.game.world.addChild(label, Number.POSITIVE_INFINITY);
 
 
                 this.teamShip.removeTarget(res.obj);

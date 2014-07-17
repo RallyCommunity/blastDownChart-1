@@ -24,6 +24,7 @@ var game = {
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
+    RALLY_SHIP: 91,
 
     SHOW_LABEL: true,
 
@@ -95,7 +96,6 @@ var game = {
                 game.angularScope.addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
                 if (!game.PROJECT_MAPPING[team]) {
-                    //console.error('Not in the map');
                 }
             }
         },
@@ -108,12 +108,30 @@ var game = {
             }
         },
         addTeamColor: function(team, color) {
+            if (!game.PROJECT_MAPPING[team]) {
+                return false;
+            }
             game.angularScope.addTeamColor(game.PROJECT_MAPPING[team], color);
+            return true;
+        },
+
+        getTeamColor: function(teamOid) {
+            return game.angularScope.getTeamColor(game.PROJECT_MAPPING[teamOid]);
         }
     },
 
     // Run on page load.
     "onload" : function () {
+        game.LABEL_POSITONS = [
+            new Point(0, game.WINDOW_HEIGHT - 144),
+            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 144),
+            new Point(0, game.WINDOW_HEIGHT - 112),
+            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 112),
+            new Point(0, game.WINDOW_HEIGHT - 80),
+            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 80)
+        ];
+        game.LABEL_INDEX = 0;
+
         // Initialize the video.
         me.sys.fps = 50;
         me.sys.pauseOnBlur = false;
@@ -138,8 +156,23 @@ var game = {
         // Load the resources.
         me.loader.preload(game.resources);
 
+
+        game.redRectangle = this.getImageFromSvg('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd" [<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/"><!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/"><!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/"><!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">]><svg version="1.1" baseProfile="tiny" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"x="0px" y="0px" width="42px" height="42px" viewBox="-0.5 0.5 42 42" xml:space="preserve"><path d="M0.5,4.5v33h40v-33H0.5z M3.5,7.5h34v27h-34V7.5z" style="stroke: red; stroke-width: 2"/></svg>');
+        game.blueRectangle = this.getImageFromSvg('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd" [<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/"><!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/"><!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/"><!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">]><svg version="1.1" baseProfile="tiny" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"x="0px" y="0px" width="42px" height="42px" viewBox="-0.5 0.5 42 42" xml:space="preserve"><path d="M0.5,4.5v33h40v-33H0.5z M3.5,7.5h34v27h-34V7.5z" style="stroke: blue; stroke-width: 2"/></svg>');
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
+    },
+
+    getImageFromSvg : function(rawSVG) {
+        var svg = new Blob([rawSVG], {type:"image/svg+xml;charset=utf-8"});
+        var domURL = self.URL || self.webkitURL || self;
+        var url = domURL.createObjectURL(svg);
+
+        /// create Image
+        var img = new Image;
+
+        img.src = url;
+        return img;
     },
 
     // Run on game resources loaded.
@@ -153,6 +186,7 @@ var game = {
         me.pool.register("enemyShip", game.Ship);
         me.pool.register("explosion", game.ExplosionEntity);
         me.pool.register("label", game.LabelEntity);
+        me.pool.register("rallyShip", game.RallyShipEntity);
 
         // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
@@ -193,7 +227,7 @@ var game = {
 
         if (!team) {   
             var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
-            game.TEAM_SHIP_COLOR_INDEX++;
+            
             // create a new one
             team = me.pool.pull("mainPlayer", 64, game.WINDOW_HEIGHT - 64, {
                 image: "player_" + color.name,
@@ -207,13 +241,13 @@ var game = {
             });
 
             // let angular know what color you assigned to this ship
-            game.scoreboard.addTeamColor(teamOid, color.hex);
-            game.canShoot[teamOid] = true;
+            if (game.scoreboard.addTeamColor(teamOid, color.hex)) {
+                game.TEAM_SHIP_COLOR_INDEX++;
+                game.canShoot[teamOid] = true;
 
-
-            me.game.world.addChild(team, Number.POSITIVE_INFINITY);
-            game.TEAM_SHIPS[teamOid] = team;
-            console.log('team created', team);
+                me.game.world.addChild(team, Number.POSITIVE_INFINITY);
+                game.TEAM_SHIPS[teamOid] = team;
+            }
         }
         return team;
     },
@@ -221,7 +255,6 @@ var game = {
     getExistingTeam: function(teamOid) {
         return game.TEAM_SHIPS[teamOid];
     },
-
 
     /**
      * Cleanup animations

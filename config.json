@@ -16,6 +16,7 @@
       "game/js/resources.js",
       "game/js/PositionManager.js",
       "game/js/entities/labelEntity.js",
+      "game/js/entities/rallyShipEntity.js",
       "game/js/entities/playerEntity.js",
       "game/js/entities/shipEntity.js",
       "game/js/entities/bulletEntity.js",
