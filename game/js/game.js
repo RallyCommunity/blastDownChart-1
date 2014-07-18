@@ -28,6 +28,10 @@ var game = {
 
     SHOW_LABEL: true,
 
+    RALLY_HUNTER: 55,
+
+    shootingAttempts: 10,
+
     TEAM_SHIP: 88,     // player type
     BULLET: 77,     // bullet type
     EXPLOSION: 66,  // explosion type
@@ -51,6 +55,8 @@ var game = {
         width: 320,
         height: 160
     },
+
+    SPECIAL_TEAM: 1,
 
     FEATURE_SHIP: {
         width: 64,
@@ -187,10 +193,13 @@ var game = {
         me.pool.register("explosion", game.ExplosionEntity);
         me.pool.register("label", game.LabelEntity);
         me.pool.register("rallyShip", game.RallyShipEntity);
+        me.pool.register("rallyHunter", game.RallyHunterEntity);
 
         // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
         me.input.bindKey(me.input.KEY.RIGHT, "right");
+        me.input.bindKey(me.input.KEY.UP,  "up");
+        me.input.bindKey(me.input.KEY.DOWN, "down");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
         me.state.change(me.state.MENU);
@@ -247,6 +256,8 @@ var game = {
 
                 me.game.world.addChild(team, Number.POSITIVE_INFINITY);
                 game.TEAM_SHIPS[teamOid] = team;
+            } else {
+                return game.TEAM_SHIPS[1];
             }
         }
         return team;

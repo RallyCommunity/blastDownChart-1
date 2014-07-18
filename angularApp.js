@@ -81,7 +81,6 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.addTeamColor = function(team, color) {
-        console.log("add team color", team, color);
         if (!$scope.scoreboard[team]) {
             $scope.scoreboard[team] = {
                 points: 0,
@@ -92,7 +91,6 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.getTeamColor = function(team) {
         if (team && $scope.scoreboard[team]) {
-            console.log("returning color " + $scope.scoreboard[team].color, team, $scope.scoreboard);
             return $scope.scoreboard[team].color;
         }
         return "white";

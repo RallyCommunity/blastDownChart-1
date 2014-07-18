@@ -120,8 +120,6 @@ game.Ship = me.ObjectEntity.extend({
     // optimization
     normalMovement: function() {
         // movement pattern
-        this.alpha = 0.5;
-        this.setOpacity(0.5);
         if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
             if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight)) === 0) {
                 this.moveRight = !this.moveRight;

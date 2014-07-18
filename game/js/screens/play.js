@@ -52,6 +52,25 @@ game.PlayScreen = me.ScreenObject.extend({
 
             me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
         }, 10000);
+
+        var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
+        game.TEAM_SHIP_COLOR_INDEX++; // TODO special color?
+
+        // create a new one
+        var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
+            image: "player_" + color.name,
+            spriteheight: 64,
+            spritewidth: 32,
+            width: 32,
+            height: 64,
+            z: Number.POSITIVE_INFINITY,
+            type: game.PLAYER,
+            team: game.SPECIAL_TEAM
+        });
+        game.canShoot[game.SPECIAL_TEAM] = true;
+        game.TEAM_SHIPS[game.SPECIAL_TEAM] = team;
+
+        me.game.world.addChild(team, Number.POSITIVE_INFINITY);
     },
 
     addInitiative: function(record, oid, date) {
@@ -244,7 +263,6 @@ game.PlayScreen = me.ScreenObject.extend({
                                 childShip.team = teamOid;
                                 teamShip.addTarget(childShip);
                             }
-
                             // also check pending ships?
                         });
                     }

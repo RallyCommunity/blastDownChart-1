@@ -53214,6 +53214,8 @@ var game = {
 
     SHOW_LABEL: true,
 
+    RALLY_HUNTER: 55,
+
     TEAM_SHIP: 88,     // player type
     BULLET: 77,     // bullet type
     EXPLOSION: 66,  // explosion type
@@ -53282,7 +53284,6 @@ var game = {
                 game.angularScope.addPoints(game.PROJECT_MAPPING[team], parseInt(points, 10));
             } else {
                 if (!game.PROJECT_MAPPING[team]) {
-                    //console.error('Not in the map');
                 }
             }
         },
@@ -53295,12 +53296,30 @@ var game = {
             }
         },
         addTeamColor: function(team, color) {
+            if (!game.PROJECT_MAPPING[team]) {
+                return false;
+            }
             game.angularScope.addTeamColor(game.PROJECT_MAPPING[team], color);
+            return true;
+        },
+
+        getTeamColor: function(teamOid) {
+            return game.angularScope.getTeamColor(game.PROJECT_MAPPING[teamOid]);
         }
     },
 
     // Run on page load.
     "onload" : function () {
+        game.LABEL_POSITONS = [
+            new Point(0, game.WINDOW_HEIGHT - 144),
+            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 144),
+            new Point(0, game.WINDOW_HEIGHT - 112),
+            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 112),
+            new Point(0, game.WINDOW_HEIGHT - 80),
+            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 80)
+        ];
+        game.LABEL_INDEX = 0;
+
         // Initialize the video.
         me.sys.fps = 50;
         me.sys.pauseOnBlur = false;
@@ -53325,8 +53344,23 @@ var game = {
         // Load the resources.
         me.loader.preload(game.resources);
 
+
+        game.redRectangle = this.getImageFromSvg('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd" [<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/"><!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/"><!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/"><!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">]><svg version="1.1" baseProfile="tiny" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"x="0px" y="0px" width="42px" height="42px" viewBox="-0.5 0.5 42 42" xml:space="preserve"><path d="M0.5,4.5v33h40v-33H0.5z M3.5,7.5h34v27h-34V7.5z" style="stroke: red; stroke-width: 2"/></svg>');
+        game.blueRectangle = this.getImageFromSvg('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd" [<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/"><!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/"><!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/"><!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">]><svg version="1.1" baseProfile="tiny" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"x="0px" y="0px" width="42px" height="42px" viewBox="-0.5 0.5 42 42" xml:space="preserve"><path d="M0.5,4.5v33h40v-33H0.5z M3.5,7.5h34v27h-34V7.5z" style="stroke: blue; stroke-width: 2"/></svg>');
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
+    },
+
+    getImageFromSvg : function(rawSVG) {
+        var svg = new Blob([rawSVG], {type:"image/svg+xml;charset=utf-8"});
+        var domURL = self.URL || self.webkitURL || self;
+        var url = domURL.createObjectURL(svg);
+
+        /// create Image
+        var img = new Image;
+
+        img.src = url;
+        return img;
     },
 
     // Run on game resources loaded.
@@ -53341,6 +53375,7 @@ var game = {
         me.pool.register("explosion", game.ExplosionEntity);
         me.pool.register("label", game.LabelEntity);
         me.pool.register("rallyShip", game.RallyShipEntity);
+        me.pool.register("rallyHunter", game.RAllyHunterEntity);
 
         // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
@@ -53381,7 +53416,7 @@ var game = {
 
         if (!team) {   
             var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
-            game.TEAM_SHIP_COLOR_INDEX++;
+            
             // create a new one
             team = me.pool.pull("mainPlayer", 64, game.WINDOW_HEIGHT - 64, {
                 image: "player_" + color.name,
@@ -53395,13 +53430,13 @@ var game = {
             });
 
             // let angular know what color you assigned to this ship
-            game.scoreboard.addTeamColor(teamOid, color.hex);
-            game.canShoot[teamOid] = true;
+            if (game.scoreboard.addTeamColor(teamOid, color.hex)) {
+                game.TEAM_SHIP_COLOR_INDEX++;
+                game.canShoot[teamOid] = true;
 
-
-            me.game.world.addChild(team, Number.POSITIVE_INFINITY);
-            game.TEAM_SHIPS[teamOid] = team;
-            console.log('team created', team);
+                me.game.world.addChild(team, Number.POSITIVE_INFINITY);
+                game.TEAM_SHIPS[teamOid] = team;
+            }
         }
         return team;
     },
@@ -53409,7 +53444,6 @@ var game = {
     getExistingTeam: function(teamOid) {
         return game.TEAM_SHIPS[teamOid];
     },
-
 
     /**
      * Cleanup animations
@@ -53725,26 +53759,206 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         // call the constructor
         this.parent(x + (settings.width / 2), y, settings);
 
-        this.font = new me.Font("Arial", settings.fontSize || 24, "white", "center");
+        this.font = new me.Font("Arial", settings.fontSize || 24, settings.color || "white", "center");
         this.formattedId = settings.formattedId;
-        this.displayed = false;
-    },
-
-    update: function() {
-        this.vel.x = 0;
-        this.vel.y = 0;
-        return false;
+        this.nextAlpha = 1;
+        this.isDisplayed = false;
     },
 
     draw: function(context) {
-        if (game.SHOW_LABEL) {
-            this.font.draw(context, this.formattedId, this.pos.x, this.pos.y);
-            this.displayed = true;
-        } else {
+        this.nextAlpha -= 0.01;
+        if (this.nextAlpha < 0) {
             me.game.world.removeChild(this);
+            return;
         }
+        context.save();
+        var local_alpha = context.globalAlpha;
+        context.globalAlpha = this.nextAlpha;
+        this.parent();
+        this.font.draw(context, this.formattedId, this.pos.x, this.pos.y);
+        context.globalAlpha = local_alpha;
+        context.restore();
     }
 });
+                // Can be controlled via keyboard/mouse
+// hunts the RallyShip that flies across the top
+// More random movement pattern
+
+game.RallyHunter = me.ObjectEntity.extend({
+
+    // constructor
+    init: function(x, y, settings) {
+        // call the constructor
+        this.parent(x, y, settings);
+        this.gravity = 0.0;
+        this.setVelocity(game.SPEED + 2, 0);
+        
+        this.type = game.RALLY_HUNTER;
+        
+        this.targets = [];
+        this.stepNum = 0;
+        this.steps = 0;
+        this.hunting = 0; // set this to enable delayed history execution
+        this.shots = 0;
+        this.numSteps = 0;
+        this.team = settings.team || null;
+    },
+
+    // update position
+    update: function(dt) {
+        // Accept keyboard input
+        if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
+            this.shoot();
+        }
+
+        if (me.input.isKeyPressed('left')) {
+            this.vel.x -= this.accel.x * me.timer.tick;
+        } else if (me.input.isKeyPressed('right')) {
+            this.vel.x += this.accel.x * me.timer.tick;
+        } else {
+            this.vel.x = 0;
+        }
+        
+        this.updateMovement();
+        return true;
+        // TODO is the rally ship on the screen?
+        // Is there a target to destroy?
+        // if (this.targets.length !== 0 && this.hunting < 0) {
+        //     // navigate to the target and shoot!
+        //     if (this.shots >= 5 || this.numSteps >= 400) {
+        //         this.shots = 0;
+        //         this.numSteps = 0;
+        //         this.targets.shift();
+        //         return true;
+        //     }
+
+        //     var myPos = (this.pos.x + this.width / 2);
+        //     var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
+        //     var move = this.accel.x * me.timer.tick;
+        //     this.numSteps++;
+        //     if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot[this.team]) {
+        //         if (myPos > targetPos) {
+        //             this.vel.x -= move;
+        //         } else {
+        //             this.vel.x += move;
+        //         }
+        //     } else if (game.canShoot[this.team]) {
+        //         this.vel.x = 0;
+        //         this.targets[0].setVulnerable(true);
+        //         this.shots++;
+        //         this.shoot();
+        //     } else {
+        //         this.vel.x = 0;
+        //     }
+
+        //     this.updateMovement();
+        //     return true;
+        // }
+    },
+
+    /**
+     * Shoots a laser!  The player can only have 1 shot outstanding at a time
+     */
+    shoot: function() {
+        var x = this.pos.x + this.width / 2;
+        var teamShip = this;
+        var shot = me.pool.pull("bullet", x, this.pos.y, {
+            height: 16,
+            image: "bullet",
+            name: "shot",
+            spriteheight: 16,
+            spritewidth: 16,
+            width: 16,
+            shootDown: false,
+            teamShip: teamShip
+        });
+        me.audio.play("shoot");
+        game.canShoot[this.team] = false;
+        me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
+    },
+
+    /**
+     * Adds the given target to the players list of targets
+     * @param target the ship object to target
+     */
+    addTarget: function(target) {
+        // TODO temporary to fix extra ships on the screen
+        if (target.type == game.ENEMY_ENTITY_SUPER) {
+            var playerShip = this;
+            // add all remaining ships as targets first
+            _.each(game.OID_MAP, function(element, index, list) {
+                if (element.displayed) {
+                    if (element.ship) {
+                        console.log("adding targets first");
+                        playerShip.targets.push(element.ship);
+                    }
+                }
+            });
+            this.targets.push(target);
+            // sort the queue by entity type
+            this.targets = _.sortBy(this.targets, function(ship) {
+                return ship.type;
+            });
+            console.log(this.targets);
+        } else {
+            // keep track of a queue of targets
+            this.targets.push(target);
+        }
+
+    },
+
+    /**
+     * Removes the target that was destroyed if it matches the players top target
+     * @param target the target to remove
+     */
+    removeTarget: function(target) {
+        this.shots = 0;
+        this.numSteps = 0;
+        game.cleanupOld();
+        var destroyed = this.targets.shift(); // shifts the array 1 position to the left
+        this.removePotentialTarget(target); // TODO inefficient
+        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+
+            game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
+
+            game.VICTORY_ANIMATIONS = {
+                SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
+                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
+                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+            }
+
+            me.state.change(me.state.VICTORY);
+        }
+        this.hunting = 0;
+    },
+
+    removePotentialTarget: function(target) {
+        var oid = target.objectID;
+        var index = -1;
+        for (var i = 0; i < this.targets.length; i++) {
+            if (oid == this.targets[i].objectID) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index != -1) {
+            this.targets.splice(index, 1);
+        }
+    },
+
+    setDelay: function(delay) {
+        this.delay = delay;
+    },
+
+    sortTargetsByDate: function() {
+        this.targets = _.sortBy(this.targets, function(target) {
+            return target.date ? new Date(target.date).getTime() : -1;
+        });
+    }
+});
+
                 game.RallyShipEntity = me.ObjectEntity.extend({
 
     // constructor
@@ -53755,17 +53969,16 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         this.setVelocity(game.SPEED, 0);
         
         this.type = game.RALLY_SHIP;
+
+        this.renderable.image = settings.changeImage;
     },
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.x > game.WINDOW_WIDTH - 8) {
+        if (this.pos.x > game.WINDOW_WIDTH) {
             me.game.world.removeChild(this);
         }
-
-        this.vel.x += this.accel.x * me.timer.tick;
-
-        this.updateMovement();
+        this.pos.x += game.SPEED;
         return true;
     }
 });
@@ -53777,7 +53990,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(game.SPEED, 0);
+        this.setVelocity(game.SPEED + 2, 0);
         
         this.type = game.PLAYER;
         
@@ -53889,9 +54102,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             this.vel.x = 0;
         }
         */
-        if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
-            this.shoot();
-        }
 
         // check & update player movement
         this.updateMovement();
@@ -54013,7 +54223,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     // pass the correct image, width/height and x, y for any type of ship that moves in the same pattern
     init: function(x, y, settings) {
         // call the constructor
-
+        settings.color = "red";
         this.parent(x, 1 - settings.height, settings);
 
         this.startingX = x;
@@ -54034,6 +54244,8 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
 
         this.featureOid = settings.featureOid || null;
         //console.log("featureOid", this.featureOid);
+
+        this.color = "red";
         
         this.isVulnerable = false;          // can this ship be destroyed
         this.goToY = y;                     // final y position
@@ -54047,6 +54259,20 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         this.isDestructable =  function() {
             return this.isVulnerable;
         };
+    },
+
+
+    // TODO
+    draw: function(context) {
+        context.save();
+        this.parent(context);       
+        context.globalCompositeOperation = "source-in";
+
+        // context.fillStyle="green";
+        // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+
+        context.globalCompositeOperation = "source-over";
+        context.restore();
     },
 
     flyOff : function() {
@@ -54070,20 +54296,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
 
     },
 
-    // draw: function(context) {
-    //     context.save();
-    //     // save the previous value
-    //     var local_alpha = context.globalAlpha;
-    //     // semi transparency
-    //     context.globalAlpha = 0.5;
-    //     // parent draw function
-    //     context.restore();
-    //     this.parent(context);
-    //     // restore previous value
-    //     context.globalAlpha = local_alpha;
-        
-    // },
-
     // ship behavior
     // Called many times to refresh the ships on the screen
     // to optimize performance, minimize the cost of calling this
@@ -54103,8 +54315,10 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         }
 
         if (this.type == game.ENEMY_ENTITY_SUPER) {
+
             this.update = function() {
                this.normalMovement();
+
             }
         }
 
@@ -54190,7 +54404,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
 
         // did we hit an enemy?
         var res = me.game.world.collide(this);
-        if (res) {
+        if (res && res.obj) {
             var image = null;
             if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                 image = me.loader.getImage('explosionSuper');
@@ -54256,6 +54470,21 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
                 } else {
                     game.log.addItem(res.obj.record.get('Name') + " COMP", time);
                 }
+
+                var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
+
+                var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
+                if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
+                    game.LABEL_INDEX = 0;
+                }
+                var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
+                    height: 32,
+                    width: 128,
+                    formattedId: res.obj.record.get('FormattedID'),
+                    color: teamColor
+                });
+
+                me.game.world.addChild(label, Number.POSITIVE_INFINITY);
 
 
                 this.teamShip.removeTarget(res.obj);
@@ -54565,22 +54794,47 @@ game.TitleScreen = me.ScreenObject.extend({
 
     eventDrivenSetup: function() {
         game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height);
-
         var scope = angular.element($("#root")).scope();
         scope.eventHandler.playThrough();
+        var i = 0;
         setInterval(function() {
-            var ship = me.pool.pull("rallyShip", 1, 1, {
-                height: 50,
-                image: "rectangle",
-                spriteheight: 50,
-                spritewidth: 100,
-                width: 100,
+            i++;
+            var img = game.redRectangle;
+            if (i %2 == 0) {
+                img = game.blueRectangle;
+            }
+            var ship = me.pool.pull("rallyShip", -41, 1, {
+                height: 42,
+                image: 'rectangle',
+                spriteheight: 42,
+                spritewidth: 42,
+                width: 42,
                 z: Number.POSITIVE_INFINITY,
                 type: game.RALLY_SHIP,
+                changeImage: img
             });
 
             me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
-        }, 5000);
+        }, 10000);
+
+        var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
+        game.TEAM_SHIP_COLOR_INDEX++; // TODO special color?
+        var teamOid = -1;
+        // create a new one
+        var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
+            image: "player_" + color.name,
+            spriteheight: 64,
+            spritewidth: 32,
+            width: 32,
+            height: 64,
+            z: Number.POSITIVE_INFINITY,
+            type: game.PLAYER,
+            team: teamOid
+        });
+        game.canShoot[teamOid] = true;
+        game.EXTRA_TEAM_SHIP = team; // TODO use this
+        
+        me.game.world.addChild(team, Number.POSITIVE_INFINITY);
     },
 
     addInitiative: function(record, oid, date) {
@@ -54596,7 +54850,6 @@ game.TitleScreen = me.ScreenObject.extend({
         if (point) {
             var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
             game.featureColorMap[oid] = color;
-            console.log("xxx" + oid + " " + color);
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             this.numFeatures++;
             game.FEATURE_SHIP_COLOR_INDEX++;
@@ -54642,9 +54895,7 @@ game.TitleScreen = me.ScreenObject.extend({
             game.POSITION_MANAGER.addPending(oid, "HierarchicalRequirement");
         }
 
-        // a lot of unnecessary calls
-        game.scoreboard.initPoints(record.get('Project'));
-        //console.log("init points for " + record.get('Project'));
+        game.getTeam(record.get('Project'));
     },
 
     addTask: function(record, oid, date) {
@@ -54718,7 +54969,8 @@ game.TitleScreen = me.ScreenObject.extend({
         }
         this.updateShip(record, oid, date, function(rec) {
             var endDate = record.get('ActualEndDate');
-            return endDate && moment(endDate).isBefore(moment());
+            //return false;
+            return endDate && moment(endDate).isBefore(moment()); // TODO fix
         });
     },
 
@@ -54775,7 +55027,6 @@ game.TitleScreen = me.ScreenObject.extend({
                                 childShip.team = teamOid;
                                 teamShip.addTarget(childShip);
                             }
-
                             // also check pending ships?
                         });
                     }
@@ -54997,7 +55248,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     $scope.disconnectRealtime = function() {
         RealtimeService.disconnect();
     }
-    
+
     $scope.updateStatus = function(status) {
         $scope.realtimeStatus = status;
     }
@@ -55036,18 +55287,22 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         }
     };
 
-    $scope.initPoints = function(team) {
+    $scope.addTeamColor = function(team, color) {
+        console.log("add team color", team, color);
         if (!$scope.scoreboard[team]) {
             $scope.scoreboard[team] = {
-                points: 0
+                points: 0,
+                color: color
             }
         }
     }
 
-    $scope.addTeamColor = function(team, color) {
-        if ($scope.scoreboard[team]) {
-            $scope.scoreboard[team].color = color;
+    $scope.getTeamColor = function(team) {
+        if (team && $scope.scoreboard[team]) {
+            console.log("returning color " + $scope.scoreboard[team].color, team, $scope.scoreboard);
+            return $scope.scoreboard[team].color;
         }
+        return "white";
     }
 }]);
 
@@ -55150,7 +55405,7 @@ module.factory('LookbackService', function() {
             var projectOid = record.get('Project');
             if (projectOidMap[projectOid] && !triggered[projectOid]) {
                 triggered[projectOid] = true;
-                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
+                //eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
             }
 
             var typeHierarchy = record.get('_TypeHierarchy');
@@ -55401,6 +55656,7 @@ module.factory('LookbackService', function() {
             callback: function (records, operation, success) {
                 _.each(records, function (record) {
                     projectOidMap[record.get('ObjectID')] = record;
+                    eventTrigger.trigger("Project", {record: record});
                 });
                 callbackFn();
             }
@@ -55878,7 +56134,9 @@ var GameEventHandler = function(realtime) {
     });
 
     $(listenTo).on("Project", null, null, function(event, data) {
-        game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
+        if (!game.PROJECT_MAPPING[data.record.get('ObjectID')]) {
+            game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
+        }
     });
 
     $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {

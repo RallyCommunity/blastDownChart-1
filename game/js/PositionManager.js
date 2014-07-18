@@ -196,21 +196,24 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     };
 
     var removeFromArr = function(oid, arr) {
-        var removeIdx = -1;
-        for (var i = 0; i < arr.length; i++) {
-            if (arr[i] == oid) {
-                removeIdx = i;
-                break;
+        if (arr) {
+            var removeIdx = -1;
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] == oid) {
+                    removeIdx = i;
+                    break;
+                }
             }
-        }
-        if (removeIdx >= 0) {
-            arr.splice(removeIdx, 1);
-            return true;
+            if (removeIdx >= 0) {
+                arr.splice(removeIdx, 1);
+                return true;
+            }
+            return false;
         }
         return false;
     }
 
     this.removePending = function(oid) {
-        !removeFromArr(oid) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
+        !removeFromArr(oid, pendingPlacement.large) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
     };
 }

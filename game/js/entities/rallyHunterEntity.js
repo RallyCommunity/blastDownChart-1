@@ -1,122 +1,60 @@
-game.PlayerEntity = me.ObjectEntity.extend({
+// Can be controlled via keyboard/mouse
+// hunts the RallyShip that flies across the top
+// More random movement pattern
+
+game.RallyHunterEntity = me.ObjectEntity.extend({
 
     // constructor
     init: function(x, y, settings) {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(game.SPEED + 2, 0);
+        this.setVelocity(game.SPEED + 2, game.SPEED + 2);
         
-        this.type = game.PLAYER;
+        this.type = game.RALLY_HUNTER;
         
         this.targets = [];
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
         this.numSteps = 0;
         this.team = settings.team || null;
+        var hunterShip = this;
+        this.ship = this;
+        this.update = function(dt) {
+            hunterShip.normalMovement(dt);
+        }
     },
 
     // update position
-    update: function(dt) {
-        this.hunting--;
+    normalMovement: function(dt) {
+        // Accept keyboard input
 
-        // Is there a target to destroy?
-        if (this.targets.length !== 0 && this.hunting < 0) {
-            // navigate to the target and shoot!
-            if (this.shots >= 5 || this.numSteps >= 400) {
-                this.shots = 0;
-                this.numSteps = 0;
-                this.targets.shift();
-                return true;
-            }
-
-            var myPos = (this.pos.x + this.width / 2);
-            var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
-            var move = this.accel.x * me.timer.tick;
-            this.numSteps++;
-            if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot[this.team]) {
-                if (myPos > targetPos) {
-                    this.vel.x -= move;
-                } else {
-                    this.vel.x += move;
-                }
-            } else if (game.canShoot[this.team]) {
-                this.vel.x = 0;
-                this.targets[0].setVulnerable(true);
-                this.shots++;
-                this.shoot();
-            } else {
-                this.vel.x = 0;
-            }
-
-            this.updateMovement();
-            return true;
-        }
-
-        // Player movement pattern
-        // 0 --------->
-        // 1 <---------
-        // 2 ------------------->
-        // 3           <---------
-        // 4           --------->
-        // 5 <-------------------
-        // repeat
-
-        if (this.stepNum === 0) {
-            if (this.pos.x > game.WINDOW_WIDTH / 2) {
-                this.stepNum++;
-            }
-
-            // move right halfway
-            this.vel.x += this.accel.x * me.timer.tick;
-        } else if (this.stepNum == 1) {
-            if (this.pos.x < 32) {
-                this.stepNum++;
-                game.cleanup();
-            }
-            // move to left edge
-            this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (this.stepNum == 2) {
-            if (this.pos.x > game.WINDOW_WIDTH - 64) {
-                this.stepNum++;
-            }
-            // move all the way across (right)
-            this.vel.x += this.accel.x * me.timer.tick;
-        } else if (this.stepNum == 3) {
-            if (this.pos.x < game.WINDOW_WIDTH / 2) {
-                this.stepNum++;
-            }
-            // half way across to the left
-            this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (this.stepNum == 4) {
-            if (this.pos.x > game.WINDOW_WIDTH - 64) {
-                this.stepNum++;
-            }
-            // back to the right side
-            this.vel.x += this.accel.x * me.timer.tick;
-        } else if (this.stepNum == 5) {
-            if (this.pos.x < 32) {
-                this.stepNum = 0;
-            }
-            // move all the way across the screen (left)
-            this.vel.x -= this.accel.x * me.timer.tick;
-        } else {
-            this.stepNum = 0;
+        if (me.input.isKeyPressed('up') && this.pos.y > game.WINDOW_HEIGHT - this.height * 2) {
+            this.vel.y -= this.accel.y * me.timer.tick;
             this.vel.x = 0;
+        } else if (me.input.isKeyPressed('down') && this.pos.y < game.WINDOW_HEIGHT - this.height) {
+            this.vel.y += this.accel.y * me.timer.tick;
+            this.vel.x = 0;
+        } else if (me.input.isKeyPressed('left')) {
+            this.vel.x -= this.accel.x * me.timer.tick;
+            this.vel.y = 0;
+        } else if (me.input.isKeyPressed('right')) {
+            this.vel.x += this.accel.x * me.timer.tick;
+            this.vel.y = 0;
+        } else {
+            this.vel.x = 0;
+            this.vel.y = 0;
         }
 
-        // check & update player movement
+        if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
+            this.shoot();
+        }
+        
         this.updateMovement();
-
-        // update animation if necessary
-        if (this.vel.x !== 0 || this.vel.y !== 0) {
-            // update object animation
-            this.parent(dt);
-            return true;
-        }
         return true;
+        // TODO is the rally ship on the screen?
+
     },
 
     /**
@@ -158,16 +96,86 @@ game.PlayerEntity = me.ObjectEntity.extend({
                 }
             });
             this.targets.push(target);
+
             // sort the queue by entity type
             this.targets = _.sortBy(this.targets, function(ship) {
                 return ship.type;
             });
+            this.indicateTarget();
+
             console.log(this.targets);
         } else {
             // keep track of a queue of targets
             this.targets.push(target);
         }
 
+    },
+
+    indicateTarget: function() {
+        var flicker = 200;
+        // indicate to the user that they have a new target!
+        var tween;
+        tween = new me.Tween(this.renderable)
+            .to({
+                alpha: .2
+            }, flicker);
+
+        var tween2 = new me.Tween(this.renderable)
+            .to({
+                alpha: 1
+            }, flicker);
+
+        // Also animate the top target
+        var targetTween;
+        targetTween = new me.Tween(this.targets[0].renderable)
+            .to({
+                alpha: .2
+            }, flicker);
+        var targetTween2 = new me.Tween(this.targets[0].renderable)
+            .to({
+                alpha: 1
+            }, flicker);
+
+        targetTween.chain(targetTween2);
+        targetTween.start();
+        tween.chain(tween2);
+        tween.start();
+        this.targets[0].setVulnerable(true);
+
+        this.update = function(dt) {
+            // Is there a target to destroy?
+            if (this.targets.length !== 0) {
+                // navigate to the target and shoot!
+                if (this.shots >= game.shootingAttemps || this.numSteps >= 400) {
+                    this.shots = 0;
+                    this.numSteps = 0;
+                    this.targets.shift();
+                    return true;
+                }
+
+                var myPos = (this.pos.x + this.width / 2);
+                var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
+                var move = this.accel.x * me.timer.tick;
+                this.numSteps++;
+                if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot[this.team]) {
+                    if (myPos > targetPos) {
+                        this.vel.x -= move;
+                    } else {
+                        this.vel.x += move;
+                    }
+                } else if (game.canShoot[this.team]) {
+                    this.vel.x = 0;
+                    this.targets[0].setVulnerable(true);
+                    this.shots++;
+                    this.shoot();
+                } else {
+                    this.vel.x = 0;
+                }
+
+                this.updateMovement();
+                return true;
+            }
+        }
     },
 
     /**
@@ -180,8 +188,9 @@ game.PlayerEntity = me.ObjectEntity.extend({
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target); // TODO inefficient
-        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+        var hunterShip = this;
 
+        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {
@@ -193,7 +202,13 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
             me.state.change(me.state.VICTORY);
         }
-        this.hunting = 0;
+
+        if (this.targets.length > 0) {
+            this.update = function(dt) {
+                hunterShip.normalMovement(dt);
+            }
+            this.indicateTarget();
+        }
     },
 
     removePotentialTarget: function(target) {
