@@ -24,14 +24,15 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
-            // navigate to the target and shoot!
-            if (this.shots >= 5 || this.numSteps >= 400) {
+            if (!game.OID_MAP[this.targets[0].objectID] || this.shots >= 5 || this.numSteps >= 300) {
+                // move on to the next target
                 this.shots = 0;
                 this.numSteps = 0;
                 this.targets.shift();
                 return true;
             }
 
+            // navigate to the target and shoot!
             var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
@@ -152,7 +153,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
             _.each(game.OID_MAP, function(element, index, list) {
                 if (element.displayed) {
                     if (element.ship) {
-                        console.log("adding targets first");
                         playerShip.targets.push(element.ship);
                     }
                 }
@@ -162,7 +162,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
             this.targets = _.sortBy(this.targets, function(ship) {
                 return ship.type;
             });
-            console.log(this.targets);
         } else {
             // keep track of a queue of targets
             this.targets.push(target);

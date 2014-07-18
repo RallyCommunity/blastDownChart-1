@@ -17,10 +17,14 @@ Ext.define('CustomApp', {
                     project: null
                 },
                 listeners: {
-                    load: function() {
+                    load: function(el, records, successful, eOpts) {
+                        if (!successful) {
+                            console.error(el, records, successful);
+                        }
                         Ext.getBody().unmask();
                         $('.x-mask').css("background", "none");
                     }
+
                 }
             },
             listeners: {

@@ -23,7 +23,6 @@ game.Ship = me.ObjectEntity.extend({
         this.date = settings.date;
 
         this.featureOid = settings.featureOid || null;
-        //console.log("featureOid", this.featureOid);
 
         this.color = "red";
         
@@ -36,45 +35,49 @@ game.Ship = me.ObjectEntity.extend({
          * Returns whether or not this ship is vulnerable to attack
          * @return true if this ship can be destroyed, else false
          */
-        this.isDestructable =  function() {
+        this.isDestructable = function() {
             return this.isVulnerable;
+        };
+
+        this.flyOff = function() {
+            console.log("FLYING OFF", this, this.renderable);
+            // fade off the screen instead of flying off
+            // have to remove it from data structures immediately in case they are restored
+
+
+            if (this.team && game.TEAM_SHIPS[this.team]) {
+                game.TEAM_SHIPS[this.team].removePotentialTarget(this);
+            } else {
+                game.TEAM_SHIPS[game.SPECIAL_TEAM].removePotentialTarget(this);
+            }
+            game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
+            delete game.OID_MAP[this.objectID];
+            if (this.renderable) {
+                (new me.Tween(this.renderable))
+                    .to({
+                        alpha: 0
+                    }, 3000)
+                    .onComplete((function() {               
+                        me.game.world.removeChild(this);
+                    }).bind(this))
+                    .start();
+            }
         };
     },
 
 
     // TODO
-    draw: function(context) {
-        context.save();
-        this.parent(context);       
-        context.globalCompositeOperation = "source-in";
+    // draw: function(context) {
+    //     context.save();
+    //     //this.parent(context);       
+    //     context.globalCompositeOperation = "source-in";
 
-        // context.fillStyle="green";
-        // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+    //     // context.fillStyle="green";
+    //     // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
 
-        context.globalCompositeOperation = "source-over";
-        context.restore();
-    },
-
-    flyOff : function() {
-        // fade off the screen instead of flying off
-        // have to remove it from data structures immediately in case they are restored
-        game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
-        delete game.OID_MAP[this.objectID];
-        var teamShip = game.getExistingTeam(this.featureOid);
-        if (teamShip) {
-            teamShip.removePotentialTarget(this);
-        }
-        
-        (new me.Tween(this.renderable))
-            .to({
-                alpha: 0
-            }, 3000)
-            .onComplete((function() {               
-                me.game.world.removeChild(this);
-            }).bind(this))
-            .start();
-
-    },
+    //     context.globalCompositeOperation = "source-over";
+    //     context.restore();
+    // },
 
     // ship behavior
     // Called many times to refresh the ships on the screen
@@ -97,8 +100,7 @@ game.Ship = me.ObjectEntity.extend({
         if (this.type == game.ENEMY_ENTITY_SUPER) {
 
             this.update = function() {
-               this.normalMovement();
-
+               return this.normalMovement();
             }
         }
 
@@ -133,6 +135,7 @@ game.Ship = me.ObjectEntity.extend({
             }
         }
         this.numSteps++;
+        return true;
     },
 
     /**

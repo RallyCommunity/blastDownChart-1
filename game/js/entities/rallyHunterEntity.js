@@ -22,7 +22,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         var hunterShip = this;
         this.ship = this;
         this.update = function(dt) {
-            hunterShip.normalMovement(dt);
+            return hunterShip.normalMovement(dt);
         }
     },
 
@@ -90,7 +90,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             _.each(game.OID_MAP, function(element, index, list) {
                 if (element.displayed) {
                     if (element.ship) {
-                        console.log("adding targets first");
                         playerShip.targets.push(element.ship);
                     }
                 }
@@ -102,8 +101,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 return ship.type;
             });
             this.indicateTarget();
-
-            console.log(this.targets);
         } else {
             // keep track of a queue of targets
             this.targets.push(target);
@@ -175,7 +172,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 this.updateMovement();
                 return true;
             }
+            return true;
         }
+        
     },
 
     /**

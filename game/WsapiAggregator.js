@@ -1,7 +1,5 @@
 function WSAPIAggregator() {
     this.getWorkItem = function(oid, model, callback) {
-        console.log("fetch work item ", oid, model);
-
         Ext.create('Rally.data.WsapiDataStore', {
             model   : model,
             fetch   : true,
@@ -16,7 +14,6 @@ function WSAPIAggregator() {
         }).load({
             scope: this,
             callback: function(records) {
-                console.log("record loaded");
                 if (callback && _.isFunction(callback)) {
                     if (records && records.length == 1) {
                         callback(records[0]);

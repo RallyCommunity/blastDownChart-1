@@ -264,7 +264,7 @@ var game = {
     },
 
     getExistingTeam: function(teamOid) {
-        return game.TEAM_SHIPS[teamOid];
+        return game.TEAM_SHIPS[teamOid] || game.TEAM_SHIPS[game.SPECIAL_TEAM];
     },
 
     /**
