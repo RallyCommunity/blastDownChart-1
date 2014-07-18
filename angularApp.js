@@ -39,7 +39,10 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.disconnectRealtime = function() {
+
         RealtimeService.disconnect();
+        $scope.realtimeStatus = 'Disconnected';
+        $scope.$apply();
     }
 
     $scope.updateStatus = function(status) {

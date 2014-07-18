@@ -130,11 +130,8 @@ var game = {
     "onload" : function () {
         game.LABEL_POSITONS = [
             new Point(0, game.WINDOW_HEIGHT - 144),
-            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 144),
             new Point(0, game.WINDOW_HEIGHT - 112),
-            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 112),
-            new Point(0, game.WINDOW_HEIGHT - 80),
-            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 80)
+            new Point(0, game.WINDOW_HEIGHT - 80)
         ];
         game.LABEL_INDEX = 0;
 

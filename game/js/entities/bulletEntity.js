@@ -94,28 +94,30 @@ game.BulletEntity = me.ObjectEntity.extend({
                 var pointsEarned = res.obj.record.get('PlanEstimate');
                 var time = moment(res.obj.date).format("MM-DD-YY HH:mm", 'completed');
                 if (projectName && pointsEarned) {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName + " for +" + pointsEarned, time);
+                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName + " for +" + pointsEarned, time, 'completed');
                 } else if (projectName) {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName, time);
+                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName, time, 'completed');
                 } else {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP", time);
+                    game.log.addItem(res.obj.record.get('Name') + " COMP", time, 'completed');
                 }
 
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
 
-                var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
-                if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
-                    game.LABEL_INDEX = 0;
+               
+
+                if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
+                    var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
+                    if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
+                        game.LABEL_INDEX = 0;
+                    }
+                    var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
+                        height: 32,
+                        width: 128,
+                        formattedId: res.obj.record.get('FormattedID') + ": " + res.obj.record.get('Name'),
+                        color: teamColor
+                    });
+                    me.game.world.addChild(label, Number.POSITIVE_INFINITY);
                 }
-                var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
-                    height: 32,
-                    width: 128,
-                    formattedId: res.obj.record.get('FormattedID'),
-                    color: teamColor
-                });
-
-                me.game.world.addChild(label, Number.POSITIVE_INFINITY);
-
 
                 this.teamShip.removeTarget(res.obj);
 

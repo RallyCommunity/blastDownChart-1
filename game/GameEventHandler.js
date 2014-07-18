@@ -41,7 +41,6 @@ var GameEventHandler = function(realtime) {
         timer = null;
         var scope = angular.element($("#root")).scope();
         scope.disconnectRealtime();
-        scope.updateStatus('Disconnected');
     };
 
     this.resetSpeed = function() {

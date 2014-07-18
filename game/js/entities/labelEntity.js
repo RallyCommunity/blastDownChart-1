@@ -5,7 +5,7 @@ game.LabelEntity = me.ObjectEntity.extend({
         // call the constructor
         this.parent(x + (settings.width / 2), y, settings);
 
-        this.font = new me.Font("Arial", settings.fontSize || 24, settings.color || "white", "center");
+        this.font = new me.Font("Arial", settings.fontSize || 24, settings.color || "white", "left");
         this.formattedId = settings.formattedId;
         this.nextAlpha = 1;
         this.isDisplayed = false;

@@ -57,7 +57,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     var initial = true;
 
     this.getFeaturePosition = function() {
-        console.log("Get feature position", availablePositions.large);
         if (numLarge > 0 && initial) {
             nextFeatureIndex += 2;
             if (nextFeatureIndex >= availablePositions.large.length) {
@@ -77,12 +76,10 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
                 }
             }
             if (index = -1) {
-                console.log("Fresh out");
                 return null;
             } else {
                 var temp = availablePositions.large[index];
                 delete availablePositions.large[index];
-                console.log("returning", temp);
                 return temp;
             }
         }
@@ -100,90 +97,57 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         return null;
     };
 
-    this.getStoryPosition = function(featureX) {
+    var getPosition = function(array, maxPerLine, featureX) {
         if (!featureX) {
-            return getRandomPosition(availablePositions.medium);
+            return getRandomPosition(array);
         }
 
         // try to find a story near its feature
         var featureIndex = featureX / shipWidth.large;
         var low = Math.max(0, (featureIndex - 1) * 2);
         var high = (featureIndex + 1) * 2 + 1;
-        var highCap = Math.min(NUM_MEDIUM_PER_LINE, high);
-        var max = Math.min(high + NUM_MEDIUM_PER_LINE + 1, availablePositions.medium.length);
-        // could be between low and high OR on the next row, which is low + NUM_MEDIUM_PER_LINE and high +
+        var highCap = Math.min(maxPerLine, high);
+        var max = Math.min(high + maxPerLine + 1, array.length);
 
         var idx;
         for (idx = low; idx < highCap; idx++) {
-            if (availablePositions.medium[idx]) {
-                var temp = availablePositions.medium[idx];
-                delete availablePositions.medium[idx];
+            if (array[idx]) {
+                var temp = array[idx];
+                delete array[idx];
                 return temp;
             }
         }
 
         for (idx = low + NUM_MEDIUM_PER_LINE; idx < max; idx++) {
-            if (availablePositions.medium[idx]) {
-                var temp = availablePositions.medium[idx];
-                delete availablePositions.medium[idx];
+            if (array[idx]) {
+                var temp = array[idx];
+                delete array[idx];
                 return temp;
             }
         }
 
-        return getRandomPosition(availablePositions.medium); // for now, just dont show a ship under this feature
+        return getRandomPosition(array); // for now, just dont show a ship under this feature
+    }
+
+    this.getStoryPosition = function(featureX) {
+        return getPosition(availablePositions.medium, NUM_MEDIUM_PER_LINE, featureX);
     };  
 
     this.getTaskPosition = function(featureX) {
-        // deal with it
-        if (!featureX) {
-            return getRandomPosition(availablePositions.small);
-        }
-
-        var featureIndex = featureX / shipWidth.large;
-        var low = Math.max(0, (featureIndex - 1) * 2);
-        var high = (featureIndex + 1) * 2 + 1;
-        var highCap = Math.min(NUM_SMALL_PER_LINE, high);
-        var max = Math.min(high + NUM_SMALL_PER_LINE + 1, availablePositions.small.length);
-
-        var idx;
-        for (idx = low; idx < highCap; idx++) {
-            if (availablePositions.small[idx]) {
-                var temp = availablePositions.small[idx];
-                delete availablePositions.small[idx];
-                return temp;
-            }
-        }
-
-        for (idx = low + NUM_SMALL_PER_LINE; idx < max; idx++) {
-            if (availablePositions.small[idx]) {
-                var temp = availablePositions.small[idx];
-                delete availablePositions.small[idx];
-                return temp;
-            }
-        }
-
-        return getRandomPosition(availablePositions.small);
+        return getPosition(availablePositions.small, NUM_SMALL_PER_LINE, featureX);
     };
 
     this.addAvailablePosition = function(width, x, y) {
-        if (!width || !x || !y) {
-            console.error("bad args", width, x, y);
-            return;
-        }
-
         var addBackTo;
 
         if (width == shipWidth.large) {
             if (pendingPlacement.large.length > 0) {
-                console.log("Feature pending");
                 oid = pendingPlacement.large.shift();
-                console.log("oid", oid);
                 if (!game.OID_MAP[oid]) {
-                    console.error("This record does not exist");
+                    //console.error("This record does not exist");
                 } else if (!game.OID_MAP[oid].record) {
-                    console.error("This record is current displayed");
+                    //console.error("This record is current displayed");
                 } else {
-                    console.log("add Feature", game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, x, y);
                     game.shipScreen.addFeature(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, new Point(x, y));
                 }
                 return;
@@ -193,9 +157,9 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             if (pendingPlacement.medium.length > 0) {
                 oid = pendingPlacement.medium.pop();
                 if (!game.OID_MAP[oid]) {
-                    console.error("This record does not exist");
+                    //console.error("This record does not exist");
                 } else if (!game.OID_MAP[oid].record) {
-                    console.error("This record is current displayed");
+                    //console.error("This record is current displayed");
                 } else {
                     game.shipScreen.addStory(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, new Point(x, y));
                 }
@@ -207,9 +171,9 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             if (pendingPlacement.small.length > 0) {
                 oid = pendingPlacement.small.pop();
                 if (!game.OID_MAP[oid]) {
-                    console.error("This record does not exist");
+                    //console.error("This record does not exist");
                 } else if (!game.OID_MAP[oid].record) {
-                    console.error("This record is current displayed");
+                    //console.error("This record is current displayed");
                 } else {               
                     game.shipScreen.addTask(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, new Point(x, y));
                 }
@@ -221,8 +185,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             // should never happen
             return;
         }
-
-        console.log("Adding available position: ", width, x, y);
 
         // find index in the array to add this open slot to
         var index = Math.floor(x / width);
@@ -239,7 +201,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     this.addPending = function(oid, type) {
         switch(type) {
             case "PortfolioItem/Feature":
-            console.log("adding pending feature");
                 pendingPlacement.large.push(oid);
                 return;
             case "Task":

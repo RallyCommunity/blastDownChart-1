@@ -167,6 +167,9 @@ game.PlayerEntity = me.ObjectEntity.extend({
             this.targets.push(target);
         }
 
+        if (game.OID_MAP[target.objectID]) {
+            game.OID_MAP[target.objectID].targeted = this.team || true;
+        }
     },
 
     /**

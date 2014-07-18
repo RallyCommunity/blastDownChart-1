@@ -40,10 +40,8 @@ game.Ship = me.ObjectEntity.extend({
         };
 
         this.flyOff = function() {
-            console.log("FLYING OFF", this, this.renderable);
             // fade off the screen instead of flying off
             // have to remove it from data structures immediately in case they are restored
-
 
             if (this.team && game.TEAM_SHIPS[this.team]) {
                 game.TEAM_SHIPS[this.team].removePotentialTarget(this);
