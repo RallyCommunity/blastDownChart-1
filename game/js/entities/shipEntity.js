@@ -44,24 +44,21 @@ game.Ship = me.ObjectEntity.extend({
         this.flyOff = function() {
             // fade off the screen instead of flying off
             // have to remove it from data structures immediately in case they are restored
-
-            // if (this.team && game.TEAM_SHIPS[this.team]) {
-            //     game.TEAM_SHIPS[this.team].removePotentialTarget(this);
-            // } else {
-            //     game.TEAM_SHIPS[game.SPECIAL_TEAM].removePotentialTarget(this);
-            // }
-            game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
-            delete game.OID_MAP[this.objectID];
-            if (this.renderable) {
-                (new me.Tween(this.renderable))
-                    .to({
-                        alpha: 0
-                    }, 3000)
-                    .onComplete((function() {               
-                        me.game.world.removeChild(this);
-                    }).bind(this))
-                    .start();
-            }
+            game.log.addItem(this.record.get('Name') + " recycled", this.date, 'recycled');
+            if (!(game.OID_MAP[this.objectID] && game.OID_MAP[this.objectID].targeted)) {
+                game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
+                delete game.OID_MAP[this.objectID];
+                if (this.renderable) {
+                    (new me.Tween(this.renderable))
+                        .to({
+                            alpha: 0
+                        }, 3000)
+                        .onComplete((function() {               
+                            me.game.world.removeChild(this);
+                        }).bind(this))
+                        .start();
+                }
+            } // else it is currently targeted, dont fade.  Just log that it was recycled.
         };
     },
 
@@ -69,11 +66,13 @@ game.Ship = me.ObjectEntity.extend({
     // TODO
     // draw: function(context) {
     //     context.save();
-    //     //this.parent(context);       
-    //     context.globalCompositeOperation = "source-in";
+          
+    //     context.clearRect(this.pos.x, this.pos.y, this.width, this.height); 
+    //     //this.parent(context);    
+    //     context.globalCompositeOperation = "source-out";
 
-    //     // context.fillStyle="green";
-    //     // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+    //     context.fillStyle="green";
+    //     context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
 
     //     context.globalCompositeOperation = "source-over";
     //     context.restore();
@@ -81,7 +80,7 @@ game.Ship = me.ObjectEntity.extend({
 
 
     // draw: function(context, rect) {
-    //     //this.parent(context, rect);
+    //     this.parent(context, rect);
 
     //     var image = this.renderable.image;
     //     var tempCanvas = document.createElement('canvas');

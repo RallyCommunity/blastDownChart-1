@@ -138,8 +138,6 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                
-
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
 
                

@@ -92,13 +92,15 @@ game.PlayScreen = me.ScreenObject.extend({
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             this.numFeatures++;
         } else {
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "PortfolioItem/Feature");
-            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
     },
 
@@ -126,13 +128,15 @@ game.PlayScreen = me.ScreenObject.extend({
             //this.updateStory(record, oid, date);
 
         } else {
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "HierarchicalRequirement");
-            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
 
         game.getTeam(record.get('Project'));
@@ -186,13 +190,15 @@ game.PlayScreen = me.ScreenObject.extend({
             this.numTasks++;
             //this.updateTask(record, oid, date);
         } else {
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "Task");
-            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
         
     },
@@ -230,7 +236,7 @@ game.PlayScreen = me.ScreenObject.extend({
                     });
                 }
             }
-            game.log.addItem(ship.record.get('Name') + " recycled", date, 'recycled');
+
             if (ship.flyOff) {
                 ship.flyOff(); // also adds this point back as available
             }
@@ -328,14 +334,13 @@ game.PlayScreen = me.ScreenObject.extend({
                 }
                 // oh well, we tried to make it more fun!
 
-                // TODO what about updating the score?!?!?
                 ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
                 ////
-
 
                 
                 delete game.OID_MAP[oid];
@@ -424,6 +429,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
                 ////
 
                 delete game.OID_MAP[oid];
@@ -460,6 +466,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
                 ////
 
                 delete game.OID_MAP[oid];
