@@ -163,10 +163,8 @@ game.PlayerEntity = me.ObjectEntity.extend({
                     }
                 });
                 this.targets.push(target);
-                // sort the queue by entity type
-                this.targets = _.sortBy(this.targets, function(ship) {
-                    return ship.type;
-                });
+                // TODO dont sort the queue by entity type
+                
             } else {
                 // keep track of a queue of targets
                 this.targets.push(target);
@@ -180,7 +178,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
                 }
             }
         } else {
-            console.log("Not added as a target", game.OID_MAP[target.objectID], target);
         }
         
     },

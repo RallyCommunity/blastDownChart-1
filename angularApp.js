@@ -42,7 +42,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
         RealtimeService.disconnect();
         $scope.realtimeStatus = 'Disconnected';
-        $scope.$apply();
+        $scope.$digest();
     }
 
     $scope.updateStatus = function(status) {
@@ -65,7 +65,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
             note: logItem,
             class: className
         });
-        $scope.$apply();
+        $scope.$digest();
     };
 
     $scope.scoreboard = {};
@@ -73,6 +73,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
+
             $scope.scoreboard[team].points += points || 0;
         } else {
             var newPoints = points || 0;
@@ -81,6 +82,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
                 color: "#000000"
             }
         }
+        $scope.$digest();
     };
 
     $scope.addTeamColor = function(team, color) {

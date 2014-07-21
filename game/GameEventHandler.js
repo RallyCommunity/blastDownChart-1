@@ -77,7 +77,7 @@ var GameEventHandler = function(realtime) {
 
     this.History_Completed = function() {
         // pause the playThrough timer until all targets are removed
-        console.log("HISTORY COMPLETED");
+        //console.log("HISTORY COMPLETED");
     };
 
     this.PortfolioItemInitiative_Created = function(data) {

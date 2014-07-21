@@ -377,7 +377,6 @@ game.PlayScreen = me.ScreenObject.extend({
                         });
                     }
                     ship.team = teamOid;
-                    console.log("adding this story as a target");
                     teamShip.addTarget(ship);
                 }
             }

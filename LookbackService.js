@@ -40,7 +40,7 @@ module.factory('LookbackService', function() {
     var creationEvent = function(currentType, record, oid) {
         currentType = getType(currentType);
         if (currentType == "PortfolioItem/Initiative") {
-            console.log("CREATED INITIATIVE");
+            //console.log("CREATED INITIATIVE");
         }
         eventTrigger.trigger(currentType + "-Created", {
             record: record,
@@ -51,10 +51,10 @@ module.factory('LookbackService', function() {
 
     var recycleEvent = function(currentType, record, oid) {
         if (currentType == 'PortfolioItem/Initiative' || oid == initiativeOid   ) {
-            console.log("recycle initiative", currentType, record, oid, hierarchyMap.children);
+            //console.log("recycle initiative", currentType, record, oid, hierarchyMap.children);
         }
 
-        console.log("Recycle", oid, record);
+        //console.log("Recycle", oid, record);
 
         currentType = getType(currentType);
         eventTrigger.trigger(currentType + "-Recycled", {
@@ -122,7 +122,7 @@ module.factory('LookbackService', function() {
                 };
 
                 creationEvent(currentType, record, currentOid);
-                console.log('HierarchyMap', hierarchyMap, initiativeOffset);
+                //console.log('HierarchyMap', hierarchyMap, initiativeOffset);
                 return;
             }
 

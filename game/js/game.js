@@ -249,7 +249,6 @@ var game = {
             var obj = game.OID_MAP[game.historyFinishedData.oid];
             if (obj && obj.ship) {
                 var ship = obj.ship;
-                obj.targeted = true;
                 var teamShip = game.getExistingTeam(obj.ship.record.get('Project'));
                 if (teamShip) {
                     ship.team = obj.ship.record.get('Project');
