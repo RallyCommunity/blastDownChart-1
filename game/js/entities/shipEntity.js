@@ -31,6 +31,8 @@ game.Ship = me.ObjectEntity.extend({
         this.setupComplete = false;         // I am in position
         this.alpha = 1;
 
+        this.animateSprite = settings.animateSprite;
+        this.flip = true;
         /**
          * Returns whether or not this ship is vulnerable to attack
          * @return true if this ship can be destroyed, else false
@@ -43,11 +45,11 @@ game.Ship = me.ObjectEntity.extend({
             // fade off the screen instead of flying off
             // have to remove it from data structures immediately in case they are restored
 
-            if (this.team && game.TEAM_SHIPS[this.team]) {
-                game.TEAM_SHIPS[this.team].removePotentialTarget(this);
-            } else {
-                game.TEAM_SHIPS[game.SPECIAL_TEAM].removePotentialTarget(this);
-            }
+            // if (this.team && game.TEAM_SHIPS[this.team]) {
+            //     game.TEAM_SHIPS[this.team].removePotentialTarget(this);
+            // } else {
+            //     game.TEAM_SHIPS[game.SPECIAL_TEAM].removePotentialTarget(this);
+            // }
             game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
             delete game.OID_MAP[this.objectID];
             if (this.renderable) {
@@ -152,6 +154,18 @@ game.Ship = me.ObjectEntity.extend({
     normalMovement: function() {
         // movement pattern
         if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
+
+            
+            if (this.animateSprite) {
+                if (this.flip) {
+                    this.flipY(true);
+                } else {
+                    this.flipY(false);
+                }
+
+                this.flip = !this.flip;
+            }
+
             if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight)) === 0) {
                 this.moveRight = !this.moveRight;
                 this.numSteps = 0;

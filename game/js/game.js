@@ -83,7 +83,6 @@ var game = {
         height: 16
     },
 
-
     // track the score
     data : {
         // score
@@ -91,6 +90,16 @@ var game = {
     },
 
     log : {
+        addCompletedItem: function(record, projectName, pointsEarned, time) {
+            if (projectName && pointsEarned) {
+                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
+            } else if (projectName) {
+                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName, time, 'completed');
+            } else {
+                game.angularScope.addLogItem(record.get('Name') + " - completed", time, 'completed');
+            }
+        },
+
         addItem: function(logEvent, date, className) {
             game.angularScope.addLogItem(logEvent, date, className);
         },

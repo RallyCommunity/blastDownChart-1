@@ -32,6 +32,9 @@ game.resources = [
     {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
 
 
+
+    {name: "new_small_test", type: "image", src: "game/data/img/new/enemySmall.png"},
+
     {name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
     
     // bullet

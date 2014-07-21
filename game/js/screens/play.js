@@ -150,7 +150,39 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getTaskPosition(x);
         if (point) {
-            this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
+
+            var shipSettings = {
+                height: game.TASK_SHIP.height,
+                image: "new_small_test",
+                spriteheight: game.TASK_SHIP.height * 2,
+                spritewidth: game.TASK_SHIP.width,
+                width: game.TASK_SHIP.width,
+                objectID: oid,
+                z: this.zIndex,
+                type: game.ENEMY_ENTITY_SMALL,
+                date: date,
+                record: record,
+                animateSprite: true
+            };
+
+            if (featureOid) {
+                shipSettings.featureOid = featureOid;
+            }
+
+            var ship = me.pool.pull("enemyShip", point.x, point.y, shipSettings);
+
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
+            
+            game.OID_MAP[oid] = {
+                formattedId: record.get('FormattedID'),
+                ship: ship,
+                targeted: false
+            };
+
+            me.game.world.addChild(ship, this.zIndex++);
+
             this.numTasks++;
             //this.updateTask(record, oid, date);
         } else {
@@ -232,12 +264,7 @@ game.PlayScreen = me.ScreenObject.extend({
             var ship = obj.ship;
             ship.record = record;
         } else if (obj && obj.record) {
-            if (addTarget(record)) {
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
-                delete game.OID_MAP[oid];
-            } else {
-                game.OID_MAP[oid].record = record;
-            }
+            game.OID_MAP[oid].record = record;
         }
     },
 
@@ -249,7 +276,6 @@ game.PlayScreen = me.ScreenObject.extend({
             ship.record = record;
             var endDate = record.get('ActualEndDate');
             if (!obj.targeted && endDate && moment(endDate).isBefore(moment())) {
-                obj.targeted = true;
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project')
@@ -258,7 +284,6 @@ game.PlayScreen = me.ScreenObject.extend({
                     _.each(children, function(child) {
                         teamShip.addTarget(child);
                     });
-
                     teamShip.addTarget(ship);
                 }
             }
@@ -294,7 +319,6 @@ game.PlayScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].date = date;
                         var teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
-                            game.OID_MAP[oid].targeted = teamShip.team;
                             teamShip.addTarget(match);
                         }
 
@@ -303,7 +327,17 @@ game.PlayScreen = me.ScreenObject.extend({
                     }
                 }
                 // oh well, we tried to make it more fun!
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+
+                // TODO what about updating the score?!?!?
+                ////
+                var projectName = game.PROJECT_MAPPING[record.get('Project')];
+                var pointsEarned = record.get('PlanEstimate');
+                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+                game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                ////
+
+
+                
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
@@ -320,8 +354,8 @@ game.PlayScreen = me.ScreenObject.extend({
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
+            ship.date = date;
             if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
-                obj.targeted = true;
                 var children = record.get('Children');
 
                 var teamShip = game.getTeam(record.get('Project'));
@@ -334,10 +368,11 @@ game.PlayScreen = me.ScreenObject.extend({
                                 childShip.team = teamOid;
                                 teamShip.addTarget(childShip);
                             }
-                            // also check pending ships?
+                            // TODO also check pending ships?
                         });
                     }
                     ship.team = teamOid;
+                    console.log("adding this story as a target");
                     teamShip.addTarget(ship);
                 }
             }
@@ -370,7 +405,6 @@ game.PlayScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].date = date;
                         var teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
-                            game.OID_MAP[oid].targeted = teamShip.team;
                             teamShip.addTarget(match);
                         }
 
@@ -384,7 +418,14 @@ game.PlayScreen = me.ScreenObject.extend({
                 }
                 
                 // oh well, we tried to make it more fun!
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+
+                ////
+                var projectName = game.PROJECT_MAPPING[record.get('Project')];
+                var pointsEarned = record.get('PlanEstimate');
+                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+                game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                ////
+
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
@@ -405,7 +446,6 @@ game.PlayScreen = me.ScreenObject.extend({
             var ship = obj.ship;
             ship.record = record;
             if (!obj.targeted && shouldAddTarget(record)) {
-                obj.targeted = true;
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project')
@@ -414,7 +454,14 @@ game.PlayScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if (shouldAddTarget(record)) {
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+
+                ////
+                var projectName = game.PROJECT_MAPPING[record.get('Project')];
+                var pointsEarned = record.get('PlanEstimate');
+                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+                game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                ////
+
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;

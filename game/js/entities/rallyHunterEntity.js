@@ -90,29 +90,42 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        // TODO temporary to fix extra ships on the screen
-        if (target.type == game.ENEMY_ENTITY_SUPER) {
-            var playerShip = this;
-            // add all remaining ships as targets first
-            _.each(game.OID_MAP, function(element, index, list) {
-                if (element.displayed) {
-                    if (element.ship) {
-                        playerShip.targets.push(element.ship);
+        if (!game.OID_MAP[target.objectID] || !game.OID_MAP[target.objectID].targeted) {
+            var projectName = game.PROJECT_MAPPING[target.record.get('Project')];
+            var pointsEarned = target.record.get('PlanEstimate');
+            var time = moment(target.date).format("MM-DD-YY HH:mm", 'completed');
+            game.log.addCompletedItem(target.record, projectName, pointsEarned, time);
+            if (target.type == game.ENEMY_ENTITY_SUPER) {
+                var playerShip = this;
+                // add all remaining ships as targets first
+                _.each(game.OID_MAP, function(element, index, list) {
+                    if (element.displayed) {
+                        if (element.ship) {
+                            playerShip.targets.push(element.ship);
+                        }
                     }
+                });
+                this.targets.push(target);
+                // sort the queue by entity type
+                this.targets = _.sortBy(this.targets, function(ship) {
+                    return ship.type;
+                });
+            } else {
+                // keep track of a queue of targets
+                this.targets.push(target);
+            }
+            if (game.OID_MAP[target.objectID]) {
+                game.OID_MAP[target.objectID].targeted = this.team || true;
+            } else {
+                game.OID_MAP[target.objectID] = {
+                    targeted: this.team || true,
+                    ship: target
                 }
-            });
-            this.targets.push(target);
-
-            // sort the queue by entity type
-            this.targets = _.sortBy(this.targets, function(ship) {
-                return ship.type;
-            });
-            this.indicateTarget();
+            }
         } else {
-            // keep track of a queue of targets
-            this.targets.push(target);
+            console.log("Not added as a target", game.OID_MAP[target.objectID], target);
         }
-
+        
     },
 
     indicateTarget: function() {

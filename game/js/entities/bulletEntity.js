@@ -138,16 +138,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
-                var projectName = game.PROJECT_MAPPING[res.obj.record.get('Project')];
-                var pointsEarned = res.obj.record.get('PlanEstimate');
-                var time = moment(res.obj.date).format("MM-DD-YY HH:mm", 'completed');
-                if (projectName && pointsEarned) {
-                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
-                } else if (projectName) {
-                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName, time, 'completed');
-                } else {
-                    game.log.addItem(res.obj.record.get('Name') + " - completed", time, 'completed');
-                }
+                
 
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
 

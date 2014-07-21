@@ -18,7 +18,7 @@ var GameEventHandler = function(realtime) {
         return null;
     }
 
-    $(listenTo).on("Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
+    $(listenTo).on("History-Completed Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
             null, null, function(event, data) {
         eventQueue.push({
             event: event,
@@ -62,8 +62,11 @@ var GameEventHandler = function(realtime) {
                         game.historyFinished();
                         return;
                     }
-                    if (func) {
+                    if (func && object.data) {
+                        //console.log("EVENT HANDLER - " + func);
                         func(object.data);
+                    } else if (func) {
+                        func();
                     } else {
                         console.log("no func", func);
                     }
@@ -72,67 +75,56 @@ var GameEventHandler = function(realtime) {
         }
     };
 
-    var doLogging = function(str) {
-        console.log(str);
-    }
+    this.History_Completed = function() {
+        // pause the playThrough timer until all targets are removed
+        console.log("HISTORY COMPLETED");
+    };
 
     this.PortfolioItemInitiative_Created = function(data) {
-        doLogging("Initiative-Created");
         game.shipScreen.addInitiative(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Created = function(data) {
-        doLogging("Feature-Created");
         game.shipScreen.addFeature(data.record, data.oid, data.date);
     };
 
     this.UserStory_Created = function(data) {
-        doLogging("UserStory-Created");
         game.shipScreen.addStory(data.record, data.oid, data.date);
     };
 
     this.Task_Created = function(data) {
-        doLogging("Initiative-Created");
         game.shipScreen.addTask(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemInitiative_Updated = function(data) {
-        doLogging("Initiative-Updated");
         game.shipScreen.updateInitiative(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Updated = function(data) {
-        doLogging("Feature-Updated");
         game.shipScreen.updateFeature(data.record, data.oid, data.date);
     };
 
     this.UserStory_Updated = function(data) {
-        doLogging("UserStory-Updated");
         game.shipScreen.updateStory(data.record, data.oid, data.date);
     };
 
     this.Task_Updated = function(data) {
-        doLogging("Task-Updated");
         game.shipScreen.updateTask(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemInitiative_Recycled = function(data) {
-        doLogging("Initiative-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Recycled = function(data) {
-        doLogging("Feature-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.UserStory_Recycled = function(data) {
-        doLogging("UserStory-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.Task_Recycled = function(data) {
-        doLogging("Task-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 }

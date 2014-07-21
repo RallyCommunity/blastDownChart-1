@@ -26,6 +26,8 @@ module.factory('LookbackService', function() {
     var initiativeOffset = 0;
     var featureOffset = 0;
 
+    var maxPage = -2;
+
 
     // converty hierarchical requirement to user story
     var getType = function(type) {
@@ -51,6 +53,9 @@ module.factory('LookbackService', function() {
         if (currentType == 'PortfolioItem/Initiative' || oid == initiativeOid   ) {
             console.log("recycle initiative", currentType, record, oid, hierarchyMap.children);
         }
+
+        console.log("Recycle", oid, record);
+
         currentType = getType(currentType);
         eventTrigger.trigger(currentType + "-Recycled", {
             record: null,
@@ -86,7 +91,7 @@ module.factory('LookbackService', function() {
         } 
     };
 
-    var triggerEvents = function(records, operation, success) {
+    var triggerEvents = function(page, records, operation, success) {
         var lbService = this;
         _.each(records, function(record) {
             // fire events in order of what happenend historically
@@ -135,7 +140,7 @@ module.factory('LookbackService', function() {
                     setOffset(itemHierarchy);
                     // console.log("ItemHierarchy", itemHierarchy);
                 }
-                if (currentType == 'HierarchicalRequirement') {
+                if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                     record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
                 }
                 
@@ -158,7 +163,7 @@ module.factory('LookbackService', function() {
                         currentObject = currentObject.children[itemHierarchy[i + 1]];
 
 
-                        if (currentType == 'HierarchicalRequirement' && itemHierarchy.length > featureOffset) {
+                        if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                             // set the feature to the oid that is in the feature position
                             record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
                         }
@@ -172,7 +177,6 @@ module.factory('LookbackService', function() {
 
             // map has been initialized
             // check the hierarchyMap to see if this item has lost a child
-            // TODO use a different property for children based on the type (Feature->"User Stories") or something like that?
             var children = getChildren(record, currentType);
             // this was some sort of update event
             // could represent the recycling of a child - make sure to check that;
@@ -183,124 +187,23 @@ module.factory('LookbackService', function() {
                 // TODO better way to find the missing child
                 var keys = _.toArray(Object.keys(currentObject.children));
                 var theKey = _.find(keys, function(key) {
-                    return !_.contains(children, key);
+                    if (!_.contains(children, parseInt(key, 10))) {
+                        return true;
+                    }
+                    return false;
                 });
-
-                if (currentType == "PortfolioItem/Initiative") {
-                    //console.log("removing features from an initiative", hierarchyMap.children);
-                }
-
 
                 recycleEvent(currentObject.children[theKey].type, record, theKey);
                 delete currentObject.children[theKey];
-                // TODO also fire the update event for this item
-                // TODO recycle all children?
-            } else {
-                // update event
-                updateEvent(currentType, record, currentOid);
             }
-
-            
-
-
-            // keep track of everything by oid in a map
-            // rely on the item hierarchy to tell the relationship between items
-
-            /*
-            var currentOid = record.get('ObjectID');
-            var projectOid = record.get('Project');
-            if (projectOidMap[projectOid] && !triggered[projectOid]) {
-                triggered[projectOid] = true;
-                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
-            }
-
-            var prev = oids[currentOid];
-
-            if (prev) {
-                // Did the feature lose a user story?
-                if (prev.type == 'PortfolioItem/Feature') {
-                    var previousStories = prev.record.get('UserStories');
-                    var currentStories = record.get('UserStories');
-                    if (previousStories && currentStories && previousStories.length > currentStories.length) {
-                        var remove = _.find(previousStories, function(story) {
-                            return !_.contains(currentStories, story);
-                        });
-
-                        if (remove && oids[remove]) {
-                            // trigger recycle event and update our data structures
-                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
-                            delete oids[remove];
-                        }
-                    }
-                } else if (prev.type == 'UserStory') {
-                    var previousTasks = prev.record.get('Tasks');
-                    var currentTasks = record.get('Tasks');
-                    if (previousTasks && currentTasks && previousTasks.length > currentTasks.length) { // task deleted
-
-                        var remove = _.find(previousTasks, function(task) {
-                            return !_.contains(currentTasks, task);
-                        });
-
-                        if (remove && oids[remove]) {
-                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
-                            //delete oids[remove]; // task gets updated afterwards which would create a new task!
-                        }
-                    }
-                    
-                } else if (prev.type == 'PortfolioItem/Initiative') {
-                    // handle Feature destruction
-                    var previousFeatures = prev.record.get('Children');
-                    var currentFeatures = record.get('Children');
-                    if (previousFeatures && currentFeatures && previousFeatures.length > currentFeatures.length) { // feature deleted
-                        var remove = _.find(previousFeatures, function(feature) {
-                            return !_.contains(currentFeatures, feature);
-                        });
-
-                        if (remove != -1 && oids[remove]) {
-                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
-                            delete oids[remove];
-                        }
-                    }
-                }
-
-                // update this item
-                var changes = new Array();
-
-                _.each(oids[currentOid].record.data, function(prevValue, prevIdx) {
-                    if (prevValue != record.get(prevIdx)) {
-                        changes.push(prevIdx);
-                    }
-                });
-
-                // Remove the changes that we do not care about
-                // Changes are provided to mirror the interface to the realtime service
-                changes = _.without(changes, "_ValidFrom", "_ValidTo", "_TypeHierarchy");
-
-                if (changes.length > 0) { // only trigger the event if something meaningful changed
-                    oids[currentOid] = {
-                        type: oids[currentOid].type,
-                        record: record
-                    }
-                    eventTrigger.trigger(oids[currentOid].type + '-Updated', {record: record, oid: currentOid, changes: changes, date: new Date(record.get('_ValidFrom'))});
-                }
-            } else {
-                // creation!
-                var types = record.get('_TypeHierarchy');
-                if (types && types.length > 0) {
-                    var dataType = types[types.length - 1];
-                    if (dataType === "HierarchicalRequirement") {
-                        dataType = "UserStory";
-                    }
-                    oids[currentOid] = {
-                        type: dataType,
-                        record: record
-                    }
-                    eventTrigger.trigger(dataType + '-Created', {record: record, oid: currentOid, changes: [], date: new Date(record.get('_ValidTo'))});
-                }
-            }
-
-            */
+            updateEvent(currentType, record, currentOid);
         });
+
+        // triggered all historical events, its okay to set up the realtime now!
+        if (page == maxPage) {
+            eventTrigger.trigger("History-Completed");
+            setupRealtime();
+        }
     };
 
 
@@ -308,14 +211,14 @@ module.factory('LookbackService', function() {
         lookbackStore.loadPage(page, {
             scope: this,
             callback: function (records, operation, success) {
-                page++;
-                triggerEvents(records, operation, success);
-                if (records.length == PAGE_SIZE) {
-                    loadPage(page);
-                } else {
+                if (records.length != PAGE_SIZE) {
                     // Got less data back than an entire page size => done fetching data from the realtime
-                    // TODO this should setup realtime after all other data has been parsed...didnt work in demo
-                    setupRealtime();
+                    maxPage = page;
+                }
+                triggerEvents(page, records, operation, success);
+                if (records.length == PAGE_SIZE) {
+                    page++;
+                    loadPage(page);
                 }
             }   
         });
