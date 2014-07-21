@@ -8,8 +8,11 @@ game.RallyShipEntity = me.ObjectEntity.extend({
         this.setVelocity(game.SPEED, 0);
         
         this.type = game.RALLY_SHIP;
+    },
 
-        this.renderable.image = settings.changeImage;
+    draw: function(context, rect) {
+        this.parent(context, rect);
+
     },
 
     update: function() {

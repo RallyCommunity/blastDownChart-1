@@ -35,6 +35,52 @@ game.BulletEntity = me.ObjectEntity.extend({
         // did we hit an enemy?
         var res = me.game.world.collide(this);
         if (res && res.obj) {
+
+            // was it the special ship hitting the rally ship?
+            if (res.obj.type == game.RALLY_SHIP && this.teamShip.team == game.SPECIAL_TEAM) {
+                me.game.world.removeChild(this);
+                me.game.world.removeChild(res.obj);
+                var img = me.loader.getImage('explosionMedium');
+                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                    image: img,
+                    width: 4,
+                    totalParticles: 12,
+                    angle: 0.0856797996433583,
+                    angleVariation: 3.14159265358979,
+                    minLife: 400,
+                    maxLife: 1800,
+                    speed: 0.954545454545454,
+                    speedVariation: 9.95454545454546,
+                    minRotation: 1.34231686107927,
+                    minStartScale: 1.43181818181818,
+                    maxParticles: 17,
+                    frequency: 19,
+                    duration: 400,
+                    framesToSkip: 1
+                });
+                emitter.name = 'fire';
+
+                game.canShoot[this.teamShip.team] = true;
+                me.game.world.addChild(emitter, Number.POSITIVE_INFINITY);
+                me.game.world.addChild(emitter.container, Number.POSITIVE_INFINITY);
+                game.PENDING_REMOVE.push(emitter);
+                game.PENDING_REMOVE.push(emitter.container);
+                emitter.streamParticles();
+
+                // TODO special sounds, logging, score, something?
+
+                if (game.audioOn) {
+                    me.audio.play("explode");
+                }
+
+                return;
+            }
+
+
+
+
+
+
             var image = null;
             if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                 image = me.loader.getImage('explosionSuper');
@@ -85,8 +131,10 @@ game.BulletEntity = me.ObjectEntity.extend({
                 game.PENDING_REMOVE.push(emitter);
                 game.PENDING_REMOVE.push(emitter.container);
 
-                
-                me.audio.play("explode");
+                if (game.audioOn) {
+                    me.audio.play("explode");
+                }
+                //
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
@@ -94,11 +142,11 @@ game.BulletEntity = me.ObjectEntity.extend({
                 var pointsEarned = res.obj.record.get('PlanEstimate');
                 var time = moment(res.obj.date).format("MM-DD-YY HH:mm", 'completed');
                 if (projectName && pointsEarned) {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName + " for +" + pointsEarned, time, 'completed');
+                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
                 } else if (projectName) {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName, time, 'completed');
+                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName, time, 'completed');
                 } else {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP", time, 'completed');
+                    game.log.addItem(res.obj.record.get('Name') + " - completed", time, 'completed');
                 }
 
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));

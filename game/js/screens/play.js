@@ -34,11 +34,7 @@ game.PlayScreen = me.ScreenObject.extend({
         
         var i = 0;
         setInterval(function() {
-            i++;
-            var img = game.redRectangle;
-            if (i %2 == 0) {
-                img = game.blueRectangle;
-            }
+
             var ship = me.pool.pull("rallyShip", -41, 1, {
                 height: 42,
                 image: 'rectangle',
@@ -46,9 +42,10 @@ game.PlayScreen = me.ScreenObject.extend({
                 spritewidth: 42,
                 width: 42,
                 z: Number.POSITIVE_INFINITY,
-                type: game.RALLY_SHIP,
-                changeImage: img
+                type: game.RALLY_SHIP
             });
+
+            game.cleanupOld();
 
             me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
         }, 10000);
@@ -216,10 +213,32 @@ game.PlayScreen = me.ScreenObject.extend({
         if (game.INITIATIVE_SHIP) {
             game.INITIATIVE_SHIP.record = record;
         }
-        this.updateShip(record, oid, date, function(rec) {
-            var endDate = record.get('ActualEndDate');
-            return endDate && moment(endDate).isBefore(moment()); // TODO fix
-        });
+
+        var endDate = record.get('ActualEndDate');
+        if (!game.endDate && endDate) {
+            game.endDate = moment(endDate);
+            game.historyFinishedData = {
+                oid: oid
+            }
+            console.log("Completed initiative at " + game.endDate);
+            if (game.isHistoryFinished) {
+                game.historyFinished();
+            }
+        }
+        
+
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
+        } else if (obj && obj.record) {
+            if (addTarget(record)) {
+                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+                delete game.OID_MAP[oid];
+            } else {
+                game.OID_MAP[oid].record = record;
+            }
+        }
     },
 
     updateFeature: function(record, oid, date) {
@@ -394,7 +413,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 }
             }
         } else if (obj && obj.record) {
-            if (addTarget(record)) {
+            if (shouldAddTarget(record)) {
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {

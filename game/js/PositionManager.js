@@ -1,5 +1,4 @@
 // Manages open ship positions and pending records
-// TODO does not work fully for tasks yet
 
 function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffset) {
     var width = screenWidth;

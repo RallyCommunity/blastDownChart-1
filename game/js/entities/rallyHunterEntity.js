@@ -30,6 +30,13 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
     normalMovement: function(dt) {
         // Accept keyboard input
 
+        if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
+            this.shoot();
+            this.vel.x = 0;
+            this.vel.y = 0;
+            return true;
+        }
+
         if (me.input.isKeyPressed('up') && this.pos.y > game.WINDOW_HEIGHT - this.height * 2) {
             this.vel.y -= this.accel.y * me.timer.tick;
             this.vel.x = 0;
@@ -47,13 +54,10 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             this.vel.y = 0;
         }
 
-        if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
-            this.shoot();
-        }
+
         
         this.updateMovement();
         return true;
-        // TODO is the rally ship on the screen?
 
     },
 
@@ -73,7 +77,10 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             shootDown: false,
             teamShip: teamShip
         });
-        me.audio.play("shoot");
+        if (game.audioOn) {
+            me.audio.play("shoot");
+        }
+        
         game.canShoot[this.team] = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
@@ -174,7 +181,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             }
             return true;
         }
-        
+
     },
 
     /**

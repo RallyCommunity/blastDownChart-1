@@ -33589,8 +33589,6 @@ return jQuery;
 
                 function WSAPIAggregator() {
     this.getWorkItem = function(oid, model, callback) {
-        console.log("fetch work item ", oid, model);
-
         Ext.create('Rally.data.WsapiDataStore', {
             model   : model,
             fetch   : true,
@@ -33605,7 +33603,6 @@ return jQuery;
         }).load({
             scope: this,
             callback: function(records) {
-                console.log("record loaded");
                 if (callback && _.isFunction(callback)) {
                     if (records && records.length == 1) {
                         callback(records[0]);
@@ -53186,15 +53183,25 @@ me.DroptargetEntity = (function (Entity, Event) {
 }
                 /* Game namespace */
 var game = {
+    audioOn: false, // turn sounds off for debugging so I can listen to music :)
 
-    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFFFFF"},
-                        {name: "red", hex: "#FF0000"},
-                        {name: "blue", hex: "#0000FF"}],
+    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFF"}, // white
+                        {name: "red", hex: "#ED1C24"}, // rally red
+                        {name: "blue", hex: "#00A9E0"}], // cyan
+
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
 
     SPEED: 5, // Adjust this to adjust the speed of everything
 
-    // ["blue", "red", "lime", "yellow", "orange", "pink", "purple", "teal"],
+    // TODO new colors!
+    // #FAD200 - yellow
+    // #FF8200 - orange
+    // #DA1884 - pink
+    // #7832A5 - purple
+    // #005EB8 - dark blue
+    // #00B398 - teal
+    // #8DC63F - green
+
     FEATURE_SHIP_COLORS: ["teal", "purple", "pink", "orange", "yellow", "lime", "red", "blue"],
     FEATURE_SHIP_COLOR_INDEX: 0,
     featureColorMap: {},
@@ -53215,6 +53222,8 @@ var game = {
     SHOW_LABEL: true,
 
     RALLY_HUNTER: 55,
+
+    shootingAttempts: 10,
 
     TEAM_SHIP: 88,     // player type
     BULLET: 77,     // bullet type
@@ -53239,6 +53248,8 @@ var game = {
         width: 320,
         height: 160
     },
+
+    SPECIAL_TEAM: 1,
 
     FEATURE_SHIP: {
         width: 64,
@@ -53311,13 +53322,13 @@ var game = {
     // Run on page load.
     "onload" : function () {
         game.LABEL_POSITONS = [
-            new Point(0, game.WINDOW_HEIGHT - 144),
-            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 144),
-            new Point(0, game.WINDOW_HEIGHT - 112),
-            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 112),
-            new Point(0, game.WINDOW_HEIGHT - 80),
-            new Point(game.WINDOW_WIDTH - 128, game.WINDOW_HEIGHT - 80)
+            new Point(0, game.WINDOW_HEIGHT - 164),
+            new Point(0, game.WINDOW_HEIGHT - 140),
+            new Point(0, game.WINDOW_HEIGHT - 116),
+            new Point(0, game.WINDOW_HEIGHT - 92),
+            new Point(0, game.WINDOW_HEIGHT - 68),
         ];
+
         game.LABEL_INDEX = 0;
 
         // Initialize the video.
@@ -53375,11 +53386,13 @@ var game = {
         me.pool.register("explosion", game.ExplosionEntity);
         me.pool.register("label", game.LabelEntity);
         me.pool.register("rallyShip", game.RallyShipEntity);
-        me.pool.register("rallyHunter", game.RAllyHunterEntity);
+        me.pool.register("rallyHunter", game.RallyHunterEntity);
 
         // Setup keyboard listeners
         me.input.bindKey(me.input.KEY.LEFT,  "left");
         me.input.bindKey(me.input.KEY.RIGHT, "right");
+        me.input.bindKey(me.input.KEY.UP,  "up");
+        me.input.bindKey(me.input.KEY.DOWN, "down");
         me.input.bindKey(me.input.KEY.SPACE, "shoot");
 
         me.state.change(me.state.MENU);
@@ -53399,6 +53412,25 @@ var game = {
         });
 
         Ext.getBody().unmask();
+    },
+
+
+
+    historyFinished: function() {
+        game.isHistoryFinished = true;
+        if (game.endDate) {
+            console.log("Initiative was completed!");
+            var obj = game.OID_MAP[game.historyFinishedData.oid];
+            if (obj && obj.ship) {
+                var ship = obj.ship;
+                obj.targeted = true;
+                var teamShip = game.getExistingTeam(obj.ship.record.get('Project'));
+                if (teamShip) {
+                    ship.team = obj.ship.record.get('Project');
+                    teamShip.addTarget(ship);
+                }
+            }
+        }
     },
 
     // speed
@@ -53436,13 +53468,15 @@ var game = {
 
                 me.game.world.addChild(team, Number.POSITIVE_INFINITY);
                 game.TEAM_SHIPS[teamOid] = team;
+            } else {
+                return game.TEAM_SHIPS[1];
             }
         }
         return team;
     },
 
     getExistingTeam: function(teamOid) {
-        return game.TEAM_SHIPS[teamOid];
+        return game.TEAM_SHIPS[teamOid] || game.TEAM_SHIPS[game.SPECIAL_TEAM];
     },
 
     /**
@@ -53537,7 +53571,6 @@ var game = {
 ];
 
                 // Manages open ship positions and pending records
-// TODO does not work fully for tasks yet
 
 function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffset) {
     var width = screenWidth;
@@ -53565,7 +53598,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     var NUM_SMALL_PER_LINE = numSmall;
 
     var availablePositions = {
-        large: new Array(numLarge),
+        large: new Array(NUM_LARGE_PER_LINE),
         medium: new Array(numMedium * 2),
         small: new Array(numSmall * 2)
     }
@@ -53591,14 +53624,14 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small, topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
     }
 
-    var nextFeatureIndex = 1;
+    var nextFeatureIndex = -1;
     var initial = true;
 
     this.getFeaturePosition = function() {
         if (numLarge > 0 && initial) {
             nextFeatureIndex += 2;
             if (nextFeatureIndex >= availablePositions.large.length) {
-                nextFeatureIndex = Math.floor((nextFeatureIndex % 2 + 1) / 2);
+                nextFeatureIndex = 0;
             }
             numLarge--;
             var temp = availablePositions.large[nextFeatureIndex];
@@ -53606,96 +53639,115 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             return temp;
         } else {
             initial = false;
-            for (var j = 0; j < availablePositions.large.length; i++) {
-                var temp = availablePositions.large[j];
-                delete availablePositions.large[j];
+            var index = -1;
+            for (var j = 0; j < availablePositions.large.length; j++) {
+                if (availablePositions.large[j]) {
+                    index = j;
+                    break;
+                }
+            }
+            if (index = -1) {
+                return null;
+            } else {
+                var temp = availablePositions.large[index];
+                delete availablePositions.large[index];
                 return temp;
             }
-            return null;
         }
     };
 
-    var getRandomStoryPosition = function() {
+    var getRandomPosition = function(positionArray) {
         // just grab the first available position
-        for (var i = 0; i < availablePositions.medium.length; i++) {
-            var temp = availablePositions.medium[i]
+        for (var i = 0; i < positionArray.length; i++) {
+            var temp = positionArray[i]
             if (temp) {
-                delete availablePositions.medium[i];
+                delete positionArray[i];
                 return temp;
             }
         }
         return null;
     };
 
-    this.getStoryPosition = function(featureX) {
+    var getPosition = function(array, maxPerLine, featureX) {
         if (!featureX) {
-            return getRandomStoryPosition();
+            return getRandomPosition(array);
         }
 
         // try to find a story near its feature
         var featureIndex = featureX / shipWidth.large;
         var low = Math.max(0, (featureIndex - 1) * 2);
         var high = (featureIndex + 1) * 2 + 1;
-        var highCap = Math.min(NUM_MEDIUM_PER_LINE, high);
-        var max = Math.min(high + NUM_MEDIUM_PER_LINE + 1, availablePositions.medium.length);
-        // could be between low and high OR on the next row, which is low + NUM_MEDIUM_PER_LINE and high +
+        var highCap = Math.min(maxPerLine, high);
+        var max = Math.min(high + maxPerLine + 1, array.length);
 
         var idx;
         for (idx = low; idx < highCap; idx++) {
-            if (availablePositions.medium[idx]) {
-                var temp = availablePositions.medium[idx];
-                delete availablePositions.medium[idx];
+            if (array[idx]) {
+                var temp = array[idx];
+                delete array[idx];
                 return temp;
             }
         }
 
         for (idx = low + NUM_MEDIUM_PER_LINE; idx < max; idx++) {
-            if (availablePositions.medium[idx]) {
-                var temp = availablePositions.medium[idx];
-                delete availablePositions.medium[idx];
+            if (array[idx]) {
+                var temp = array[idx];
+                delete array[idx];
                 return temp;
             }
         }
 
-        return getRandomStoryPosition(); // for now, just dont show a ship under this feature
+        return getRandomPosition(array); // for now, just dont show a ship under this feature
+    }
+
+    this.getStoryPosition = function(featureX) {
+        return getPosition(availablePositions.medium, NUM_MEDIUM_PER_LINE, featureX);
     };  
 
-    this.getTaskPosition = function() {
-        // forget about it
-        return null;
+    this.getTaskPosition = function(featureX) {
+        return getPosition(availablePositions.small, NUM_SMALL_PER_LINE, featureX);
     };
 
     this.addAvailablePosition = function(width, x, y) {
-        // TODO check to see if something is waiting on this spot?
         var addBackTo;
 
         if (width == shipWidth.large) {
             if (pendingPlacement.large.length > 0) {
-                oid = pendingPlacement.large.pop();
-                if (!game.OID_MAP[oid] || !game.OID_MAP[oid].record) {
-                    console.error("This record is current displayed or does not exist");
+                oid = pendingPlacement.large.shift();
+                if (!game.OID_MAP[oid]) {
+                    //console.error("This record does not exist");
+                } else if (!game.OID_MAP[oid].record) {
+                    //console.error("This record is current displayed");
+                } else {
+                    game.shipScreen.addFeature(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, new Point(x, y));
                 }
-                game.shipScreen.addFeature(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, x, y);
                 return;
             }
             addBackTo = availablePositions.large;
         } else if (width == shipWidth.medium) {
             if (pendingPlacement.medium.length > 0) {
                 oid = pendingPlacement.medium.pop();
-                console.log(oid, game.OID_MAP[oid]);
-                if (!game.OID_MAP[oid] || !game.OID_MAP[oid].record) {
-                    // TODO handle this
-                    console.error("This record is current displayed or does not exist");
+                if (!game.OID_MAP[oid]) {
+                    //console.error("This record does not exist");
+                } else if (!game.OID_MAP[oid].record) {
+                    //console.error("This record is current displayed");
+                } else {
+                    game.shipScreen.addStory(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, new Point(x, y));
                 }
-
-                game.shipScreen.addStory(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, x, y);
+                
                 return;
             }
             addBackTo = availablePositions.medium;
         } else if (width == shipWidth.small) {
             if (pendingPlacement.small.length > 0) {
-                oid = pendingPlacement.small.pop();               
-                game.shipScreen.addTask(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, x, y);
+                oid = pendingPlacement.small.pop();
+                if (!game.OID_MAP[oid]) {
+                    //console.error("This record does not exist");
+                } else if (!game.OID_MAP[oid].record) {
+                    //console.error("This record is current displayed");
+                } else {               
+                    game.shipScreen.addTask(game.OID_MAP[oid].record, oid, game.OID_MAP[oid].date, new Point(x, y));
+                }
                 return;
             }
 
@@ -53734,22 +53786,28 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     };
 
     var removeFromArr = function(oid, arr) {
-        var removeIdx = -1;
-        for (var i = 0; i < arr.length; i++) {
-            if (arr[i] == oid) {
-                removeIdx = i;
-                break;
+        if (arr) {
+            var removeIdx = -1;
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] == oid) {
+                    removeIdx = i;
+                    break;
+                }
             }
-        }
-        if (removeIdx >= 0) {
-            arr.splice(removeIdx, 1);
-            return true;
+            if (removeIdx >= 0) {
+                arr.splice(removeIdx, 1);
+                if (game.OID_MAP[oid]) {
+                    delete game.OID_MAP[oid];
+                }
+                return true;
+            }
+            return false;
         }
         return false;
     }
 
     this.removePending = function(oid) {
-        !removeFromArr(oid) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
+        !removeFromArr(oid, pendingPlacement.large) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
     };
 }
                 game.LabelEntity = me.ObjectEntity.extend({
@@ -53759,7 +53817,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         // call the constructor
         this.parent(x + (settings.width / 2), y, settings);
 
-        this.font = new me.Font("Arial", settings.fontSize || 24, settings.color || "white", "center");
+        this.font = new me.Font("Courier", settings.fontSize || 18, settings.color || "white", "left");
         this.formattedId = settings.formattedId;
         this.nextAlpha = 1;
         this.isDisplayed = false;
@@ -53784,76 +53842,63 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
 // hunts the RallyShip that flies across the top
 // More random movement pattern
 
-game.RallyHunter = me.ObjectEntity.extend({
+game.RallyHunterEntity = me.ObjectEntity.extend({
 
     // constructor
     init: function(x, y, settings) {
         // call the constructor
         this.parent(x, y, settings);
         this.gravity = 0.0;
-        this.setVelocity(game.SPEED + 2, 0);
+        this.setVelocity(game.SPEED + 2, game.SPEED + 2);
         
         this.type = game.RALLY_HUNTER;
         
         this.targets = [];
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
         this.numSteps = 0;
         this.team = settings.team || null;
+        var hunterShip = this;
+        this.ship = this;
+        this.update = function(dt) {
+            return hunterShip.normalMovement(dt);
+        }
     },
 
     // update position
-    update: function(dt) {
+    normalMovement: function(dt) {
         // Accept keyboard input
+
         if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
             this.shoot();
+            this.vel.x = 0;
+            this.vel.y = 0;
+            return true;
         }
 
-        if (me.input.isKeyPressed('left')) {
+        if (me.input.isKeyPressed('up') && this.pos.y > game.WINDOW_HEIGHT - this.height * 2) {
+            this.vel.y -= this.accel.y * me.timer.tick;
+            this.vel.x = 0;
+        } else if (me.input.isKeyPressed('down') && this.pos.y < game.WINDOW_HEIGHT - this.height) {
+            this.vel.y += this.accel.y * me.timer.tick;
+            this.vel.x = 0;
+        } else if (me.input.isKeyPressed('left')) {
             this.vel.x -= this.accel.x * me.timer.tick;
+            this.vel.y = 0;
         } else if (me.input.isKeyPressed('right')) {
             this.vel.x += this.accel.x * me.timer.tick;
+            this.vel.y = 0;
         } else {
             this.vel.x = 0;
+            this.vel.y = 0;
         }
+
+
         
         this.updateMovement();
         return true;
-        // TODO is the rally ship on the screen?
-        // Is there a target to destroy?
-        // if (this.targets.length !== 0 && this.hunting < 0) {
-        //     // navigate to the target and shoot!
-        //     if (this.shots >= 5 || this.numSteps >= 400) {
-        //         this.shots = 0;
-        //         this.numSteps = 0;
-        //         this.targets.shift();
-        //         return true;
-        //     }
 
-        //     var myPos = (this.pos.x + this.width / 2);
-        //     var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
-        //     var move = this.accel.x * me.timer.tick;
-        //     this.numSteps++;
-        //     if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot[this.team]) {
-        //         if (myPos > targetPos) {
-        //             this.vel.x -= move;
-        //         } else {
-        //             this.vel.x += move;
-        //         }
-        //     } else if (game.canShoot[this.team]) {
-        //         this.vel.x = 0;
-        //         this.targets[0].setVulnerable(true);
-        //         this.shots++;
-        //         this.shoot();
-        //     } else {
-        //         this.vel.x = 0;
-        //     }
-
-        //     this.updateMovement();
-        //     return true;
-        // }
     },
 
     /**
@@ -53872,7 +53917,10 @@ game.RallyHunter = me.ObjectEntity.extend({
             shootDown: false,
             teamShip: teamShip
         });
-        me.audio.play("shoot");
+        if (game.audioOn) {
+            me.audio.play("shoot");
+        }
+        
         game.canShoot[this.team] = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
@@ -53889,20 +53937,89 @@ game.RallyHunter = me.ObjectEntity.extend({
             _.each(game.OID_MAP, function(element, index, list) {
                 if (element.displayed) {
                     if (element.ship) {
-                        console.log("adding targets first");
                         playerShip.targets.push(element.ship);
                     }
                 }
             });
             this.targets.push(target);
+
             // sort the queue by entity type
             this.targets = _.sortBy(this.targets, function(ship) {
                 return ship.type;
             });
-            console.log(this.targets);
+            this.indicateTarget();
         } else {
             // keep track of a queue of targets
             this.targets.push(target);
+        }
+
+    },
+
+    indicateTarget: function() {
+        var flicker = 200;
+        // indicate to the user that they have a new target!
+        var tween;
+        tween = new me.Tween(this.renderable)
+            .to({
+                alpha: .2
+            }, flicker);
+
+        var tween2 = new me.Tween(this.renderable)
+            .to({
+                alpha: 1
+            }, flicker);
+
+        // Also animate the top target
+        var targetTween;
+        targetTween = new me.Tween(this.targets[0].renderable)
+            .to({
+                alpha: .2
+            }, flicker);
+        var targetTween2 = new me.Tween(this.targets[0].renderable)
+            .to({
+                alpha: 1
+            }, flicker);
+
+        targetTween.chain(targetTween2);
+        targetTween.start();
+        tween.chain(tween2);
+        tween.start();
+        this.targets[0].setVulnerable(true);
+
+        this.update = function(dt) {
+            // Is there a target to destroy?
+            if (this.targets.length !== 0) {
+                // navigate to the target and shoot!
+                if (this.shots >= game.shootingAttemps || this.numSteps >= 400) {
+                    this.shots = 0;
+                    this.numSteps = 0;
+                    this.targets.shift();
+                    return true;
+                }
+
+                var myPos = (this.pos.x + this.width / 2);
+                var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
+                var move = this.accel.x * me.timer.tick;
+                this.numSteps++;
+                if (Math.abs(myPos - targetPos) > move + 1 && game.canShoot[this.team]) {
+                    if (myPos > targetPos) {
+                        this.vel.x -= move;
+                    } else {
+                        this.vel.x += move;
+                    }
+                } else if (game.canShoot[this.team]) {
+                    this.vel.x = 0;
+                    this.targets[0].setVulnerable(true);
+                    this.shots++;
+                    this.shoot();
+                } else {
+                    this.vel.x = 0;
+                }
+
+                this.updateMovement();
+                return true;
+            }
+            return true;
         }
 
     },
@@ -53917,8 +54034,9 @@ game.RallyHunter = me.ObjectEntity.extend({
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target); // TODO inefficient
-        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
+        var hunterShip = this;
 
+        if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {
@@ -53930,7 +54048,13 @@ game.RallyHunter = me.ObjectEntity.extend({
 
             me.state.change(me.state.VICTORY);
         }
-        this.hunting = 0;
+
+        if (this.targets.length > 0) {
+            this.update = function(dt) {
+                hunterShip.normalMovement(dt);
+            }
+            this.indicateTarget();
+        }
     },
 
     removePotentialTarget: function(target) {
@@ -53969,8 +54093,11 @@ game.RallyHunter = me.ObjectEntity.extend({
         this.setVelocity(game.SPEED, 0);
         
         this.type = game.RALLY_SHIP;
+    },
 
-        this.renderable.image = settings.changeImage;
+    draw: function(context, rect) {
+        this.parent(context, rect);
+
     },
 
     update: function() {
@@ -54009,14 +54136,15 @@ game.RallyHunter = me.ObjectEntity.extend({
 
         // Is there a target to destroy?
         if (this.targets.length !== 0 && this.hunting < 0) {
-            // navigate to the target and shoot!
-            if (this.shots >= 5 || this.numSteps >= 400) {
+            if (!game.OID_MAP[this.targets[0].objectID] || this.shots >= 5 || this.numSteps >= 300) {
+                // move on to the next target
                 this.shots = 0;
                 this.numSteps = 0;
                 this.targets.shift();
                 return true;
             }
 
+            // navigate to the target and shoot!
             var myPos = (this.pos.x + this.width / 2);
             var targetPos = (this.targets[0].pos.x + this.targets[0].width / 2);
             var move = this.accel.x * me.timer.tick;
@@ -54059,7 +54187,6 @@ game.RallyHunter = me.ObjectEntity.extend({
         } else if (this.stepNum == 1) {
             if (this.pos.x < 32) {
                 this.stepNum++;
-                game.cleanup();
             }
             // move to left edge
             this.vel.x -= this.accel.x * me.timer.tick;
@@ -54092,17 +54219,6 @@ game.RallyHunter = me.ObjectEntity.extend({
             this.vel.x = 0;
         }
 
-        // are we accepting keyboard controls?
-        /*
-        if (me.input.isKeyPressed('left')) {
-            this.vel.x -= this.accel.x * me.timer.tick;
-        } else if (me.input.isKeyPressed('right')) {
-            this.vel.x += this.accel.x * me.timer.tick;
-        } else {
-            this.vel.x = 0;
-        }
-        */
-
         // check & update player movement
         this.updateMovement();
 
@@ -54131,7 +54247,9 @@ game.RallyHunter = me.ObjectEntity.extend({
             shootDown: false,
             teamShip: teamShip
         });
-        me.audio.play("shoot");
+        if (game.audioOn) {
+            me.audio.play("shoot");
+        }
         game.canShoot[this.team] = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
@@ -54141,14 +54259,12 @@ game.RallyHunter = me.ObjectEntity.extend({
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        // TODO temporary to fix extra ships on the screen
         if (target.type == game.ENEMY_ENTITY_SUPER) {
             var playerShip = this;
             // add all remaining ships as targets first
             _.each(game.OID_MAP, function(element, index, list) {
                 if (element.displayed) {
                     if (element.ship) {
-                        console.log("adding targets first");
                         playerShip.targets.push(element.ship);
                     }
                 }
@@ -54158,12 +54274,14 @@ game.RallyHunter = me.ObjectEntity.extend({
             this.targets = _.sortBy(this.targets, function(ship) {
                 return ship.type;
             });
-            console.log(this.targets);
         } else {
             // keep track of a queue of targets
             this.targets.push(target);
         }
 
+        if (game.OID_MAP[target.objectID]) {
+            game.OID_MAP[target.objectID].targeted = this.team || true;
+        }
     },
 
     /**
@@ -54175,7 +54293,7 @@ game.RallyHunter = me.ObjectEntity.extend({
         this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        this.removePotentialTarget(target); // TODO inefficient
+        this.removePotentialTarget(target);
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
@@ -54243,7 +54361,6 @@ game.RallyHunter = me.ObjectEntity.extend({
         this.date = settings.date;
 
         this.featureOid = settings.featureOid || null;
-        //console.log("featureOid", this.featureOid);
 
         this.color = "red";
         
@@ -54256,45 +54373,78 @@ game.RallyHunter = me.ObjectEntity.extend({
          * Returns whether or not this ship is vulnerable to attack
          * @return true if this ship can be destroyed, else false
          */
-        this.isDestructable =  function() {
+        this.isDestructable = function() {
             return this.isVulnerable;
+        };
+
+        this.flyOff = function() {
+            // fade off the screen instead of flying off
+            // have to remove it from data structures immediately in case they are restored
+
+            if (this.team && game.TEAM_SHIPS[this.team]) {
+                game.TEAM_SHIPS[this.team].removePotentialTarget(this);
+            } else {
+                game.TEAM_SHIPS[game.SPECIAL_TEAM].removePotentialTarget(this);
+            }
+            game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
+            delete game.OID_MAP[this.objectID];
+            if (this.renderable) {
+                (new me.Tween(this.renderable))
+                    .to({
+                        alpha: 0
+                    }, 3000)
+                    .onComplete((function() {               
+                        me.game.world.removeChild(this);
+                    }).bind(this))
+                    .start();
+            }
         };
     },
 
 
     // TODO
-    draw: function(context) {
-        context.save();
-        this.parent(context);       
-        context.globalCompositeOperation = "source-in";
+    // draw: function(context) {
+    //     context.save();
+    //     //this.parent(context);       
+    //     context.globalCompositeOperation = "source-in";
 
-        // context.fillStyle="green";
-        // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+    //     // context.fillStyle="green";
+    //     // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
 
-        context.globalCompositeOperation = "source-over";
-        context.restore();
-    },
+    //     context.globalCompositeOperation = "source-over";
+    //     context.restore();
+    // },
 
-    flyOff : function() {
-        // fade off the screen instead of flying off
-        // have to remove it from data structures immediately in case they are restored
-        game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
-        delete game.OID_MAP[this.objectID];
-        var teamShip = game.getExistingTeam(this.featureOid);
-        if (teamShip) {
-            teamShip.removePotentialTarget(this);
-        }
-        
-        (new me.Tween(this.renderable))
-            .to({
-                alpha: 0
-            }, 3000)
-            .onComplete((function() {               
-                me.game.world.removeChild(this);
-            }).bind(this))
-            .start();
 
-    },
+    // draw: function(context, rect) {
+    //     //this.parent(context, rect);
+
+    //     var image = this.renderable.image;
+    //     var tempCanvas = document.createElement('canvas');
+    //     var tempContext = tempCanvas.getContext('2d');
+
+    //     tempContext.drawImage(image, 0, 0);
+    //     context.clearRect(this.pos.x, this.pos.y, image.width, image.height);
+    //     var imgd = tempContext.getImageData(0, 0, image.width, image.height);
+
+    //     // var imgd = context.getImageData(this.pos.x, this.pos.y, this.width, this.height);
+    //     var pix = imgd.data;
+    //     var uniqueColor = [0,0,255]; // Blue for an example, can change this value to be anything.
+
+    //     // Loops through all of the pixels and modifies the components.
+    //     for (var i = 0, n = pix.length; i <n; i += 4) {
+    //         if (pix[i + 3] != 0) {
+    //             pix[i] = uniqueColor[0];   // Red component
+    //             pix[i+1] = uniqueColor[1]; // Green component
+    //             pix[i+2] = uniqueColor[2]; // Blue component
+    //         }
+              
+    //           //pix[i+3] is the transparency.
+    //     }
+
+    //     context.putImageData(imgd, this.pos.x, this.pos.y);
+    //     context.restore();
+    // },
 
     // ship behavior
     // Called many times to refresh the ships on the screen
@@ -54317,8 +54467,7 @@ game.RallyHunter = me.ObjectEntity.extend({
         if (this.type == game.ENEMY_ENTITY_SUPER) {
 
             this.update = function() {
-               this.normalMovement();
-
+               return this.normalMovement();
             }
         }
 
@@ -54340,8 +54489,6 @@ game.RallyHunter = me.ObjectEntity.extend({
     // optimization
     normalMovement: function() {
         // movement pattern
-        this.alpha = 0.5;
-        this.setOpacity(0.5);
         if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
             if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight)) === 0) {
                 this.moveRight = !this.moveRight;
@@ -54355,6 +54502,7 @@ game.RallyHunter = me.ObjectEntity.extend({
             }
         }
         this.numSteps++;
+        return true;
     },
 
     /**
@@ -54405,6 +54553,52 @@ game.RallyHunter = me.ObjectEntity.extend({
         // did we hit an enemy?
         var res = me.game.world.collide(this);
         if (res && res.obj) {
+
+            // was it the special ship hitting the rally ship?
+            if (res.obj.type == game.RALLY_SHIP && this.teamShip.team == game.SPECIAL_TEAM) {
+                me.game.world.removeChild(this);
+                me.game.world.removeChild(res.obj);
+                var img = me.loader.getImage('explosionMedium');
+                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                    image: img,
+                    width: 4,
+                    totalParticles: 12,
+                    angle: 0.0856797996433583,
+                    angleVariation: 3.14159265358979,
+                    minLife: 400,
+                    maxLife: 1800,
+                    speed: 0.954545454545454,
+                    speedVariation: 9.95454545454546,
+                    minRotation: 1.34231686107927,
+                    minStartScale: 1.43181818181818,
+                    maxParticles: 17,
+                    frequency: 19,
+                    duration: 400,
+                    framesToSkip: 1
+                });
+                emitter.name = 'fire';
+
+                game.canShoot[this.teamShip.team] = true;
+                me.game.world.addChild(emitter, Number.POSITIVE_INFINITY);
+                me.game.world.addChild(emitter.container, Number.POSITIVE_INFINITY);
+                game.PENDING_REMOVE.push(emitter);
+                game.PENDING_REMOVE.push(emitter.container);
+                emitter.streamParticles();
+
+                // TODO special sounds, logging, score, something?
+
+                if (game.audioOn) {
+                    me.audio.play("explode");
+                }
+
+                return;
+            }
+
+
+
+
+
+
             var image = null;
             if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                 image = me.loader.getImage('explosionSuper');
@@ -54441,7 +54635,7 @@ game.RallyHunter = me.ObjectEntity.extend({
                 emitter.name = 'fire';
                 
                 if (game.OID_MAP[res.obj.objectID]) {
-                    // this slot is now open - but only if it existed in the oid map
+                    // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
                     game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
                     delete game.OID_MAP[res.obj.objectID];
                 }
@@ -54455,8 +54649,10 @@ game.RallyHunter = me.ObjectEntity.extend({
                 game.PENDING_REMOVE.push(emitter);
                 game.PENDING_REMOVE.push(emitter.container);
 
-                
-                me.audio.play("explode");
+                if (game.audioOn) {
+                    me.audio.play("explode");
+                }
+                //
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
@@ -54464,28 +54660,30 @@ game.RallyHunter = me.ObjectEntity.extend({
                 var pointsEarned = res.obj.record.get('PlanEstimate');
                 var time = moment(res.obj.date).format("MM-DD-YY HH:mm", 'completed');
                 if (projectName && pointsEarned) {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName + " for +" + pointsEarned, time);
+                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
                 } else if (projectName) {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP by " + projectName, time);
+                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName, time, 'completed');
                 } else {
-                    game.log.addItem(res.obj.record.get('Name') + " COMP", time);
+                    game.log.addItem(res.obj.record.get('Name') + " - completed", time, 'completed');
                 }
 
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
 
-                var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
-                if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
-                    game.LABEL_INDEX = 0;
+               
+
+                if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
+                    var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
+                    if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
+                        game.LABEL_INDEX = 0;
+                    }
+                    var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
+                        height: 32,
+                        width: 128,
+                        formattedId: res.obj.record.get('FormattedID') + ": " + res.obj.record.get('Name'),
+                        color: teamColor
+                    });
+                    me.game.world.addChild(label, Number.POSITIVE_INFINITY);
                 }
-                var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
-                    height: 32,
-                    width: 128,
-                    formattedId: res.obj.record.get('FormattedID'),
-                    color: teamColor
-                });
-
-                me.game.world.addChild(label, Number.POSITIVE_INFINITY);
-
 
                 this.teamShip.removeTarget(res.obj);
 
@@ -54795,14 +54993,10 @@ game.TitleScreen = me.ScreenObject.extend({
     eventDrivenSetup: function() {
         game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height);
         var scope = angular.element($("#root")).scope();
-        scope.eventHandler.playThrough();
+        
         var i = 0;
         setInterval(function() {
-            i++;
-            var img = game.redRectangle;
-            if (i %2 == 0) {
-                img = game.blueRectangle;
-            }
+
             var ship = me.pool.pull("rallyShip", -41, 1, {
                 height: 42,
                 image: 'rectangle',
@@ -54810,16 +55004,17 @@ game.TitleScreen = me.ScreenObject.extend({
                 spritewidth: 42,
                 width: 42,
                 z: Number.POSITIVE_INFINITY,
-                type: game.RALLY_SHIP,
-                changeImage: img
+                type: game.RALLY_SHIP
             });
+
+            game.cleanupOld();
 
             me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
         }, 10000);
 
         var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
         game.TEAM_SHIP_COLOR_INDEX++; // TODO special color?
-        var teamOid = -1;
+
         // create a new one
         var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
             image: "player_" + color.name,
@@ -54829,12 +55024,13 @@ game.TitleScreen = me.ScreenObject.extend({
             height: 64,
             z: Number.POSITIVE_INFINITY,
             type: game.PLAYER,
-            team: teamOid
+            team: game.SPECIAL_TEAM
         });
-        game.canShoot[teamOid] = true;
-        game.EXTRA_TEAM_SHIP = team; // TODO use this
-        
+        game.canShoot[game.SPECIAL_TEAM] = true;
+        game.TEAM_SHIPS[game.SPECIAL_TEAM] = team;
+
         me.game.world.addChild(team, Number.POSITIVE_INFINITY);
+        scope.eventHandler.playThrough();
     },
 
     addInitiative: function(record, oid, date) {
@@ -54846,13 +55042,17 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     addFeature: function(record, oid, date, pt) {
-        var point = pt ? pt : game.POSITION_MANAGER.getFeaturePosition();
+        var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getFeaturePosition();
         if (point) {
-            var color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
-            game.featureColorMap[oid] = color;
+            var color = game.featureColorMap[oid];
+            if (!color) {
+                color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
+                game.FEATURE_SHIP_COLOR_INDEX++;
+                game.featureColorMap[oid] = color;
+            }
+            
             this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
             this.numFeatures++;
-            game.FEATURE_SHIP_COLOR_INDEX++;
         } else {
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
@@ -54860,16 +55060,17 @@ game.TitleScreen = me.ScreenObject.extend({
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "PortfolioItem/Feature");
+            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
     },
 
     addStory: function(record, oid, date, pt) {
+        //console.log("add story");
         if (record.get('ObjectID') != oid) {
             console.error("object id not equal to oid", record, oid);
             return;
         }
         if (game.OID_MAP[oid] && game.OID_MAP[oid].ship) {
-            console.log("Creating: ", record, oid, date, pt);
             return;
         }
         var featureOid = record.get('Feature');
@@ -54880,7 +55081,7 @@ game.TitleScreen = me.ScreenObject.extend({
             color = 'medium_' + game.featureColorMap[featureOid] || 'medium';
         }
 
-        var point = pt ? pt : game.POSITION_MANAGER.getStoryPosition(x);
+        var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getStoryPosition(x);
         if (point) {
             this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
             this.numStories++;
@@ -54893,34 +55094,37 @@ game.TitleScreen = me.ScreenObject.extend({
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "HierarchicalRequirement");
+            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
 
         game.getTeam(record.get('Project'));
     },
 
-    addTask: function(record, oid, date) {
-        /*
-        var index = Math.floor(Math.random() * game.AVAILABLE_POSITIONS.tasks.length);
-        var point = game.AVAILABLE_POSITIONS.tasks[index];
+    addTask: function(record, oid, date, pt) {
+        //console.log("add task");
+        var featureOid = record.get('Feature');
+        var x = 0;
+        var color = 'small';
+        if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
+            x = game.OID_MAP[featureOid].ship.startingX;
+            color = 'small_' + game.featureColorMap[featureOid] || 'small';
+        }
 
-        var point = game.AVAILABLE_POSITIONS.tasks[index];
+        var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getTaskPosition(x);
         if (point) {
-            var featureOid = record.get('Feature');
-            var color = game.featureColorMap[featureOid] || "none";
-            // TODO color tasks
-            this.addEnemy(record, oid, date, "small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
+            this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
             this.numTasks++;
-            this.updateTask(record, oid, date);
+            //this.updateTask(record, oid, date);
         } else {
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
-            game.AVAILABLE_POSITIONS.pendingTasks.push(oid);
             game.POSITION_MANAGER.addPending(oid, "Task");
+            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
-        */
+        
     },
 
     recycleShip: function(oid, date) {
@@ -54929,19 +55133,25 @@ game.TitleScreen = me.ScreenObject.extend({
             var ship = obj.ship;
             if (ship.type == game.ENEMY_ENTITY_LARGE) {
                 // remove all children of the feature
-                var children = me.game.world.getChildByProp("featureOid", oid);
+                var remove = [];
+                var pendingRemove = [];
                 _.each(game.OID_MAP, function(entry, key) {
                     if (entry.ship && entry.ship.featureOid == oid) {
-                        entry.ship.flyOff();
+                        remove.push(entry.ship);
                     } else if (entry.record && entry.record.get('Feature') == oid) {
-                        game.POSITION_MANAGER.removePending(oid, "HierarchicalRequirement");
+                        pendingRemove.push(entry.record.get('ObjectID'));
                     }
                 });
+                _.each(remove, function(ship) {
+                    ship.flyOff();
+                });
+
+                _.each(pendingRemove, function(pendingOid) {
+                    game.POSITION_MANAGER.removePending(pendingOid, "HierarchicalRequirement");
+                });
             } else if (ship.type == game.ENEMY_ENTITY_MEDIUM) {
-                console.log("Removing", oid, game.OID_MAP[oid].ship.featureOid);
                 var children = ship.record.get('Children');
                 if (children) {
-                    console.log("Also removing ", children);
                     _.each(children, function(childOid) {
                         var entity = game.OID_MAP[childOid];
                         if (entity && entity.ship) {
@@ -54951,30 +55161,50 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
             }
             game.log.addItem(ship.record.get('Name') + " recycled", date, 'recycled');
-            ship.flyOff(); // also adds this point back as available
-
-            if (game.TEAM_SHIPS[ship.team]) {
-                game.TEAM_SHIPS[ship.team].removePotentialTarget(ship);
+            if (ship.flyOff) {
+                ship.flyOff(); // also adds this point back as available
             }
         } else if (obj && obj.record) {
             game.POSITION_MANAGER.removePending(oid);
             game.log.addItem(obj.record.get('Name') + " recycled", date, 'recycled');
         }
-        delete game.OID_MAP[oid];
     },
 
     updateInitiative: function(record, oid, date) {
+        //console.log("update initiative");
         if (game.INITIATIVE_SHIP) {
             game.INITIATIVE_SHIP.record = record;
         }
-        this.updateShip(record, oid, date, function(rec) {
-            var endDate = record.get('ActualEndDate');
-            //return false;
-            return endDate && moment(endDate).isBefore(moment()); // TODO fix
-        });
+
+        var endDate = record.get('ActualEndDate');
+        if (!game.endDate && endDate) {
+            game.endDate = moment(endDate);
+            game.historyFinishedData = {
+                oid: oid
+            }
+            console.log("Completed initiative at " + game.endDate);
+            if (game.isHistoryFinished) {
+                game.historyFinished();
+            }
+        }
+        
+
+        var obj = game.OID_MAP[oid];
+        if (obj && obj.ship) {
+            var ship = obj.ship;
+            ship.record = record;
+        } else if (obj && obj.record) {
+            if (addTarget(record)) {
+                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+                delete game.OID_MAP[oid];
+            } else {
+                game.OID_MAP[oid].record = record;
+            }
+        }
     },
 
     updateFeature: function(record, oid, date) {
+        //console.log("update feature");
         var obj = game.OID_MAP[oid];
         if (obj && obj.ship) {
             var ship = obj.ship;
@@ -54989,7 +55219,6 @@ game.TitleScreen = me.ScreenObject.extend({
                     // Add all remaining shown children as targets first
                     _.each(children, function(child) {
                         teamShip.addTarget(child);
-                        console.log("My feature was destroyed", child);
                     });
 
                     teamShip.addTarget(ship);
@@ -54997,6 +55226,45 @@ game.TitleScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if (endDate && moment(endDate).isBefore(moment())) {
+                // see if you can swap this record with one that is currently on the screen
+                var possibleShips = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_LARGE);
+                if (possibleShips && possibleShips.length > 0) {
+                    var match = _.find(possibleShips, function(oneShip) {
+                        if (game.OID_MAP[oneShip] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
+                            return oneShip;
+                        }
+                    });
+
+                    if (match) {
+                        // swap records
+                        var temp = game.OID_MAP[oid];
+
+                        // update the displayed in the oid map
+                        game.OID_MAP[match.objectID].record = match.record;
+                        game.OID_MAP[match.objectID].date = match.date;
+                        game.OID_MAP[match.objectID].ship = null;
+                        game.OID_MAP[match.objectID] = temp;
+
+                        // update the ship
+                        match.objectID = oid;
+                        match.date = date;
+                        match.record = record;
+
+                        // update this in the oidmap
+                        game.OID_MAP[oid].record = null;
+                        game.OID_MAP[oid].ship = match;
+                        game.OID_MAP[oid].date = date;
+                        var teamShip = game.getTeam(record.get('Project'));
+                        if (teamShip) {
+                            game.OID_MAP[oid].targeted = teamShip.team;
+                            teamShip.addTarget(match);
+                        }
+
+                        console.log("SWAPPED!");
+                        return;
+                    }
+                }
+                // oh well, we tried to make it more fun!
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
@@ -55006,6 +55274,7 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     updateStory: function(record, oid, date) {
+        //console.log("update story");
         var feature = record.get('Feature');
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];
@@ -55036,6 +55305,47 @@ game.TitleScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if ((state == "Completed" || state == "Accepted" || state == "Released")) {
+
+                var possibleShips = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_MEDIUM);
+                if (possibleShips && possibleShips.length > 0) {
+                    var match = _.find(possibleShips, function(oneShip) {
+                        if (game.OID_MAP[oneShip.objectID] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
+                            return oneShip;
+                        }
+                    });
+
+                    if (match) {
+                        // update the displayed in the oid map
+                        game.OID_MAP[match.objectID].record = match.record;
+                        game.OID_MAP[match.objectID].date = match.date;
+                        game.OID_MAP[match.objectID].ship = null;
+                        game.OID_MAP[match.objectID].swapped = oid;
+
+                        // update the ship
+                        match.objectID = oid;
+                        match.date = date;
+                        match.record = record;
+
+                        // update this in the oidmap
+                        game.OID_MAP[oid].record = null;
+                        game.OID_MAP[oid].ship = match;
+                        game.OID_MAP[oid].date = date;
+                        var teamShip = game.getTeam(record.get('Project'));
+                        if (teamShip) {
+                            game.OID_MAP[oid].targeted = teamShip.team;
+                            teamShip.addTarget(match);
+                        }
+
+                        console.log("SWAPPED!");
+                        return;
+                    } else {
+                        console.log("NO MATCH, COULD NOT SWAP");
+                    }
+                } else {
+                    console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
+                }
+                
+                // oh well, we tried to make it more fun!
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
@@ -55045,13 +55355,13 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     updateTask: function(record, oid, date) {
+        // TODO swap if not shown - we have yet to see a situation where this would matter, but maybe they use a tonnnn or tasks
         this.updateShip(record, oid, date, function(rec) {
             return rec.get('State') == "Completed";
         });
     },
 
     updateShip: function(record, oid, date, shouldAddTarget) {
-        //console.log('update ' + record.get('Name'));
         var obj = game.OID_MAP[oid];
         if (obj && obj.ship) {
             var ship = obj.ship;
@@ -55065,7 +55375,7 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
             }
         } else if (obj && obj.record) {
-            if (addTarget(record)) {
+            if (shouldAddTarget(record)) {
                 game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
                 delete game.OID_MAP[oid];
             } else {
@@ -55098,12 +55408,14 @@ game.TitleScreen = me.ScreenObject.extend({
             game.INITIATIVE_SHIP = ship;
         }
 
-        game.log.addItem(record.get('Name') + " created", date, 'created');
-
+        if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+            game.log.addItem(record.get('Name') + " created", date, 'created');
+        }
         
         game.OID_MAP[oid] = {
             formattedId: record.get('FormattedID'),
-            ship: ship
+            ship: ship,
+            targeted: false
         };
 
         me.game.world.addChild(ship, this.zIndex++);
@@ -55172,10 +55484,14 @@ game.TitleScreen = me.ScreenObject.extend({
                     project: null
                 },
                 listeners: {
-                    load: function() {
+                    load: function(el, records, successful, eOpts) {
+                        if (!successful) {
+                            console.error(el, records, successful);
+                        }
                         Ext.getBody().unmask();
                         $('.x-mask').css("background", "none");
                     }
+
                 }
             },
             listeners: {
@@ -55246,7 +55562,10 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.disconnectRealtime = function() {
+
         RealtimeService.disconnect();
+        $scope.realtimeStatus = 'Disconnected';
+        $scope.$apply();
     }
 
     $scope.updateStatus = function(status) {
@@ -55288,7 +55607,6 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.addTeamColor = function(team, color) {
-        console.log("add team color", team, color);
         if (!$scope.scoreboard[team]) {
             $scope.scoreboard[team] = {
                 points: 0,
@@ -55299,7 +55617,6 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.getTeamColor = function(team) {
         if (team && $scope.scoreboard[team]) {
-            console.log("returning color " + $scope.scoreboard[team].color, team, $scope.scoreboard);
             return $scope.scoreboard[team].color;
         }
         return "white";
@@ -56117,6 +56434,7 @@ var GameEventHandler = function(realtime) {
     var eventQueue = [];
     var handler = this;
     var timer = null;
+    var consoleLog = true;
 
     var dequeue = function() {
         if (eventQueue.length > 0) {
@@ -56149,7 +56467,6 @@ var GameEventHandler = function(realtime) {
         timer = null;
         var scope = angular.element($("#root")).scope();
         scope.disconnectRealtime();
-        scope.updateStatus('Disconnected');
     };
 
     this.resetSpeed = function() {
@@ -56164,60 +56481,83 @@ var GameEventHandler = function(realtime) {
                 var object = dequeue();
                 if (object && object.event && object.event.type) {
                     var func = handler[object.event.type.replace('/','').replace('-', '_')];
+                    if (object.data && object.data.record && game.endDate && moment(object.data.record.get('_ValidFrom')).isAfter(game.endDate)) {
+                        console.log("CLEARING INTERVAL OF GAME EVENT HANDLER");
+                        clearInterval(timer);
+                        game.historyFinished();
+                        return;
+                    }
                     if (func) {
                         func(object.data);
+                    } else {
+                        console.log("no func", func);
                     }
-                } else {
-                } // TODO else - what to do if there was nothing to dequeue?
+                }
             }, 200 / game.SPEED);
         }
     };
 
+    var doLogging = function(str) {
+        console.log(str);
+    }
+
     this.PortfolioItemInitiative_Created = function(data) {
+        doLogging("Initiative-Created");
         game.shipScreen.addInitiative(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Created = function(data) {
+        doLogging("Feature-Created");
         game.shipScreen.addFeature(data.record, data.oid, data.date);
     };
 
     this.UserStory_Created = function(data) {
+        doLogging("UserStory-Created");
         game.shipScreen.addStory(data.record, data.oid, data.date);
     };
 
     this.Task_Created = function(data) {
+        doLogging("Initiative-Created");
         game.shipScreen.addTask(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemInitiative_Updated = function(data) {
+        doLogging("Initiative-Updated");
         game.shipScreen.updateInitiative(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Updated = function(data) {
+        doLogging("Feature-Updated");
         game.shipScreen.updateFeature(data.record, data.oid, data.date);
     };
 
     this.UserStory_Updated = function(data) {
+        doLogging("UserStory-Updated");
         game.shipScreen.updateStory(data.record, data.oid, data.date);
     };
 
     this.Task_Updated = function(data) {
+        doLogging("Task-Updated");
         game.shipScreen.updateTask(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemInitiative_Recycled = function(data) {
+        doLogging("Initiative-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Recycled = function(data) {
+        doLogging("Feature-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.UserStory_Recycled = function(data) {
+        doLogging("UserStory-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.Task_Recycled = function(data) {
+        doLogging("Task-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 }
@@ -56446,7 +56786,7 @@ var GameEventHandler = function(realtime) {
   touch-action: none;
   padding: 0;
   margin: 0;
-  font-family: pressStart;
+  font-family: "Courier New", Courier, monospace;
 }
 #screen canvas {
   width: 1024px;
@@ -56493,8 +56833,10 @@ var GameEventHandler = function(realtime) {
   overflow: auto;
 }
 #log,
-#scores {
-  font-family: "Helvetica Neue", Arial, Sans;
+#scores,
+#legend {
+  color: white;
+  font-family: "Courier New", Courier, monospace;
 }
 #legend {
   height: 208px;
@@ -56546,7 +56888,7 @@ li {
   margin: 0 0 5px 0;
 }
 .completed {
-  color: #EE1C25;
+  color: #0F0;
 }
 .recycled {
   color: #E6E6E6;
@@ -56571,16 +56913,33 @@ li {
   /* $grey7 */
 }
 .connected {
-  background-color: #00A9E0;
+  background-color: #0F0;
   /* $cyan */
+  color: black;
+  font-weight: bold;
 }
 .connecting {
   background-color: #444;
   /* $grey8 */
 }
 .disconnected {
-  background-color: #EE1C25;
+  background-color: #ED1C24;
   /* $red */
+}
+#scoreboardTable {
+  font-size: 110%;
+}
+#scoreboardTable > tbody > tr > td,
+#scoreboardTable > thead > tr > th {
+  padding: 5px 15px;
+  text-align: center;
+}
+#scoreboardTable > tbody > tr > td:first-child,
+#scoreboardTable > thead > tr > th:first-child {
+  text-align: left;
+}
+#scoreboardTable > thead {
+  display: table-header-group;
 }
 
     </style>
@@ -56614,24 +56973,30 @@ td.dataColumn {
             <div>
                 <div id="scores">
                     <div class="content">
-                        <table>
-                            <tr>
-                                <th>
-                                    Team
-                                </th>
-                                <th ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
-                                    {{teamName}}
-                                </th>
-                            </tr>
-                            <tr>
-                                <td>
-                                    Score
-                                </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
-                                    {{teamInfo.points}}
-                                </td>
-                            </tr>
-<!--                             <tr>
+                        <table id="scoreboardTable">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Team
+                                    </th>
+                                    <th ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
+                                        {{teamName}}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        Score
+                                    </td>
+                                    <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
+                                        {{teamInfo.points}}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!--                             <tr>
                                 <td>
                                     Lives
                                 </td>
@@ -56639,7 +57004,6 @@ td.dataColumn {
                                     {{teamInfo.lives}}
                                 </td>
                             </tr> -->
-                        </table>
                     </div>
                 </div>
                 <div id="legend">
@@ -56673,32 +57037,32 @@ td.dataColumn {
                 <div id="screen">
                 </div>
                 <div id="log">
+                    <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                        Realtime Status: {{realtimeStatus}}
+                    </div>
+                    <p>Speed:
+                        <select id="speed">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5" selected="selected">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                    </p>
+                    <p>Filter Log:
+                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                          <option value="">All</option>
+                          <option value="created">Created</option>
+                          <option value="completed">Completed</option>
+                          <option value="recycled">Recycled</option>
+                        </select>
+                    </p>
                     <div class="content">
-                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
-                            Realtime Status: {{realtimeStatus}}
-                        </div>
-                        <p>Speed:
-                            <select id="speed">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5" selected="selected">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                            </select>
-                        </p>
-                        <p>Filter Log:
-                            <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
-                              <option value="">All</option>
-                              <option value="created">Created</option>
-                              <option value="completed">Completed</option>
-                              <option value="recycled">Recycled</option>
-                            </select>
-                        </p>
                         <ul id="historyLog">
                           <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->
                         </ul>

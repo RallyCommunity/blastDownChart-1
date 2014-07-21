@@ -1,14 +1,24 @@
 /* Game namespace */
 var game = {
+    audioOn: false, // turn sounds off for debugging so I can listen to music :)
 
-    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFFFFF"},
-                        {name: "red", hex: "#FF0000"},
-                        {name: "blue", hex: "#0000FF"}],
+    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFF"}, // white
+                        {name: "red", hex: "#ED1C24"}, // rally red
+                        {name: "blue", hex: "#00A9E0"}], // cyan
+
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
 
     SPEED: 5, // Adjust this to adjust the speed of everything
 
-    // ["blue", "red", "lime", "yellow", "orange", "pink", "purple", "teal"],
+    // TODO new colors!
+    // #FAD200 - yellow
+    // #FF8200 - orange
+    // #DA1884 - pink
+    // #7832A5 - purple
+    // #005EB8 - dark blue
+    // #00B398 - teal
+    // #8DC63F - green
+
     FEATURE_SHIP_COLORS: ["teal", "purple", "pink", "orange", "yellow", "lime", "red", "blue"],
     FEATURE_SHIP_COLOR_INDEX: 0,
     featureColorMap: {},
@@ -129,10 +139,13 @@ var game = {
     // Run on page load.
     "onload" : function () {
         game.LABEL_POSITONS = [
-            new Point(0, game.WINDOW_HEIGHT - 144),
-            new Point(0, game.WINDOW_HEIGHT - 112),
-            new Point(0, game.WINDOW_HEIGHT - 80)
+            new Point(0, game.WINDOW_HEIGHT - 164),
+            new Point(0, game.WINDOW_HEIGHT - 140),
+            new Point(0, game.WINDOW_HEIGHT - 116),
+            new Point(0, game.WINDOW_HEIGHT - 92),
+            new Point(0, game.WINDOW_HEIGHT - 68),
         ];
+
         game.LABEL_INDEX = 0;
 
         // Initialize the video.
@@ -216,6 +229,25 @@ var game = {
         });
 
         Ext.getBody().unmask();
+    },
+
+
+
+    historyFinished: function() {
+        game.isHistoryFinished = true;
+        if (game.endDate) {
+            console.log("Initiative was completed!");
+            var obj = game.OID_MAP[game.historyFinishedData.oid];
+            if (obj && obj.ship) {
+                var ship = obj.ship;
+                obj.targeted = true;
+                var teamShip = game.getExistingTeam(obj.ship.record.get('Project'));
+                if (teamShip) {
+                    ship.team = obj.ship.record.get('Project');
+                    teamShip.addTarget(ship);
+                }
+            }
+        }
     },
 
     // speed

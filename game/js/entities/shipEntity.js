@@ -77,6 +77,37 @@ game.Ship = me.ObjectEntity.extend({
     //     context.restore();
     // },
 
+
+    // draw: function(context, rect) {
+    //     //this.parent(context, rect);
+
+    //     var image = this.renderable.image;
+    //     var tempCanvas = document.createElement('canvas');
+    //     var tempContext = tempCanvas.getContext('2d');
+
+    //     tempContext.drawImage(image, 0, 0);
+    //     context.clearRect(this.pos.x, this.pos.y, image.width, image.height);
+    //     var imgd = tempContext.getImageData(0, 0, image.width, image.height);
+
+    //     // var imgd = context.getImageData(this.pos.x, this.pos.y, this.width, this.height);
+    //     var pix = imgd.data;
+    //     var uniqueColor = [0,0,255]; // Blue for an example, can change this value to be anything.
+
+    //     // Loops through all of the pixels and modifies the components.
+    //     for (var i = 0, n = pix.length; i <n; i += 4) {
+    //         if (pix[i + 3] != 0) {
+    //             pix[i] = uniqueColor[0];   // Red component
+    //             pix[i+1] = uniqueColor[1]; // Green component
+    //             pix[i+2] = uniqueColor[2]; // Blue component
+    //         }
+              
+    //           //pix[i+3] is the transparency.
+    //     }
+
+    //     context.putImageData(imgd, this.pos.x, this.pos.y);
+    //     context.restore();
+    // },
+
     // ship behavior
     // Called many times to refresh the ships on the screen
     // to optimize performance, minimize the cost of calling this

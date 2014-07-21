@@ -75,7 +75,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
         } else if (this.stepNum == 1) {
             if (this.pos.x < 32) {
                 this.stepNum++;
-                game.cleanup();
             }
             // move to left edge
             this.vel.x -= this.accel.x * me.timer.tick;
@@ -136,7 +135,9 @@ game.PlayerEntity = me.ObjectEntity.extend({
             shootDown: false,
             teamShip: teamShip
         });
-        me.audio.play("shoot");
+        if (game.audioOn) {
+            me.audio.play("shoot");
+        }
         game.canShoot[this.team] = false;
         me.game.world.addChild(shot, Number.POSITIVE_INFINITY);
     },
@@ -146,7 +147,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        // TODO temporary to fix extra ships on the screen
         if (target.type == game.ENEMY_ENTITY_SUPER) {
             var playerShip = this;
             // add all remaining ships as targets first
@@ -181,7 +181,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        this.removePotentialTarget(target); // TODO inefficient
+        this.removePotentialTarget(target);
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
 
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";

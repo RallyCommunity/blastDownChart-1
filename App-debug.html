@@ -57,24 +57,30 @@
             <div>
                 <div id="scores">
                     <div class="content">
-                        <table>
-                            <tr>
-                                <th>
-                                    Team
-                                </th>
-                                <th ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
-                                    {{teamName}}
-                                </th>
-                            </tr>
-                            <tr>
-                                <td>
-                                    Score
-                                </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
-                                    {{teamInfo.points}}
-                                </td>
-                            </tr>
-<!--                             <tr>
+                        <table id="scoreboardTable">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Team
+                                    </th>
+                                    <th ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
+                                        {{teamName}}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        Score
+                                    </td>
+                                    <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
+                                        {{teamInfo.points}}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!--                             <tr>
                                 <td>
                                     Lives
                                 </td>
@@ -82,7 +88,6 @@
                                     {{teamInfo.lives}}
                                 </td>
                             </tr> -->
-                        </table>
                     </div>
                 </div>
                 <div id="legend">
@@ -116,32 +121,32 @@
                 <div id="screen">
                 </div>
                 <div id="log">
+                    <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                        Realtime Status: {{realtimeStatus}}
+                    </div>
+                    <p>Speed:
+                        <select id="speed">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5" selected="selected">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                    </p>
+                    <p>Filter Log:
+                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                          <option value="">All</option>
+                          <option value="created">Created</option>
+                          <option value="completed">Completed</option>
+                          <option value="recycled">Recycled</option>
+                        </select>
+                    </p>
                     <div class="content">
-                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
-                            Realtime Status: {{realtimeStatus}}
-                        </div>
-                        <p>Speed:
-                            <select id="speed">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5" selected="selected">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                            </select>
-                        </p>
-                        <p>Filter Log:
-                            <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
-                              <option value="">All</option>
-                              <option value="created">Created</option>
-                              <option value="completed">Completed</option>
-                              <option value="recycled">Recycled</option>
-                            </select>
-                        </p>
                         <ul id="historyLog">
                           <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->
                         </ul>
