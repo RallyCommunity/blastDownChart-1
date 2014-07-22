@@ -11,7 +11,7 @@ game.Ship = me.ObjectEntity.extend({
 
         // set the movement speed
         this.gravity = 0.0;
-        this.setVelocity(0, 0);
+        this.setVelocity(6, 0);
 
         this.type = settings.type;
 
@@ -30,9 +30,14 @@ game.Ship = me.ObjectEntity.extend({
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
         this.alpha = 1;
+        this.parent = this.parent;
 
         this.animateSprite = settings.animateSprite;
         this.flip = true;
+        this.spritewidth = settings.spritewidth;
+        this.isInSync = false;
+        this.numPerMove = 30;
+
         /**
          * Returns whether or not this ship is vulnerable to attack
          * @return true if this ship can be destroyed, else false
@@ -46,7 +51,8 @@ game.Ship = me.ObjectEntity.extend({
             // have to remove it from data structures immediately in case they are restored
             game.log.addItem(this.record.get('Name') + " recycled", this.date, 'recycled');
             if (!(game.OID_MAP[this.objectID] && game.OID_MAP[this.objectID].targeted)) {
-                game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
+
+                game.POSITION_MANAGER.addAvailablePosition(this.spritewidth, this.startingX, this.startingY);
                 delete game.OID_MAP[this.objectID];
                 if (this.renderable) {
                     (new me.Tween(this.renderable))
@@ -60,60 +66,25 @@ game.Ship = me.ObjectEntity.extend({
                 }
             } // else it is currently targeted, dont fade.  Just log that it was recycled.
         };
-    },
 
+    },
 
     // // TODO
     // draw: function(context) {
     //     context.save();
           
-    //     //context.clearRect(this.pos.x, this.pos.y, this.width, this.height); 
+    //     //context.clearRect(this.pos.x, this.pos.y, this.spritewidth, this.height); 
     //     this.parent(context);    
     //     context.globalCompositeOperation = "source-in";
 
     //     context.fillStyle="green";
-    //     context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+    //     context.fillRect(this.pos.x, this.pos.y, this.spritewidth, this.height);
 
     //     context.globalCompositeOperation = "source-over";
     //     context.restore();
     // },
 
-
-    // draw: function(context, rect) {
-    //     this.parent(context, rect);
-
-    //     var image = this.renderable.image;
-    //     var tempCanvas = document.createElement('canvas');
-    //     var tempContext = tempCanvas.getContext('2d');
-
-    //     tempContext.drawImage(image, 0, 0);
-    //     context.clearRect(this.pos.x, this.pos.y, image.width, image.height);
-    //     var imgd = tempContext.getImageData(0, 0, image.width, image.height);
-
-    //     // var imgd = context.getImageData(this.pos.x, this.pos.y, this.width, this.height);
-    //     var pix = imgd.data;
-    //     var uniqueColor = [0,0,255]; // Blue for an example, can change this value to be anything.
-
-    //     // Loops through all of the pixels and modifies the components.
-    //     for (var i = 0, n = pix.length; i <n; i += 4) {
-    //         if (pix[i + 3] != 0) {
-    //             pix[i] = uniqueColor[0];   // Red component
-    //             pix[i+1] = uniqueColor[1]; // Green component
-    //             pix[i+2] = uniqueColor[2]; // Blue component
-    //         }
-              
-    //           //pix[i+3] is the transparency.
-    //     }
-
-    //     context.putImageData(imgd, this.pos.x, this.pos.y);
-    //     context.restore();
-    // },
-
-    // ship behavior
-    // Called many times to refresh the ships on the screen
-    // to optimize performance, minimize the cost of calling this
-    update: function() {
-        // fly in from the top
+    update: function(dt) {
         this.numSteps++;
         if (!this.setupComplete) {
             // move in to position
@@ -123,59 +94,49 @@ game.Ship = me.ObjectEntity.extend({
             
             if (this.pos.y >= this.goToY) {
                 this.setupComplete = true;
+                this.numSteps = 0;
             }
             return true;
         }
 
+        var normalMovement = function(dt, theShip) {
+            if (theShip.numSteps > 6 * theShip.numPerMove) {
+                theShip.numSteps = 0;
+            }
+
+            if (theShip.numSteps == theShip.numPerMove || theShip.numSteps == theShip.numPerMove * 2 || theShip.numSteps == theShip.numPerMove * 3) {
+                theShip.vel.x += theShip.accel.x * me.timer.tick;
+                theShip.moveRight = true;
+            } else if (theShip.numSteps == theShip.numPerMove * 4 || theShip.numSteps == theShip.numPerMove * 5 || theShip.numSteps == theShip.numPerMove * 6) {
+                theShip.vel.x -= theShip.accel.x * me.timer.tick;
+                theShip.moveRight = false;
+            } else {
+                theShip.vel.x = 0;
+            }
+
+            theShip.updateMovement();
+            if (theShip.vel.x !=0 || theShip.vel.y != 0) {
+                // update object animation
+                theShip.parent(100);
+                return true;
+            }
+            return true;
+        };
+
+
         if (this.type == game.ENEMY_ENTITY_SUPER) {
-
-            this.update = function() {
-               return this.normalMovement();
-            }
+            return normalMovement(dt, this);
         }
 
-        if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 1 && !game.INITIATIVE_SHIP.moveRight) {
-            // wait for the movement mattern to line ups
-            this.setupComplete = true;
-            this.numSteps = 1;
-            this.pos.x += 1;
-            this.moveRight = game.INITIATIVE_SHIP.moveRight;
-            this.update = function() {
-                this.normalMovement();
-            }
-        }
-
-        return true;
-    },
-
-    // Use this function to eliminate unnecessary checks for ship entities
-    // optimization
-    normalMovement: function() {
-        // movement pattern
-        if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
-            if (this.animateSprite) {
-                if (this.flip) {
-                    this.flipX(true);
-                } else {
-                    this.flipX(false);
-                }
-
-                this.flip = !this.flip;
-            }
-
-            if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight)) === 0) {
-                this.moveRight = !this.moveRight;
+        if (!this.isInSync) {
+            if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 0) {
+                this.isInSync = true;
                 this.numSteps = 0;
             }
-
-            if (this.moveRight) {
-                this.pos.x -= 5;
-            } else {
-                this.pos.x += 5;
-            }
+            return true;
         }
-        this.numSteps++;
-        return true;
+
+        return normalMovement(dt, this);
     },
 
     /**

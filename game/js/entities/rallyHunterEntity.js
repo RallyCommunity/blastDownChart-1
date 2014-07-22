@@ -29,7 +29,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
     // update position
     normalMovement: function(dt) {
         // Accept keyboard input
-
         if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
             this.shoot();
             this.vel.x = 0;

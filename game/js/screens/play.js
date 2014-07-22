@@ -129,7 +129,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
 
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
+                this.addEnemy(record, oid, date, "new_medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
                 this.numStories++;
             }
         } else {
@@ -482,11 +482,16 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addEnemy: function(record, oid, date, image, type, height, width, x, y, featureOid) {
+        var spriteWidth = width;
+        if (width == 32) {
+            width = 64;
+        }
+
         var shipSettings = {
             height: height,
             image: image,
             spriteheight: height,
-            spritewidth: width,
+            spritewidth: spriteWidth,
             width: width,
             objectID: oid,
             z: this.zIndex,

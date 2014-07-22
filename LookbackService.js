@@ -258,9 +258,13 @@ module.factory('LookbackService', function() {
                     "_ItemHierarchy": itemHierarchy
                 },
                 headers: {
-                    "dataType" : "jsonp"
+                    "datatype" : "jsonp"
                 }
             });
+
+            lookbackStore.proxy.extraParams = {
+                "jsonp" : "pageLoaded"
+            };
 
             getProjects(function() {
                 loadPage(1);   

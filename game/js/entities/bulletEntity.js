@@ -118,7 +118,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
-                    game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
+                    game.POSITION_MANAGER.addAvailablePosition(res.obj.spritewidth || res.obj.width, res.obj.startingX, res.obj.startingY);
                     delete game.OID_MAP[res.obj.objectID];
                 }
 
