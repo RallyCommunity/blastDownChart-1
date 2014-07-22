@@ -34,12 +34,11 @@ Ext.define('CustomApp', {
                     console.log("Selected", selectedRecord);
 
                     var injector = angular.bootstrap(document.body, ['angularBlastdown']);
-                    injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
-                    
                     var scope = angular.element(document.body).scope();
                     scope.app = Rally.getApp().getContext().map.map;
                     
-                    scope.$digest();                  
+                    scope.$digest();  
+                    injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
                 }
             }
         }

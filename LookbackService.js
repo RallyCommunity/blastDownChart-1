@@ -50,12 +50,6 @@ module.factory('LookbackService', function() {
     };
 
     var recycleEvent = function(currentType, record, oid) {
-        if (currentType == 'PortfolioItem/Initiative' || oid == initiativeOid   ) {
-            //console.log("recycle initiative", currentType, record, oid, hierarchyMap.children);
-        }
-
-        //console.log("Recycle", oid, record);
-
         currentType = getType(currentType);
         eventTrigger.trigger(currentType + "-Recycled", {
             record: null,
@@ -92,6 +86,9 @@ module.factory('LookbackService', function() {
     };
 
     var triggerEvents = function(page, records, operation, success) {
+        if (page == 1) {
+            eventTrigger.trigger("History-Started");
+        }
         var lbService = this;
         _.each(records, function(record) {
             // fire events in order of what happenend historically
@@ -122,7 +119,6 @@ module.factory('LookbackService', function() {
                 };
 
                 creationEvent(currentType, record, currentOid);
-                //console.log('HierarchyMap', hierarchyMap, initiativeOffset);
                 return;
             }
 
@@ -138,7 +134,6 @@ module.factory('LookbackService', function() {
                 // set the feature to the oid that is in the feature position
                 if (itemHierarchy[initiativeOffset] != initiativeOid) {
                     setOffset(itemHierarchy);
-                    // console.log("ItemHierarchy", itemHierarchy);
                 }
                 if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                     record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
@@ -169,7 +164,6 @@ module.factory('LookbackService', function() {
                         }
                         creationEvent(currentType, record, currentOid);
 
-                        //console.log('HierarchyMap', hierarchyMap);
                         return;
                     }
                 }
@@ -183,8 +177,6 @@ module.factory('LookbackService', function() {
 
             var previousChildren = _.toArray(currentObject.children);
             if (children && previousChildren.length > children.length) {
-                //console.log('Recycle Event');
-                // TODO better way to find the missing child
                 var keys = _.toArray(Object.keys(currentObject.children));
                 var theKey = _.find(keys, function(key) {
                     if (!_.contains(children, parseInt(key, 10))) {
@@ -206,23 +198,24 @@ module.factory('LookbackService', function() {
         }
     };
 
-    // TODO going to need access to the current page in the pageLoaded function
-    var loadPage = function(page) {
-        lookbackStore.loadPage(page);
-    };
 
-    var pageLoaded = function (records, operation, success) {
-        console.log("records", records);
-        if (records.length != PAGE_SIZE) {
-            // Got less data back than an entire page size => done fetching data from the realtime
-            maxPage = page;
-        }
-        triggerEvents(page, records, operation, success);
-        if (records.length == PAGE_SIZE) {
-            page++;
-            loadPage(page);
-        }
-    } 
+    var loadPage = function(page) {
+        lookbackStore.loadPage(page, {
+            scope: this,
+            callback: function (records, operation, success) {
+                if (records.length != PAGE_SIZE) {
+                    // Got less data back than an entire page size => done fetching data from the realtime
+                    maxPage = page;
+                }
+
+                triggerEvents(page, records, operation, success);
+                if (records.length == PAGE_SIZE) {
+                    page++;
+                    loadPage(page);
+                }
+            }   
+        });
+    };
 
     var setupRealtime = function() {
         var projectUUIDs = [];
@@ -246,15 +239,12 @@ module.factory('LookbackService', function() {
                 workspace: Rally.util.Ref.getRelativeUri(),
                 project: null
             }
-        }).load({
-            scope: this,
-            callback: function (records, operation, success) {
+        }).load(function (records, operation, success) {
                 _.each(records, function (record) {
                     projectOidMap[record.get('ObjectID')] = record;
                     eventTrigger.trigger("Project", {record: record});
                 });
                 callbackFn();
-            }
         });
     };
 
@@ -266,16 +256,14 @@ module.factory('LookbackService', function() {
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy
+                },
+                headers: {
+                    "dataType" : "jsonp"
                 }
             });
 
-            lookbackStore.proxy.extraParams = {
-                "jsonp" : "pageLoaded"
-            };
-            
             getProjects(function() {
-                loadPage(1); 
-                game.reveal();  
+                loadPage(1);   
             });
         }
     };

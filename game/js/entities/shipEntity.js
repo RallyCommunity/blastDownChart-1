@@ -153,13 +153,11 @@ game.Ship = me.ObjectEntity.extend({
     normalMovement: function() {
         // movement pattern
         if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
-
-            
             if (this.animateSprite) {
                 if (this.flip) {
-                    this.flipY(true);
+                    this.flipX(true);
                 } else {
-                    this.flipY(false);
+                    this.flipX(false);
                 }
 
                 this.flip = !this.flip;

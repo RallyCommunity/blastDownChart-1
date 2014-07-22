@@ -22,6 +22,8 @@ game.resources = [
 
     {name: "medium", type: "image", src: "game/data/img/shipMedium.png"},  // 32x32
 
+
+
     {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
     {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
     {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
@@ -34,8 +36,11 @@ game.resources = [
 
 
     {name: "new_small_test", type: "image", src: "game/data/img/new/enemySmall.png"},
+    {name: "new_medium", type: "image", src: "game/data/img/new/mediumEnemy.png"},  // 32x32
 
+    
     {name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
+
     
     // bullet
     {name: "bullet", type: "image", src: "game/data/img/bullet_sprite.png"},

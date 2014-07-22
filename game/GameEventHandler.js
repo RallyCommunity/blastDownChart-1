@@ -6,6 +6,7 @@
  */
 var GameEventHandler = function(realtime) {
     var listenTo = 'body';
+    console.log("created event halnder");
     var eventQueue = [];
     var handler = this;
     var timer = null;
@@ -26,11 +27,19 @@ var GameEventHandler = function(realtime) {
         });
     });
 
+
+
     $(listenTo).on("Project", null, null, function(event, data) {
         if (!game.PROJECT_MAPPING[data.record.get('ObjectID')]) {
             game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
         }
     });
+
+    $(listenTo).on("History-Started", null, null, function(event, data) {
+        game.reveal();
+    });
+
+    
 
     $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {
         var status = data && data.status && data.status == 200 ? 'Connected' : 'Disconnected';
@@ -76,7 +85,6 @@ var GameEventHandler = function(realtime) {
     };
 
     this.History_Completed = function() {
-        // pause the playThrough timer until all targets are removed
         //console.log("HISTORY COMPLETED");
     };
 
