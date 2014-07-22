@@ -88,9 +88,12 @@ game.PlayScreen = me.ScreenObject.extend({
                 game.FEATURE_SHIP_COLOR_INDEX++;
                 game.featureColorMap[oid] = color;
             }
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
+                this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+                this.numFeatures++;
+            }
             
-            this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
-            this.numFeatures++;
+            
         } else {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
                 game.log.addItem(record.get('Name') + " created", date, 'created');
@@ -123,10 +126,12 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getStoryPosition(x);
         if (point) {
-            this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
-            this.numStories++;
-            //this.updateStory(record, oid, date);
 
+
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
+                this.numStories++;
+            }
         } else {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
                 game.log.addItem(record.get('Name') + " created", date, 'created');
@@ -178,16 +183,17 @@ game.PlayScreen = me.ScreenObject.extend({
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
                 game.log.addItem(record.get('Name') + " created", date, 'created');
             }
-            
-            game.OID_MAP[oid] = {
-                formattedId: record.get('FormattedID'),
-                ship: ship,
-                targeted: false
-            };
 
-            me.game.world.addChild(ship, this.zIndex++);
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
+                me.game.world.addChild(ship, this.zIndex++);
+                game.OID_MAP[oid] = {
+                    formattedId: record.get('FormattedID'),
+                    ship: ship,
+                    targeted: false
+                };
+                this.numTasks++;
+            }
 
-            this.numTasks++;
             //this.updateTask(record, oid, date);
         } else {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
@@ -284,7 +290,7 @@ game.PlayScreen = me.ScreenObject.extend({
             if (!obj.targeted && endDate && moment(endDate).isBefore(moment())) {
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
-                    ship.team = record.get('Project')
+                    ship.team = record.get('Project');
                     var children = me.game.world.getChildByProp("featureOid", oid);
                     // Add all remaining shown children as targets first
                     _.each(children, function(child) {

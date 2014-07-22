@@ -21,7 +21,7 @@ game.TitleScreen = me.ScreenObject.extend({
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -700}, 3000).onComplete(this.scrollover.bind(this)).start();
          
-                this.scroller = "A PORTFOLIO ITEM VISUALIZATION USING SPACE INVADERS";
+                this.scroller = "A PORTFOLIO ITEM VISUALIZATION";
                 this.scrollerpos = 3000;
             },
              

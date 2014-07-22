@@ -112,8 +112,11 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 });
             } else {
                 // keep track of a queue of targets
+
                 this.targets.push(target);
             }
+            console.log('added target', target);
+            this.indicateTarget();
             if (game.OID_MAP[target.objectID]) {
                 game.OID_MAP[target.objectID].targeted = this.team || true;
             } else {
@@ -191,6 +194,11 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
                 this.updateMovement();
                 return true;
+            } else {
+                var hunter = this;
+                this.update = function(dt) {
+                    hunter.normalMovement(dt)
+                }
             }
             return true;
         }

@@ -5,10 +5,10 @@ function RealtimeDataHandler() {
     var subscriptions = {};
     var eventTrigger = $('body');
 
-    var wsapiAggregator = new WSAPIAggregator();
+    var wsapiAggregator = new WSAPIAggregator(eventTrigger);
 
     this.handleRealtimeMessage = function(data) {
-        //console.log(data);
+        console.log(data);
         // do we have enough information to act on this
         if (data && data.type == 'event' && data.data && data.data.action) {
             var offset, valueOffset;
