@@ -206,12 +206,13 @@ module.factory('LookbackService', function() {
         }
     };
 
-
+    // TODO going to need access to the current page in the pageLoaded function
     var loadPage = function(page) {
         lookbackStore.loadPage(page);
     };
 
     var pageLoaded = function (records, operation, success) {
+        console.log("records", records);
         if (records.length != PAGE_SIZE) {
             // Got less data back than an entire page size => done fetching data from the realtime
             maxPage = page;
