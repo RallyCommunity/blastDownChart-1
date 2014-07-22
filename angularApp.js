@@ -18,17 +18,11 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         $scope.filters.class = option;
     };
 
-    $scope.logItems = [];
-
-    /*
-
-    {
+    $scope.logItems = [{
         date: moment().format("MM-MM-DD-YY HH:mm"),
         note: "Space Invaders Blast Down Initialized",
         class: 'init'
-    }
-
-    */
+    }];
 
     $scope.realtimeStatus = 'Waiting';
 
@@ -39,7 +33,6 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.disconnectRealtime = function() {
-
         RealtimeService.disconnect();
         $scope.realtimeStatus = 'Disconnected';
         $scope.$digest();
@@ -47,6 +40,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.updateStatus = function(status) {
         $scope.realtimeStatus = status;
+        $scope.$digest();
     }
 
     game.onload();
@@ -91,6 +85,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
                 points: 0,
                 color: color
             }
+            $scope.$digest();
         }
     }
 

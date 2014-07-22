@@ -208,21 +208,20 @@ module.factory('LookbackService', function() {
 
 
     var loadPage = function(page) {
-        lookbackStore.loadPage(page, {
-            scope: this,
-            callback: function (records, operation, success) {
-                if (records.length != PAGE_SIZE) {
-                    // Got less data back than an entire page size => done fetching data from the realtime
-                    maxPage = page;
-                }
-                triggerEvents(page, records, operation, success);
-                if (records.length == PAGE_SIZE) {
-                    page++;
-                    loadPage(page);
-                }
-            }   
-        });
+        lookbackStore.loadPage(page);
     };
+
+    var pageLoaded = function (records, operation, success) {
+        if (records.length != PAGE_SIZE) {
+            // Got less data back than an entire page size => done fetching data from the realtime
+            maxPage = page;
+        }
+        triggerEvents(page, records, operation, success);
+        if (records.length == PAGE_SIZE) {
+            page++;
+            loadPage(page);
+        }
+    } 
 
     var setupRealtime = function() {
         var projectUUIDs = [];
@@ -268,6 +267,10 @@ module.factory('LookbackService', function() {
                     "_ItemHierarchy": itemHierarchy
                 }
             });
+
+            lookbackStore.proxy.extraParams = {
+                "jsonp" : pageLoaded
+            };
             
             getProjects(function() {
                 loadPage(1); 

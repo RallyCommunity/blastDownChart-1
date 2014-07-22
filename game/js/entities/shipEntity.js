@@ -63,13 +63,13 @@ game.Ship = me.ObjectEntity.extend({
     },
 
 
-    // TODO
+    // // TODO
     // draw: function(context) {
     //     context.save();
           
-    //     context.clearRect(this.pos.x, this.pos.y, this.width, this.height); 
-    //     //this.parent(context);    
-    //     context.globalCompositeOperation = "source-out";
+    //     //context.clearRect(this.pos.x, this.pos.y, this.width, this.height); 
+    //     this.parent(context);    
+    //     context.globalCompositeOperation = "source-in";
 
     //     context.fillStyle="green";
     //     context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
