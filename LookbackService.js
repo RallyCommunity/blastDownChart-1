@@ -269,7 +269,7 @@ module.factory('LookbackService', function() {
             });
 
             lookbackStore.proxy.extraParams = {
-                "jsonp" : pageLoaded
+                "jsonp" : "pageLoaded"
             };
             
             getProjects(function() {
