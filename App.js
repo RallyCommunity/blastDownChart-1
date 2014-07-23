@@ -39,6 +39,14 @@ Ext.define('CustomApp', {
                     
                     scope.$digest();  
                     injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
+
+                    $('#mute').click(function() {
+                        $('#muteIcon').toggleClass('hidden');
+                        $('#speakerIcon').toggleClass('hidden');
+                        game.toggleMute();
+                    });
+
+
                 }
             }
         }

@@ -121,31 +121,37 @@
                 <div id="screen">
                 </div>
                 <div id="log">
-                    <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
-                        Realtime Status: {{realtimeStatus}}
+                    <div class="header">
+                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                            Realtime Status: {{realtimeStatus}}
+                        </div>
+                        <div id="mute">
+                            <img src="http://upload.wikimedia.org/wikipedia/commons/3/3f/Mute_Icon.svg" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
+                            <img src="http://upload.wikimedia.org/wikipedia/commons/2/21/Speaker_Icon.svg" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">
+                        </div> 
+                        <p>Speed:
+                            <select id="speed">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5" selected="selected">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </p>
+                        <p>Filter Log:
+                            <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                              <option value="">All</option>
+                              <option value="created">Created</option>
+                              <option value="completed">Completed</option>
+                              <option value="recycled">Recycled</option>
+                            </select>
+                        </p>
                     </div>
-                    <p>Speed:
-                        <select id="speed">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5" selected="selected">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                        </select>
-                    </p>
-                    <p>Filter Log:
-                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
-                          <option value="">All</option>
-                          <option value="created">Created</option>
-                          <option value="completed">Completed</option>
-                          <option value="recycled">Recycled</option>
-                        </select>
-                    </p>
                     <div class="content">
                         <ul id="historyLog">
                           <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->

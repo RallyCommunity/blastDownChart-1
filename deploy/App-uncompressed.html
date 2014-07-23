@@ -33587,7 +33587,8 @@ return jQuery;
 
 }));
 
-                function WSAPIAggregator() {
+                function WSAPIAggregator(evtTrigger) {
+    var eventTrigger = evtTrigger;
     this.getWorkItem = function(oid, model, callback) {
         Ext.create('Rally.data.WsapiDataStore', {
             model   : model,
@@ -33605,7 +33606,51 @@ return jQuery;
             callback: function(records) {
                 if (callback && _.isFunction(callback)) {
                     if (records && records.length == 1) {
-                        callback(records[0]);
+                        // set the feature properly
+
+                        var returnRecord = records[0];
+
+                        var featureParts = returnRecord.get("Feature");
+                        if (featureParts) {
+                            featureParts = featureParts._ref.split("/");
+                        }
+                        if (featureParts && featureParts.length > 0) {
+                            returnRecord.data.Feature = featureParts[featureParts.length - 1];
+                        }
+
+                        var project = returnRecord.get("Project");
+                        // same interface as lbapi, must trigger project event for this project!
+                        if (project && project._refObjectName) {
+                            Ext.create('Rally.data.WsapiDataStore', {
+                                model: 'Project',
+                                fetch: ['Name', 'ObjectID'],
+                                limit: Infinity,
+                                context: {
+                                    workspace: Rally.util.Ref.getRelativeUri(),
+                                    project: null
+                                },
+                                filters: [{
+                                    property : 'Name',
+                                    value    : project._refObjectName
+                                }]
+                            }).load({
+                                scope: this,
+                                callback: function (records, operation, success) {
+                                    if (records) {
+                                        _.each(records, function (record) {
+                                            eventTrigger.trigger("Project", {record: record});
+                                            if (returnRecord.data) {
+                                                returnRecord.data.Project = record.get('ObjectID');
+                                            }
+                                        });
+                                    }
+
+                                    callback(returnRecord);
+                                }
+                            });
+                        } else {
+                            callback(returnRecord);
+                        }
                     } else {
                         callback(null);
                     }
@@ -53266,7 +53311,6 @@ var game = {
         height: 16
     },
 
-
     // track the score
     data : {
         // score
@@ -53274,6 +53318,16 @@ var game = {
     },
 
     log : {
+        addCompletedItem: function(record, projectName, pointsEarned, time) {
+            if (projectName && pointsEarned) {
+                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
+            } else if (projectName) {
+                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName, time, 'completed');
+            } else {
+                game.angularScope.addLogItem(record.get('Name') + " - completed", time, 'completed');
+            }
+        },
+
         addItem: function(logEvent, date, className) {
             game.angularScope.addLogItem(logEvent, date, className);
         },
@@ -53362,6 +53416,10 @@ var game = {
         me.state.change(me.state.LOADING);
     },
 
+    toggleMute: function() {
+        this.audioOn = !this.audioOn;
+    },
+
     getImageFromSvg : function(rawSVG) {
         var svg = new Blob([rawSVG], {type:"image/svg+xml;charset=utf-8"});
         var domURL = self.URL || self.webkitURL || self;
@@ -53423,7 +53481,6 @@ var game = {
             var obj = game.OID_MAP[game.historyFinishedData.oid];
             if (obj && obj.ship) {
                 var ship = obj.ship;
-                obj.targeted = true;
                 var teamShip = game.getExistingTeam(obj.ship.record.get('Project'));
                 if (teamShip) {
                     ship.team = obj.ship.record.get('Project');
@@ -53521,6 +53578,8 @@ var game = {
 
     {name: "medium", type: "image", src: "game/data/img/shipMedium.png"},  // 32x32
 
+
+
     {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
     {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
     {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
@@ -53531,7 +53590,13 @@ var game = {
     {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
 
 
+
+    {name: "new_small_test", type: "image", src: "game/data/img/new/enemySmall.png"},
+    {name: "new_medium", type: "image", src: "game/data/img/new/mediumEnemy.png"},  // 32x32
+
+    
     {name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
+
     
     // bullet
     {name: "bullet", type: "image", src: "game/data/img/bullet_sprite.png"},
@@ -53869,7 +53934,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
     // update position
     normalMovement: function(dt) {
         // Accept keyboard input
-
         if (game.canShoot[this.team] && me.input.isKeyPressed('shoot')) {
             this.shoot();
             this.vel.x = 0;
@@ -53930,29 +53994,45 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        // TODO temporary to fix extra ships on the screen
-        if (target.type == game.ENEMY_ENTITY_SUPER) {
-            var playerShip = this;
-            // add all remaining ships as targets first
-            _.each(game.OID_MAP, function(element, index, list) {
-                if (element.displayed) {
-                    if (element.ship) {
-                        playerShip.targets.push(element.ship);
+        if (!game.OID_MAP[target.objectID] || !game.OID_MAP[target.objectID].targeted) {
+            var projectName = game.PROJECT_MAPPING[target.record.get('Project')];
+            var pointsEarned = target.record.get('PlanEstimate');
+            var time = moment(target.date).format("MM-DD-YY HH:mm", 'completed');
+            game.log.addCompletedItem(target.record, projectName, pointsEarned, time);
+            if (target.type == game.ENEMY_ENTITY_SUPER) {
+                var playerShip = this;
+                // add all remaining ships as targets first
+                _.each(game.OID_MAP, function(element, index, list) {
+                    if (element.displayed) {
+                        if (element.ship) {
+                            playerShip.targets.push(element.ship);
+                        }
                     }
-                }
-            });
-            this.targets.push(target);
+                });
+                this.targets.push(target);
+                // sort the queue by entity type
+                this.targets = _.sortBy(this.targets, function(ship) {
+                    return ship.type;
+                });
+            } else {
+                // keep track of a queue of targets
 
-            // sort the queue by entity type
-            this.targets = _.sortBy(this.targets, function(ship) {
-                return ship.type;
-            });
+                this.targets.push(target);
+            }
+            console.log('added target', target);
             this.indicateTarget();
+            if (game.OID_MAP[target.objectID]) {
+                game.OID_MAP[target.objectID].targeted = this.team || true;
+            } else {
+                game.OID_MAP[target.objectID] = {
+                    targeted: this.team || true,
+                    ship: target
+                }
+            }
         } else {
-            // keep track of a queue of targets
-            this.targets.push(target);
+            console.log("Not added as a target", game.OID_MAP[target.objectID], target);
         }
-
+        
     },
 
     indicateTarget: function() {
@@ -54018,6 +54098,11 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
                 this.updateMovement();
                 return true;
+            } else {
+                var hunter = this;
+                this.update = function(dt) {
+                    hunter.normalMovement(dt)
+                }
             }
             return true;
         }
@@ -54259,35 +54344,46 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
      * @param target the ship object to target
      */
     addTarget: function(target) {
-        if (target.type == game.ENEMY_ENTITY_SUPER) {
-            var playerShip = this;
-            // add all remaining ships as targets first
-            _.each(game.OID_MAP, function(element, index, list) {
-                if (element.displayed) {
-                    if (element.ship) {
-                        playerShip.targets.push(element.ship);
+        if (!game.OID_MAP[target.objectID] || !game.OID_MAP[target.objectID].targeted) {
+            var projectName = game.PROJECT_MAPPING[target.record.get('Project')];
+            var pointsEarned = target.record.get('PlanEstimate');
+            var time = moment(target.date).format("MM-DD-YY HH:mm", 'completed');
+            game.log.addCompletedItem(target.record, projectName, pointsEarned, time);
+            if (target.type == game.ENEMY_ENTITY_SUPER) {
+                var playerShip = this;
+                // add all remaining ships as targets first
+                _.each(game.OID_MAP, function(element, index, list) {
+                    if (element.displayed) {
+                        if (element.ship) {
+                            playerShip.targets.push(element.ship);
+                        }
                     }
+                });
+                this.targets.push(target);
+                // TODO dont sort the queue by entity type
+                
+            } else {
+                // keep track of a queue of targets
+                this.targets.push(target);
+            }
+            if (game.OID_MAP[target.objectID]) {
+                game.OID_MAP[target.objectID].targeted = this.team || true;
+            } else {
+                game.OID_MAP[target.objectID] = {
+                    targeted: this.team || true,
+                    ship: target
                 }
-            });
-            this.targets.push(target);
-            // sort the queue by entity type
-            this.targets = _.sortBy(this.targets, function(ship) {
-                return ship.type;
-            });
+            }
         } else {
-            // keep track of a queue of targets
-            this.targets.push(target);
         }
-
-        if (game.OID_MAP[target.objectID]) {
-            game.OID_MAP[target.objectID].targeted = this.team || true;
-        }
+        
     },
 
     /**
      * Removes the target that was destroyed if it matches the players top target
      * @param target the target to remove
      */
+     // TODO if it is recycled, leave it as a target!
     removeTarget: function(target) {
         this.shots = 0;
         this.numSteps = 0;
@@ -54349,7 +54445,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
         // set the movement speed
         this.gravity = 0.0;
-        this.setVelocity(0, 0);
+        this.setVelocity(6, 0);
 
         this.type = settings.type;
 
@@ -54368,6 +54464,13 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.goToY = y;                     // final y position
         this.setupComplete = false;         // I am in position
         this.alpha = 1;
+        this.parent = this.parent;
+
+        this.animateSprite = settings.animateSprite;
+        this.flip = true;
+        this.spritewidth = settings.spritewidth;
+        this.isInSync = false;
+        this.numPerMove = 30;
 
         /**
          * Returns whether or not this ship is vulnerable to attack
@@ -54380,77 +54483,42 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.flyOff = function() {
             // fade off the screen instead of flying off
             // have to remove it from data structures immediately in case they are restored
+            game.log.addItem(this.record.get('Name') + " recycled", this.date, 'recycled');
+            if (!(game.OID_MAP[this.objectID] && game.OID_MAP[this.objectID].targeted)) {
 
-            if (this.team && game.TEAM_SHIPS[this.team]) {
-                game.TEAM_SHIPS[this.team].removePotentialTarget(this);
-            } else {
-                game.TEAM_SHIPS[game.SPECIAL_TEAM].removePotentialTarget(this);
-            }
-            game.POSITION_MANAGER.addAvailablePosition(this.width, this.startingX, this.startingY);
-            delete game.OID_MAP[this.objectID];
-            if (this.renderable) {
-                (new me.Tween(this.renderable))
-                    .to({
-                        alpha: 0
-                    }, 3000)
-                    .onComplete((function() {               
-                        me.game.world.removeChild(this);
-                    }).bind(this))
-                    .start();
-            }
+                game.POSITION_MANAGER.addAvailablePosition(this.spritewidth, this.startingX, this.startingY);
+                delete game.OID_MAP[this.objectID];
+                if (this.renderable) {
+                    (new me.Tween(this.renderable))
+                        .to({
+                            alpha: 0
+                        }, 3000)
+                        .onComplete((function() {               
+                            me.game.world.removeChild(this);
+                        }).bind(this))
+                        .start();
+                }
+            } // else it is currently targeted, dont fade.  Just log that it was recycled.
         };
+
     },
 
-
-    // TODO
+    // // TODO
     // draw: function(context) {
     //     context.save();
-    //     //this.parent(context);       
+          
+    //     //context.clearRect(this.pos.x, this.pos.y, this.spritewidth, this.height); 
+    //     this.parent(context);    
     //     context.globalCompositeOperation = "source-in";
 
-    //     // context.fillStyle="green";
-    //     // context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
+    //     context.fillStyle="green";
+    //     context.fillRect(this.pos.x, this.pos.y, this.spritewidth, this.height);
 
     //     context.globalCompositeOperation = "source-over";
     //     context.restore();
     // },
 
-
-    // draw: function(context, rect) {
-    //     //this.parent(context, rect);
-
-    //     var image = this.renderable.image;
-    //     var tempCanvas = document.createElement('canvas');
-    //     var tempContext = tempCanvas.getContext('2d');
-
-    //     tempContext.drawImage(image, 0, 0);
-    //     context.clearRect(this.pos.x, this.pos.y, image.width, image.height);
-    //     var imgd = tempContext.getImageData(0, 0, image.width, image.height);
-
-    //     // var imgd = context.getImageData(this.pos.x, this.pos.y, this.width, this.height);
-    //     var pix = imgd.data;
-    //     var uniqueColor = [0,0,255]; // Blue for an example, can change this value to be anything.
-
-    //     // Loops through all of the pixels and modifies the components.
-    //     for (var i = 0, n = pix.length; i <n; i += 4) {
-    //         if (pix[i + 3] != 0) {
-    //             pix[i] = uniqueColor[0];   // Red component
-    //             pix[i+1] = uniqueColor[1]; // Green component
-    //             pix[i+2] = uniqueColor[2]; // Blue component
-    //         }
-              
-    //           //pix[i+3] is the transparency.
-    //     }
-
-    //     context.putImageData(imgd, this.pos.x, this.pos.y);
-    //     context.restore();
-    // },
-
-    // ship behavior
-    // Called many times to refresh the ships on the screen
-    // to optimize performance, minimize the cost of calling this
-    update: function() {
-        // fly in from the top
+    update: function(dt) {
         this.numSteps++;
         if (!this.setupComplete) {
             // move in to position
@@ -54460,49 +54528,49 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             
             if (this.pos.y >= this.goToY) {
                 this.setupComplete = true;
+                this.numSteps = 0;
             }
             return true;
         }
 
+        var normalMovement = function(dt, theShip) {
+            if (theShip.numSteps > 6 * theShip.numPerMove) {
+                theShip.numSteps = 0;
+            }
+
+            if (theShip.numSteps == theShip.numPerMove || theShip.numSteps == theShip.numPerMove * 2 || theShip.numSteps == theShip.numPerMove * 3) {
+                theShip.vel.x += theShip.accel.x * me.timer.tick;
+                theShip.moveRight = true;
+            } else if (theShip.numSteps == theShip.numPerMove * 4 || theShip.numSteps == theShip.numPerMove * 5 || theShip.numSteps == theShip.numPerMove * 6) {
+                theShip.vel.x -= theShip.accel.x * me.timer.tick;
+                theShip.moveRight = false;
+            } else {
+                theShip.vel.x = 0;
+            }
+
+            theShip.updateMovement();
+            if (theShip.vel.x !=0 || theShip.vel.y != 0) {
+                // update object animation
+                theShip.parent(100);
+                return true;
+            }
+            return true;
+        };
+
+
         if (this.type == game.ENEMY_ENTITY_SUPER) {
-
-            this.update = function() {
-               return this.normalMovement();
-            }
+            return normalMovement(dt, this);
         }
 
-        if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 1 && !game.INITIATIVE_SHIP.moveRight) {
-            // wait for the movement mattern to line ups
-            this.setupComplete = true;
-            this.numSteps = 1;
-            this.pos.x += 1;
-            this.moveRight = game.INITIATIVE_SHIP.moveRight;
-            this.update = function() {
-                this.normalMovement();
-            }
-        }
-
-        return true;
-    },
-
-    // Use this function to eliminate unnecessary checks for ship entities
-    // optimization
-    normalMovement: function() {
-        // movement pattern
-        if (this.numSteps % Math.floor((100 / game.SPEED)) === 0) {
-            if (this.numSteps % ((game.WINDOW_WIDTH - game.farRight)) === 0) {
-                this.moveRight = !this.moveRight;
+        if (!this.isInSync) {
+            if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 0) {
+                this.isInSync = true;
                 this.numSteps = 0;
             }
-
-            if (this.moveRight) {
-                this.pos.x -= 5;
-            } else {
-                this.pos.x += 5;
-            }
+            return true;
         }
-        this.numSteps++;
-        return true;
+
+        return normalMovement(dt, this);
     },
 
     /**
@@ -54636,7 +54704,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
-                    game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
+                    game.POSITION_MANAGER.addAvailablePosition(res.obj.spritewidth || res.obj.width, res.obj.startingX, res.obj.startingY);
                     delete game.OID_MAP[res.obj.objectID];
                 }
 
@@ -54655,17 +54723,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 //
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
-
-                var projectName = game.PROJECT_MAPPING[res.obj.record.get('Project')];
-                var pointsEarned = res.obj.record.get('PlanEstimate');
-                var time = moment(res.obj.date).format("MM-DD-YY HH:mm", 'completed');
-                if (projectName && pointsEarned) {
-                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
-                } else if (projectName) {
-                    game.log.addItem(res.obj.record.get('Name') + " - completed by " + projectName, time, 'completed');
-                } else {
-                    game.log.addItem(res.obj.record.get('Name') + " - completed", time, 'completed');
-                }
 
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
 
@@ -54913,7 +54970,7 @@ game.TitleScreen = me.ScreenObject.extend({
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -700}, 3000).onComplete(this.scrollover.bind(this)).start();
          
-                this.scroller = "A PORTFOLIO ITEM VISUALIZATION USING SPACE INVADERS";
+                this.scroller = "A PORTFOLIO ITEM VISUALIZATION";
                 this.scrollerpos = 3000;
             },
              
@@ -55050,17 +55107,22 @@ game.TitleScreen = me.ScreenObject.extend({
                 game.FEATURE_SHIP_COLOR_INDEX++;
                 game.featureColorMap[oid] = color;
             }
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
+                this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+                this.numFeatures++;
+            }
             
-            this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
-            this.numFeatures++;
+            
         } else {
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "PortfolioItem/Feature");
-            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
     },
 
@@ -55083,18 +55145,22 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getStoryPosition(x);
         if (point) {
-            this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
-            this.numStories++;
-            //this.updateStory(record, oid, date);
 
+
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
+                this.addEnemy(record, oid, date, "new_medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
+                this.numStories++;
+            }
         } else {
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "HierarchicalRequirement");
-            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
 
         game.getTeam(record.get('Project'));
@@ -55112,17 +55178,52 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getTaskPosition(x);
         if (point) {
-            this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
-            this.numTasks++;
+
+            var shipSettings = {
+                height: game.TASK_SHIP.height,
+                image: "new_small_test",
+                spriteheight: game.TASK_SHIP.height * 2,
+                spritewidth: game.TASK_SHIP.width,
+                width: game.TASK_SHIP.width,
+                objectID: oid,
+                z: this.zIndex,
+                type: game.ENEMY_ENTITY_SMALL,
+                date: date,
+                record: record,
+                animateSprite: true
+            };
+
+            if (featureOid) {
+                shipSettings.featureOid = featureOid;
+            }
+
+            var ship = me.pool.pull("enemyShip", point.x, point.y, shipSettings);
+
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
+
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
+                me.game.world.addChild(ship, this.zIndex++);
+                game.OID_MAP[oid] = {
+                    formattedId: record.get('FormattedID'),
+                    ship: ship,
+                    targeted: false
+                };
+                this.numTasks++;
+            }
+
             //this.updateTask(record, oid, date);
         } else {
+            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
+                game.log.addItem(record.get('Name') + " created", date, 'created');
+            }
             game.OID_MAP[oid] = {
                 formattedId: record.get('FormattedID'),
                 record: record,
                 date: date
             };
             game.POSITION_MANAGER.addPending(oid, "Task");
-            game.log.addItem(record.get('Name') + " created", date, 'created');
         }
         
     },
@@ -55160,7 +55261,7 @@ game.TitleScreen = me.ScreenObject.extend({
                     });
                 }
             }
-            game.log.addItem(ship.record.get('Name') + " recycled", date, 'recycled');
+
             if (ship.flyOff) {
                 ship.flyOff(); // also adds this point back as available
             }
@@ -55194,12 +55295,7 @@ game.TitleScreen = me.ScreenObject.extend({
             var ship = obj.ship;
             ship.record = record;
         } else if (obj && obj.record) {
-            if (addTarget(record)) {
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
-                delete game.OID_MAP[oid];
-            } else {
-                game.OID_MAP[oid].record = record;
-            }
+            game.OID_MAP[oid].record = record;
         }
     },
 
@@ -55211,16 +55307,14 @@ game.TitleScreen = me.ScreenObject.extend({
             ship.record = record;
             var endDate = record.get('ActualEndDate');
             if (!obj.targeted && endDate && moment(endDate).isBefore(moment())) {
-                obj.targeted = true;
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
-                    ship.team = record.get('Project')
+                    ship.team = record.get('Project');
                     var children = me.game.world.getChildByProp("featureOid", oid);
                     // Add all remaining shown children as targets first
                     _.each(children, function(child) {
                         teamShip.addTarget(child);
                     });
-
                     teamShip.addTarget(ship);
                 }
             }
@@ -55256,7 +55350,6 @@ game.TitleScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].date = date;
                         var teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
-                            game.OID_MAP[oid].targeted = teamShip.team;
                             teamShip.addTarget(match);
                         }
 
@@ -55265,7 +55358,16 @@ game.TitleScreen = me.ScreenObject.extend({
                     }
                 }
                 // oh well, we tried to make it more fun!
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+
+                ////
+                var projectName = game.PROJECT_MAPPING[record.get('Project')];
+                var pointsEarned = record.get('PlanEstimate');
+                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+                game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
+                ////
+
+                
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
@@ -55282,8 +55384,8 @@ game.TitleScreen = me.ScreenObject.extend({
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
+            ship.date = date;
             if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
-                obj.targeted = true;
                 var children = record.get('Children');
 
                 var teamShip = game.getTeam(record.get('Project'));
@@ -55296,7 +55398,7 @@ game.TitleScreen = me.ScreenObject.extend({
                                 childShip.team = teamOid;
                                 teamShip.addTarget(childShip);
                             }
-                            // also check pending ships?
+                            // TODO also check pending ships?
                         });
                     }
                     ship.team = teamOid;
@@ -55332,7 +55434,6 @@ game.TitleScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].date = date;
                         var teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
-                            game.OID_MAP[oid].targeted = teamShip.team;
                             teamShip.addTarget(match);
                         }
 
@@ -55346,7 +55447,15 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
                 
                 // oh well, we tried to make it more fun!
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+
+                ////
+                var projectName = game.PROJECT_MAPPING[record.get('Project')];
+                var pointsEarned = record.get('PlanEstimate');
+                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+                game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
+                ////
+
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
@@ -55367,7 +55476,6 @@ game.TitleScreen = me.ScreenObject.extend({
             var ship = obj.ship;
             ship.record = record;
             if (!obj.targeted && shouldAddTarget(record)) {
-                obj.targeted = true;
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project')
@@ -55376,7 +55484,15 @@ game.TitleScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if (shouldAddTarget(record)) {
-                game.log.addItem(record.get('Name') + " completed", moment(date).format("MM-DD-YY HH:mm"), 'completed');
+
+                ////
+                var projectName = game.PROJECT_MAPPING[record.get('Project')];
+                var pointsEarned = record.get('PlanEstimate');
+                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+                game.log.addCompletedItem(record, projectName, pointsEarned, time);
+                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
+                ////
+
                 delete game.OID_MAP[oid];
             } else {
                 game.OID_MAP[oid].record = record;
@@ -55385,11 +55501,16 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     addEnemy: function(record, oid, date, image, type, height, width, x, y, featureOid) {
+        var spriteWidth = width;
+        if (width == 32) {
+            width = 64;
+        }
+
         var shipSettings = {
             height: height,
             image: image,
             spriteheight: height,
-            spritewidth: width,
+            spritewidth: spriteWidth,
             width: width,
             objectID: oid,
             z: this.zIndex,
@@ -55501,12 +55622,19 @@ game.TitleScreen = me.ScreenObject.extend({
                     console.log("Selected", selectedRecord);
 
                     var injector = angular.bootstrap(document.body, ['angularBlastdown']);
-                    injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
-                    
                     var scope = angular.element(document.body).scope();
                     scope.app = Rally.getApp().getContext().map.map;
                     
-                    scope.$digest();                  
+                    scope.$digest();  
+                    injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
+
+                    $('#mute').click(function() {
+                        $('#muteIcon').toggleClass('hidden');
+                        $('#speakerIcon').toggleClass('hidden');
+                        game.toggleMute();
+                    });
+
+
                 }
             }
         }
@@ -55541,17 +55669,11 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         $scope.filters.class = option;
     };
 
-    $scope.logItems = [];
-
-    /*
-
-    {
+    $scope.logItems = [{
         date: moment().format("MM-MM-DD-YY HH:mm"),
         note: "Space Invaders Blast Down Initialized",
         class: 'init'
-    }
-
-    */
+    }];
 
     $scope.realtimeStatus = 'Waiting';
 
@@ -55562,14 +55684,14 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.disconnectRealtime = function() {
-
         RealtimeService.disconnect();
         $scope.realtimeStatus = 'Disconnected';
-        $scope.$apply();
+        $scope.$digest();
     }
 
     $scope.updateStatus = function(status) {
         $scope.realtimeStatus = status;
+        $scope.$digest();
     }
 
     game.onload();
@@ -55588,7 +55710,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
             note: logItem,
             class: className
         });
-        $scope.$apply();
+        $scope.$digest();
     };
 
     $scope.scoreboard = {};
@@ -55596,6 +55718,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
+
             $scope.scoreboard[team].points += points || 0;
         } else {
             var newPoints = points || 0;
@@ -55604,6 +55727,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
                 color: "#000000"
             }
         }
+        $scope.$digest();
     };
 
     $scope.addTeamColor = function(team, color) {
@@ -55612,6 +55736,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
                 points: 0,
                 color: color
             }
+            $scope.$digest();
         }
     }
 
@@ -55651,6 +55776,8 @@ module.factory('LookbackService', function() {
     var initiativeOffset = 0;
     var featureOffset = 0;
 
+    var maxPage = -2;
+
 
     // converty hierarchical requirement to user story
     var getType = function(type) {
@@ -55663,7 +55790,7 @@ module.factory('LookbackService', function() {
     var creationEvent = function(currentType, record, oid) {
         currentType = getType(currentType);
         if (currentType == "PortfolioItem/Initiative") {
-            console.log("CREATED INITIATIVE");
+            //console.log("CREATED INITIATIVE");
         }
         eventTrigger.trigger(currentType + "-Created", {
             record: record,
@@ -55673,9 +55800,6 @@ module.factory('LookbackService', function() {
     };
 
     var recycleEvent = function(currentType, record, oid) {
-        if (currentType == 'PortfolioItem/Initiative' || oid == initiativeOid   ) {
-            console.log("recycle initiative", currentType, record, oid, hierarchyMap.children);
-        }
         currentType = getType(currentType);
         eventTrigger.trigger(currentType + "-Recycled", {
             record: null,
@@ -55711,7 +55835,10 @@ module.factory('LookbackService', function() {
         } 
     };
 
-    var triggerEvents = function(records, operation, success) {
+    var triggerEvents = function(page, records, operation, success) {
+        if (page == 1) {
+            eventTrigger.trigger("History-Started");
+        }
         var lbService = this;
         _.each(records, function(record) {
             // fire events in order of what happenend historically
@@ -55742,7 +55869,6 @@ module.factory('LookbackService', function() {
                 };
 
                 creationEvent(currentType, record, currentOid);
-                console.log('HierarchyMap', hierarchyMap, initiativeOffset);
                 return;
             }
 
@@ -55758,9 +55884,8 @@ module.factory('LookbackService', function() {
                 // set the feature to the oid that is in the feature position
                 if (itemHierarchy[initiativeOffset] != initiativeOid) {
                     setOffset(itemHierarchy);
-                    // console.log("ItemHierarchy", itemHierarchy);
                 }
-                if (currentType == 'HierarchicalRequirement') {
+                if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                     record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
                 }
                 
@@ -55783,13 +55908,12 @@ module.factory('LookbackService', function() {
                         currentObject = currentObject.children[itemHierarchy[i + 1]];
 
 
-                        if (currentType == 'HierarchicalRequirement' && itemHierarchy.length > featureOffset) {
+                        if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                             // set the feature to the oid that is in the feature position
                             record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
                         }
                         creationEvent(currentType, record, currentOid);
 
-                        //console.log('HierarchyMap', hierarchyMap);
                         return;
                     }
                 }
@@ -55797,135 +55921,31 @@ module.factory('LookbackService', function() {
 
             // map has been initialized
             // check the hierarchyMap to see if this item has lost a child
-            // TODO use a different property for children based on the type (Feature->"User Stories") or something like that?
             var children = getChildren(record, currentType);
             // this was some sort of update event
             // could represent the recycling of a child - make sure to check that;
 
             var previousChildren = _.toArray(currentObject.children);
             if (children && previousChildren.length > children.length) {
-                //console.log('Recycle Event');
-                // TODO better way to find the missing child
                 var keys = _.toArray(Object.keys(currentObject.children));
                 var theKey = _.find(keys, function(key) {
-                    return !_.contains(children, key);
+                    if (!_.contains(children, parseInt(key, 10))) {
+                        return true;
+                    }
+                    return false;
                 });
-
-                if (currentType == "PortfolioItem/Initiative") {
-                    //console.log("removing features from an initiative", hierarchyMap.children);
-                }
-
 
                 recycleEvent(currentObject.children[theKey].type, record, theKey);
                 delete currentObject.children[theKey];
-                // TODO also fire the update event for this item
-                // TODO recycle all children?
-            } else {
-                // update event
-                updateEvent(currentType, record, currentOid);
             }
-
-            
-
-
-            // keep track of everything by oid in a map
-            // rely on the item hierarchy to tell the relationship between items
-
-            /*
-            var currentOid = record.get('ObjectID');
-            var projectOid = record.get('Project');
-            if (projectOidMap[projectOid] && !triggered[projectOid]) {
-                triggered[projectOid] = true;
-                eventTrigger.trigger("Project", {record: projectOidMap[projectOid]});
-            }
-
-            var prev = oids[currentOid];
-
-            if (prev) {
-                // Did the feature lose a user story?
-                if (prev.type == 'PortfolioItem/Feature') {
-                    var previousStories = prev.record.get('UserStories');
-                    var currentStories = record.get('UserStories');
-                    if (previousStories && currentStories && previousStories.length > currentStories.length) {
-                        var remove = _.find(previousStories, function(story) {
-                            return !_.contains(currentStories, story);
-                        });
-
-                        if (remove && oids[remove]) {
-                            // trigger recycle event and update our data structures
-                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
-                            delete oids[remove];
-                        }
-                    }
-                } else if (prev.type == 'UserStory') {
-                    var previousTasks = prev.record.get('Tasks');
-                    var currentTasks = record.get('Tasks');
-                    if (previousTasks && currentTasks && previousTasks.length > currentTasks.length) { // task deleted
-
-                        var remove = _.find(previousTasks, function(task) {
-                            return !_.contains(currentTasks, task);
-                        });
-
-                        if (remove && oids[remove]) {
-                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
-                            //delete oids[remove]; // task gets updated afterwards which would create a new task!
-                        }
-                    }
-                    
-                } else if (prev.type == 'PortfolioItem/Initiative') {
-                    // handle Feature destruction
-                    var previousFeatures = prev.record.get('Children');
-                    var currentFeatures = record.get('Children');
-                    if (previousFeatures && currentFeatures && previousFeatures.length > currentFeatures.length) { // feature deleted
-                        var remove = _.find(previousFeatures, function(feature) {
-                            return !_.contains(currentFeatures, feature);
-                        });
-
-                        if (remove != -1 && oids[remove]) {
-                            eventTrigger.trigger(oids[remove].type + '-Recycled', {record: null, oid: remove, date: new Date(record.get('_ValidFrom'))});
-                            delete oids[remove];
-                        }
-                    }
-                }
-
-                // update this item
-                var changes = new Array();
-
-                _.each(oids[currentOid].record.data, function(prevValue, prevIdx) {
-                    if (prevValue != record.get(prevIdx)) {
-                        changes.push(prevIdx);
-                    }
-                });
-
-                // Remove the changes that we do not care about
-                // Changes are provided to mirror the interface to the realtime service
-                changes = _.without(changes, "_ValidFrom", "_ValidTo", "_TypeHierarchy");
-
-                if (changes.length > 0) { // only trigger the event if something meaningful changed
-                    oids[currentOid] = {
-                        type: oids[currentOid].type,
-                        record: record
-                    }
-                    eventTrigger.trigger(oids[currentOid].type + '-Updated', {record: record, oid: currentOid, changes: changes, date: new Date(record.get('_ValidFrom'))});
-                }
-            } else {
-                // creation!
-                var types = record.get('_TypeHierarchy');
-                if (types && types.length > 0) {
-                    var dataType = types[types.length - 1];
-                    if (dataType === "HierarchicalRequirement") {
-                        dataType = "UserStory";
-                    }
-                    oids[currentOid] = {
-                        type: dataType,
-                        record: record
-                    }
-                    eventTrigger.trigger(dataType + '-Created', {record: record, oid: currentOid, changes: [], date: new Date(record.get('_ValidTo'))});
-                }
-            }
-
-            */
+            updateEvent(currentType, record, currentOid);
         });
+
+        // triggered all historical events, its okay to set up the realtime now!
+        if (page == maxPage) {
+            eventTrigger.trigger("History-Completed");
+            setupRealtime();
+        }
     };
 
 
@@ -55933,14 +55953,15 @@ module.factory('LookbackService', function() {
         lookbackStore.loadPage(page, {
             scope: this,
             callback: function (records, operation, success) {
-                page++;
-                triggerEvents(records, operation, success);
-                if (records.length == PAGE_SIZE) {
-                    loadPage(page);
-                } else {
+                if (records.length != PAGE_SIZE) {
                     // Got less data back than an entire page size => done fetching data from the realtime
-                    // TODO this should setup realtime after all other data has been parsed...didnt work in demo
-                    setupRealtime();
+                    maxPage = page;
+                }
+
+                triggerEvents(page, records, operation, success);
+                if (records.length == PAGE_SIZE) {
+                    page++;
+                    loadPage(page);
                 }
             }   
         });
@@ -55968,15 +55989,12 @@ module.factory('LookbackService', function() {
                 workspace: Rally.util.Ref.getRelativeUri(),
                 project: null
             }
-        }).load({
-            scope: this,
-            callback: function (records, operation, success) {
+        }).load(function (records, operation, success) {
                 _.each(records, function (record) {
                     projectOidMap[record.get('ObjectID')] = record;
                     eventTrigger.trigger("Project", {record: record});
                 });
                 callbackFn();
-            }
         });
     };
 
@@ -55988,12 +56006,18 @@ module.factory('LookbackService', function() {
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy
+                },
+                headers: {
+                    "datatype" : "jsonp"
                 }
             });
-            
+
+            lookbackStore.proxy.extraParams = {
+                "jsonp" : "pageLoaded"
+            };
+
             getProjects(function() {
-                loadPage(1); 
-                game.reveal();  
+                loadPage(1);   
             });
         }
     };
@@ -56158,7 +56182,6 @@ function ReconnectingWebSocket(url, protocols) {
         if (ws) {
             forcedClose = true;
             ws.close();
-            console.info('closed');
         }
     };
 
@@ -56183,8 +56206,8 @@ ReconnectingWebSocket.debugAll = false;
 
     this.getSubscribeMessage = function() {
         var projectUuid = Rally.environment.getContext().getProject()._refObjectUUID;
-        console.log('project', Rally.environment.getContext().getProject());
-        console.log('ProjectUuid', projectUuid);
+        //console.log('project', Rally.environment.getContext().getProject());
+        //console.log('ProjectUuid', projectUuid);
         return JSON.stringify({
                 uri: '/_subscribe',
                     "request-method": "post",
@@ -56268,7 +56291,6 @@ ReconnectingWebSocket.debugAll = false;
 
         var action = data.data.action;
 
-        console.log('action: ', action);
 
         var actionMap = {
             Updated: Rally.Message.objectUpdate,
@@ -56315,17 +56337,17 @@ ReconnectingWebSocket.debugAll = false;
     // }
 
     this.connectTo = function(uuids) {
-        console.log('realtime: connecting');
+        //console.log('realtime: connecting');
         var connection = new ReconnectingWebSocket(this.ENDPOINT);
         var me = this;
         connection.onopen = function() {
-            console.log("realtime: connected");
+            //console.log("realtime: connected");
             _.each(uuids, function(uuid) {
                 connection.send(me.getSubscribeMessageByUuid(uuid));
             });
         };
         connection.onerror = function(e) {
-            console.log('realtime: error', arguments);
+            //console.log('realtime: error', arguments);
         };
 
         return connection;
@@ -56341,10 +56363,10 @@ ReconnectingWebSocket.debugAll = false;
     var subscriptions = {};
     var eventTrigger = $('body');
 
-    var wsapiAggregator = new WSAPIAggregator();
+    var wsapiAggregator = new WSAPIAggregator(eventTrigger);
 
     this.handleRealtimeMessage = function(data) {
-        //console.log(data);
+        console.log(data);
         // do we have enough information to act on this
         if (data && data.type == 'event' && data.data && data.data.action) {
             var offset, valueOffset;
@@ -56405,13 +56427,13 @@ ReconnectingWebSocket.debugAll = false;
         var websocket;
         return {
             disconnect: function() {
-                console.log("closing web socket");
+                //console.log("closing web socket");
                 websocket.close();
             },
 
             connect: function(uuids) {
                 websocket = realtime.connectTo(uuids);
-                console.log(realtime);
+                //console.log(realtime);
 
                 websocket.onmessage = Ext.bind(function(e) {
                     var data = JSON.parse(e.data);
@@ -56431,6 +56453,7 @@ ReconnectingWebSocket.debugAll = false;
  */
 var GameEventHandler = function(realtime) {
     var listenTo = 'body';
+    console.log("created event halnder");
     var eventQueue = [];
     var handler = this;
     var timer = null;
@@ -56443,7 +56466,7 @@ var GameEventHandler = function(realtime) {
         return null;
     }
 
-    $(listenTo).on("Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
+    $(listenTo).on("History-Completed Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
             null, null, function(event, data) {
         eventQueue.push({
             event: event,
@@ -56451,11 +56474,19 @@ var GameEventHandler = function(realtime) {
         });
     });
 
+
+
     $(listenTo).on("Project", null, null, function(event, data) {
         if (!game.PROJECT_MAPPING[data.record.get('ObjectID')]) {
             game.PROJECT_MAPPING[data.record.get('ObjectID')] = data.record.get('Name');
         }
     });
+
+    $(listenTo).on("History-Started", null, null, function(event, data) {
+        game.reveal();
+    });
+
+    
 
     $(listenTo).on("RealtimeConnection-Status", null, null, function(event, data) {
         var status = data && data.status && data.status == 200 ? 'Connected' : 'Disconnected';
@@ -56487,8 +56518,11 @@ var GameEventHandler = function(realtime) {
                         game.historyFinished();
                         return;
                     }
-                    if (func) {
+                    if (func && object.data) {
+                        //console.log("EVENT HANDLER - " + func);
                         func(object.data);
+                    } else if (func) {
+                        func();
                     } else {
                         console.log("no func", func);
                     }
@@ -56497,67 +56531,55 @@ var GameEventHandler = function(realtime) {
         }
     };
 
-    var doLogging = function(str) {
-        console.log(str);
-    }
+    this.History_Completed = function() {
+        //console.log("HISTORY COMPLETED");
+    };
 
     this.PortfolioItemInitiative_Created = function(data) {
-        doLogging("Initiative-Created");
         game.shipScreen.addInitiative(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Created = function(data) {
-        doLogging("Feature-Created");
         game.shipScreen.addFeature(data.record, data.oid, data.date);
     };
 
     this.UserStory_Created = function(data) {
-        doLogging("UserStory-Created");
         game.shipScreen.addStory(data.record, data.oid, data.date);
     };
 
     this.Task_Created = function(data) {
-        doLogging("Initiative-Created");
         game.shipScreen.addTask(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemInitiative_Updated = function(data) {
-        doLogging("Initiative-Updated");
         game.shipScreen.updateInitiative(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Updated = function(data) {
-        doLogging("Feature-Updated");
         game.shipScreen.updateFeature(data.record, data.oid, data.date);
     };
 
     this.UserStory_Updated = function(data) {
-        doLogging("UserStory-Updated");
         game.shipScreen.updateStory(data.record, data.oid, data.date);
     };
 
     this.Task_Updated = function(data) {
-        doLogging("Task-Updated");
         game.shipScreen.updateTask(data.record, data.oid, data.date);
     };
 
     this.PortfolioItemInitiative_Recycled = function(data) {
-        doLogging("Initiative-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.PortfolioItemFeature_Recycled = function(data) {
-        doLogging("Feature-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.UserStory_Recycled = function(data) {
-        doLogging("UserStory-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 
     this.Task_Recycled = function(data) {
-        doLogging("Task-Recycled");
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 }
@@ -56819,6 +56841,8 @@ var GameEventHandler = function(realtime) {
 }
 #log {
   height: 512px;
+}
+#historyLog {
   overflow: hidden;
 }
 #log,
@@ -56826,8 +56850,12 @@ var GameEventHandler = function(realtime) {
   margin-left: 1024px;
   min-width: 256px !important;
 }
+#log > .header {
+  height: 20%;
+  width: 100%;
+}
 #log > .content {
-  height: 100%;
+  height: 80%;
   width: 100%;
   border: none;
   overflow: auto;
@@ -56862,10 +56890,6 @@ var GameEventHandler = function(realtime) {
   display: table-cell;
   vertical-align: middle;
   width: 100%;
-}
-#spaceInvadersContainer {
-  /*    margin-left: auto;
-    margin-right: auto;*/
 }
 .shipContainer {
   text-align: center;
@@ -56940,6 +56964,18 @@ li {
 }
 #scoreboardTable > thead {
   display: table-header-group;
+}
+#mute {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+#mute > img {
+  width: 32px;
+  height: 32px;
+}
+.hidden {
+  display: none;
 }
 
     </style>
@@ -57037,31 +57073,37 @@ td.dataColumn {
                 <div id="screen">
                 </div>
                 <div id="log">
-                    <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
-                        Realtime Status: {{realtimeStatus}}
+                    <div class="header">
+                        <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
+                            Realtime Status: {{realtimeStatus}}
+                        </div>
+                        <div id="mute">
+                            <img src="http://upload.wikimedia.org/wikipedia/commons/3/3f/Mute_Icon.svg" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
+                            <img src="http://upload.wikimedia.org/wikipedia/commons/2/21/Speaker_Icon.svg" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">
+                        </div> 
+                        <p>Speed:
+                            <select id="speed">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5" selected="selected">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </p>
+                        <p>Filter Log:
+                            <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                              <option value="">All</option>
+                              <option value="created">Created</option>
+                              <option value="completed">Completed</option>
+                              <option value="recycled">Recycled</option>
+                            </select>
+                        </p>
                     </div>
-                    <p>Speed:
-                        <select id="speed">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5" selected="selected">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                        </select>
-                    </p>
-                    <p>Filter Log:
-                        <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
-                          <option value="">All</option>
-                          <option value="created">Created</option>
-                          <option value="completed">Completed</option>
-                          <option value="recycled">Recycled</option>
-                        </select>
-                    </p>
                     <div class="content">
                         <ul id="historyLog">
                           <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->
