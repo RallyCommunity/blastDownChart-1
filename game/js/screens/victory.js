@@ -48,7 +48,23 @@ game.VictoryScreen = me.ScreenObject.extend({
         setInterval(function() {
             victory.explosions(time++);
         }, 1500);
+
+
         
+        var victoryImg = me.loader.getImage('victoryImage');
+        // TODO
+        this.victoryImage = new me.ObjectEntity(game.WIDTH / 2 - 256, 768, {
+            image: victoryImg,
+            x: game.WIDTH / 2 - 256,
+            y: 768,
+            width: 512,
+            height: 128,
+            spritewidth: 512,
+            spriteheight: 128,
+            z: Number.POSITIVE_INFINITY
+        });
+        me.game.world.addChild(this.victoryImage, Number.POSITIVE_INFINITY);
+
      
         // add a new renderable component with the scrolling text
         me.game.world.addChild(new (me.Renderable.extend({
@@ -57,7 +73,7 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
                 this.font = new me.Font("pressStart", 32, "white", "center");
-                 
+
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
@@ -77,14 +93,14 @@ game.VictoryScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                this.font.draw(context, "VICTORY!", game.WINDOW_WIDTH / 2, (2 * game.WINDOW_HEIGHT) / 3);
                 this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
+                
             },
             onDestroyEvent : function() {
                 //just in case
                 this.scrollertween.stop();
             }
-        }))(), 2);
+        }))(), 3);
     },
 
     explosions: function(time) {
@@ -148,6 +164,6 @@ game.VictoryScreen = me.ScreenObject.extend({
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent : function() {
-
+        me.game.world.removeChild(this.victorImage);
    }
 });

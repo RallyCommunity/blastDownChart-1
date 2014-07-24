@@ -35,14 +35,13 @@ game.PlayScreen = me.ScreenObject.extend({
         var i = 0;
         setInterval(function() {
 
-            var ship = me.pool.pull("rallyShip", -41, 1, {
-                height: 42,
-                image: 'rectangle',
-                spriteheight: 42,
-                spritewidth: 42,
-                width: 42,
-                z: Number.POSITIVE_INFINITY,
-                type: game.RALLY_SHIP
+            var ship = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
+                height: game.RALLY_SHIP.height,
+                image: 'rallyShip',
+                spriteheight: game.RALLY_SHIP.height,
+                spritewidth: game.RALLY_SHIP.width,
+                width: game.RALLY_SHIP.width,
+                z: Number.POSITIVE_INFINITY
             });
 
             game.cleanupOld();
@@ -50,12 +49,9 @@ game.PlayScreen = me.ScreenObject.extend({
             me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
         }, 10000);
 
-        var color = game.TEAM_SHIP_COLORS[game.TEAM_SHIP_COLOR_INDEX % game.TEAM_SHIP_COLORS.length];
-        game.TEAM_SHIP_COLOR_INDEX++; // TODO special color?
-
         // create a new one
         var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
-            image: "player_" + color.name,
+            image: "player_white",
             spriteheight: 64,
             spritewidth: 32,
             width: 32,
@@ -73,11 +69,13 @@ game.PlayScreen = me.ScreenObject.extend({
 
     addInitiative: function(record, oid, date) {
         if (this.numInitiative < 1) {
-            this.addEnemy(record, oid, date, "xlarge", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2, game.PADDING);
+            console.info("putting initiative at x: " + (game.WIDTH / 2 - game.MOTHERSHIP.width / 2) + " y: " + game.PADDING, game.WIDTH, game.MOTHERSHIP);   
+            this.addEnemy(record, oid, date, "new_super", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width, game.PADDING);
             this.numInitiative = 1;
-            game.initiative = record;
+            game.initiative = record;  
+            console.log(game.INITIATIVE_SHIP);           
         }
-    },
+    },  
 
     addFeature: function(record, oid, date, pt) {
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getFeaturePosition();
@@ -89,10 +87,9 @@ game.PlayScreen = me.ScreenObject.extend({
                 game.featureColorMap[oid] = color;
             }
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "large_" + color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+                this.addEnemy(record, oid, date, "new_large", game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
                 this.numFeatures++;
             }
-            
             
         } else {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
@@ -126,8 +123,6 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getStoryPosition(x);
         if (point) {
-
-
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
                 this.addEnemy(record, oid, date, "new_medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
                 this.numStories++;
@@ -159,42 +154,10 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getTaskPosition(x);
         if (point) {
-
-            var shipSettings = {
-                height: game.TASK_SHIP.height,
-                image: "new_small_test",
-                spriteheight: game.TASK_SHIP.height * 2,
-                spritewidth: game.TASK_SHIP.width,
-                width: game.TASK_SHIP.width,
-                objectID: oid,
-                z: this.zIndex,
-                type: game.ENEMY_ENTITY_SMALL,
-                date: date,
-                record: record,
-                animateSprite: true
-            };
-
-            if (featureOid) {
-                shipSettings.featureOid = featureOid;
-            }
-
-            var ship = me.pool.pull("enemyShip", point.x, point.y, shipSettings);
-
-            if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
-                game.log.addItem(record.get('Name') + " created", date, 'created');
-            }
-
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                me.game.world.addChild(ship, this.zIndex++);
-                game.OID_MAP[oid] = {
-                    formattedId: record.get('FormattedID'),
-                    ship: ship,
-                    targeted: false
-                };
-                this.numTasks++;
+                this.addEnemy(record, oid, date, "new_small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
+                this.numStories++;
             }
-
-            //this.updateTask(record, oid, date);
         } else {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].swapped) {
                 game.log.addItem(record.get('Name') + " created", date, 'created');
@@ -265,9 +228,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 oid: oid
             }
             console.log("Completed initiative at " + game.endDate);
-            if (game.isHistoryFinished) {
-                game.historyFinished();
-            }
+            game.historyFinished();
         }
         
 
@@ -348,8 +309,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
                 ////
 
-                
-                delete game.OID_MAP[oid];
+                game.removeOidFromMap(oid, false);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -437,7 +397,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
                 ////
 
-                delete game.OID_MAP[oid];
+                game.removeOidFromMap(oid, false);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -474,7 +434,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
                 ////
 
-                delete game.OID_MAP[oid];
+                game.removeOidFromMap(oid, false);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -482,17 +442,12 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addEnemy: function(record, oid, date, image, type, height, width, x, y, featureOid) {
-        var spriteWidth = width;
-        if (width == 32) {
-            width = 64;
-        }
-
         var shipSettings = {
             height: height,
             image: image,
             spriteheight: height,
-            spritewidth: spriteWidth,
-            width: width,
+            spritewidth: width,
+            width: width * 2,   
             objectID: oid,
             z: this.zIndex,
             type: type,
@@ -506,7 +461,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var ship = me.pool.pull("enemyShip", x, y, shipSettings);
 
-        if (image == 'xlarge') {
+        if (image == 'new_super') {
             game.INITIATIVE_SHIP = ship;
         }
 

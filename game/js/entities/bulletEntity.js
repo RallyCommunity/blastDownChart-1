@@ -3,6 +3,10 @@ game.BulletEntity = me.ObjectEntity.extend({
     // constructor
     init: function(x, y, settings) {
         // call the constructor
+        settings.width = 8;
+        settings.height = 8;
+        settings.spritewidth = 8;
+        settings.spriteheight = 8;
         this.parent(x, y, settings);
         this.gravity = 0.0;
 
@@ -37,7 +41,7 @@ game.BulletEntity = me.ObjectEntity.extend({
         if (res && res.obj) {
 
             // was it the special ship hitting the rally ship?
-            if (res.obj.type == game.RALLY_SHIP && this.teamShip.team == game.SPECIAL_TEAM) {
+            if (res.obj.type == game.RALLY_SHIP_ENTITY && this.teamShip.team == game.SPECIAL_TEAM) {
                 me.game.world.removeChild(this);
                 me.game.world.removeChild(res.obj);
                 var img = me.loader.getImage('explosionMedium');
@@ -75,11 +79,6 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 return;
             }
-
-
-
-
-
 
             var image = null;
             if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
@@ -119,7 +118,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
                     game.POSITION_MANAGER.addAvailablePosition(res.obj.spritewidth || res.obj.width, res.obj.startingX, res.obj.startingY);
-                    delete game.OID_MAP[res.obj.objectID];
+                    game.removeOidFromMap(res.obj.objectID, false);
                 }
 
                 emitter.z = res.obj.z + 1;

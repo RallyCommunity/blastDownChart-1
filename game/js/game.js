@@ -1,9 +1,8 @@
 /* Game namespace */
 var game = {
-    audioOn: true, // turn sounds off for debugging so I can listen to music :)
+    audioOn: false, // turn sounds off for debugging so I can listen to music :)
 
-    TEAM_SHIP_COLORS: [{name: "white", hex: "#FFF"}, // white
-                        {name: "red", hex: "#ED1C24"}, // rally red
+    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"}, // rally red
                         {name: "blue", hex: "#00A9E0"}], // cyan
 
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
@@ -27,14 +26,14 @@ var game = {
     WINDOW_WIDTH: 1024,
     WINDOW_HEIGHT: 512,
 
-    PADDING: 8,
-    WIDTH: 1000,
+    PADDING: 64,
+    WIDTH: 960,
 
     ENEMY_ENTITY_SMALL:  96, // small enemy type
     ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
-    RALLY_SHIP: 91,
+    RALLY_SHIP_ENTITY: 91,
 
     SHOW_LABEL: true,
 
@@ -54,7 +53,10 @@ var game = {
 
     PENDING_REMOVE: [],
 
-    OID_MAP : {}, // map OID -> record/ship
+    OID_MAP: {
+        recycled: {},
+        completed: {}
+    }, // map OID -> record/ship
 
     AVAILABLE_POSITIONS: {},
 
@@ -62,15 +64,15 @@ var game = {
 
     // Image asset sizes
     MOTHERSHIP: {
-        width: 320,
-        height: 160
+        width: 256,
+        height: 64
     },
 
     SPECIAL_TEAM: 1,
 
     FEATURE_SHIP: {
         width: 64,
-        height: 64
+        height: 32
     },
 
     STORY_SHIP: {
@@ -81,6 +83,11 @@ var game = {
     TASK_SHIP: {
         width: 16,
         height: 16
+    },
+
+    RALLY_SHIP: {
+        width: 128,
+        height: 64
     },
 
     // track the score
@@ -247,7 +254,6 @@ var game = {
 
 
     historyFinished: function() {
-        game.isHistoryFinished = true;
         if (game.endDate) {
             console.log("Initiative was completed!");
             var obj = game.OID_MAP[game.historyFinishedData.oid];
@@ -259,6 +265,23 @@ var game = {
                     teamShip.addTarget(ship);
                 }
             }
+        }
+    },
+
+    // Pre: game.OID_MAP[oid] exists
+    // getRecord: function(oid) {
+    //     if (game.OID_MAP[oid].ship) {
+    //         record = game.OID_MAP[oid].ship.record;
+    //     } else {    
+    //         record = game.OID_MAP.record;
+    //     }
+    // },
+
+    removeOidFromMap: function(oid, recycled) {
+        if (game.OID_MAP[oid]) {
+            //var record = this.getRecord(oid);
+            //recycled ? game.OID_MAP.recycled[oid] = record : game.OID_MAP.completed[oid] = record;
+            delete game.OID_MAP[oid];
         }
     },
 

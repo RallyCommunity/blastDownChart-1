@@ -163,7 +163,7 @@ li {
     -webkit-border-radius: 20px;
     -moz-border-radius: 20px;
     border-radius: 20px;
-    height: 20px;
+    min-height: 20px;
 }
 
 .waiting {
@@ -214,4 +214,16 @@ li {
 
 .hidden {
     display: none;
+}
+
+.header > .column {
+    display: table-cell;
+    vertical-align: middle;
+    float: left;
+    margin-left: 20px;
+    line-height: 32px;
+}
+
+.header > .column > select {
+    display: inline;
 }

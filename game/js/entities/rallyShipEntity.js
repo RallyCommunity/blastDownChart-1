@@ -7,7 +7,7 @@ game.RallyShipEntity = me.ObjectEntity.extend({
         this.gravity = 0.0;
         this.setVelocity(game.SPEED, 0);
         
-        this.type = game.RALLY_SHIP;
+        this.type = game.RALLY_SHIP_ENTITY;
     },
 
     draw: function(context, rect) {

@@ -1,9 +1,9 @@
 game.resources = [
 
     // mainPlayer: space ship
-    {name: "player_white", type: "image", src: "game/data/img/player_white.png"},
-    {name: "player_red", type: "image", src: "game/data/img/player_red.png"},
-    {name: "player_blue", type: "image", src: "game/data/img/player_blue.png"},
+    {name: "player_white", type: "image", src: "game/data/img/new/team/teamShip_white.png"},
+    {name: "player_red", type: "image", src: "game/data/img/new/team/teamShip_red.png"},
+    {name: "player_blue", type: "image", src: "game/data/img/new/team/teamShip_blue.png"},
 
     // ships
     {name: "xlarge", type: "image", src: "game/data/img/shipSuper.png"},  // 320 x 160
@@ -35,15 +35,16 @@ game.resources = [
 
 
 
-    {name: "new_small_test", type: "image", src: "game/data/img/new/enemySmall.png"},
-    {name: "new_medium", type: "image", src: "game/data/img/new/mediumEnemy.png"},  // 32x32
+    {name: "new_small", type: "image", src: "game/data/img/new/small/smallEnemy_white.png"}, // 16x16
+    {name: "new_medium", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},  // 32x32
+    {name: "new_large", type: "image", src: "game/data/img/new/large/largeEnemy_white.png"},  // 64x32
+    {name: "new_super", type: "image", src: "game/data/img/new/super/superEnemy_white.png"},  // 256x64
 
-    
     {name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
 
     
     // bullet
-    {name: "bullet", type: "image", src: "game/data/img/bullet_sprite.png"},
+    {name: "bullet", type: "image", src: "game/data/img/new/bulletSmall.png"},
 
     // explosions
     {name: "explosionSmall", type:"image", src: "game/data/img/animations/explosionSmall.png"},
@@ -54,7 +55,11 @@ game.resources = [
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
 
-    {name: "rectangle", type:"image", src: "game/data/img/svg/rectangle.svg"},
+    {name: "rallyShip", type:"image", src: "game/data/img/new/rallyShip.png"},
+
+
+
+    {name: "victoryImage", type:"image", src: "game/data/img/new/victory.png"},
 
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////

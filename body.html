@@ -26,15 +26,6 @@
                                 </tr>
                             </tbody>
                         </table>
-
-                        <!--                             <tr>
-                                <td>
-                                    Lives
-                                </td>
-                                <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard">
-                                    {{teamInfo.lives}}
-                                </td>
-                            </tr> -->
                     </div>
                 </div>
                 <div id="legend">
@@ -53,7 +44,7 @@
                             <img src="game/data/img/shipLarge.png">
                         </div>
                         <div class="shipContainer">
-                            User Story / Defect
+                            User Story
                             <img src="game/data/img/shipMedium.png">
                         </div>
                         <div class="shipContainer">
@@ -72,11 +63,11 @@
                         <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
                             Realtime Status: {{realtimeStatus}}
                         </div>
-                        <div id="mute">
+                        <div id="mute" class="column">
                             <img src="images/muteIcon.png" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
                             <img src="images/speakerIcon.png" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">
                         </div> 
-                        <p>Speed:
+                        <div class="column">Speed:
                             <select id="speed">
                                 <option value="1">1</option>
                                 <option value="2">2</option>
@@ -89,19 +80,19 @@
                                 <option value="9">9</option>
                                 <option value="10">10</option>
                             </select>
-                        </p>
-                        <p>Filter Log:
+                        </div>
+                        <div class="column">Filter Log:
                             <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
                               <option value="">All</option>
                               <option value="created">Created</option>
                               <option value="completed">Completed</option>
                               <option value="recycled">Recycled</option>
                             </select>
-                        </p>
+                        </div>
                     </div>
                     <div class="content">
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li> <!-- | orderBy:sort [{{logItem.date}}] -  -->
+                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

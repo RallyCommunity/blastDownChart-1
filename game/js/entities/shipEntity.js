@@ -53,7 +53,8 @@ game.Ship = me.ObjectEntity.extend({
             if (!(game.OID_MAP[this.objectID] && game.OID_MAP[this.objectID].targeted)) {
 
                 game.POSITION_MANAGER.addAvailablePosition(this.spritewidth, this.startingX, this.startingY);
-                delete game.OID_MAP[this.objectID];
+
+                game.removeOidFromMap(this.objectID, true);
                 if (this.renderable) {
                     (new me.Tween(this.renderable))
                         .to({
@@ -129,6 +130,9 @@ game.Ship = me.ObjectEntity.extend({
         }
 
         if (!this.isInSync) {
+            if (this.numSteps % this.numPerMove === 0) { // TODO increase this to make the game more choppy
+                this.vel.x = 0;
+            }
             if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 0) {
                 this.isInSync = true;
                 this.numSteps = 0;

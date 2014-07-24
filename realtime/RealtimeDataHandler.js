@@ -35,8 +35,8 @@ function RealtimeDataHandler() {
             } else {
                 // query wsapi for more information
                 wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
-                    //console.log("got ", record);
-                    //console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
+                    console.log("got ", record);
+                    console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
                     eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
                         {
                             record: record,
