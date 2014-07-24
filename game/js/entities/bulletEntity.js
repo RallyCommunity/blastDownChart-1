@@ -92,7 +92,7 @@ game.BulletEntity = me.ObjectEntity.extend({
             }
 
             // Did the player shoot someone destructable?
-            if (image && !this.shootDown && res.obj.isDestructable()) {
+            if (image && !this.shootDown && res.obj.isDestructable && res.obj.isDestructable()) {
                 game.canShoot[this.teamShip.team] = true;
                 me.game.world.removeChild(this);
 

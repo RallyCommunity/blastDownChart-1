@@ -34,19 +34,19 @@ game.PlayScreen = me.ScreenObject.extend({
         
         var i = 0;
         setInterval(function() {
+            if (!game.rallyShipOnScreen) {
+                game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
+                    height: game.RALLY_SHIP.height,
+                    image: 'rallyShip',
+                    spriteheight: game.RALLY_SHIP.height,
+                    spritewidth: game.RALLY_SHIP.width,
+                    width: game.RALLY_SHIP.width,
+                    z: Number.POSITIVE_INFINITY
+                });
 
-            var ship = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
-                height: game.RALLY_SHIP.height,
-                image: 'rallyShip',
-                spriteheight: game.RALLY_SHIP.height,
-                spritewidth: game.RALLY_SHIP.width,
-                width: game.RALLY_SHIP.width,
-                z: Number.POSITIVE_INFINITY
-            });
-
+                me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
+            }
             game.cleanupOld();
-
-            me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
         }, 10000);
 
         // create a new one

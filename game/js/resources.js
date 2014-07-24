@@ -24,16 +24,82 @@ game.resources = [
 
 
 
-    {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
-    {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
-    {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
-    {name: "medium_yellow",  type: "image", src: "game/data/img/shipMedium_yellow.png"},   // 64x64
-    {name: "medium_orange",  type: "image", src: "game/data/img/shipMedium_orange.png"},   // 64x64
-    {name: "medium_pink",  type: "image", src: "game/data/img/shipMedium_pink.png"},   // 64x64
-    {name: "medium_purple",  type: "image", src: "game/data/img/shipMedium_purple.png"},   // 64x64
-    {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
+    // {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
+    // {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
+    // {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
+    // {name: "medium_yellow",  type: "image", src: "game/data/img/shipMedium_yellow.png"},   // 64x64
+    // {name: "medium_orange",  type: "image", src: "game/data/img/shipMedium_orange.png"},   // 64x64
+    // {name: "medium_pink",  type: "image", src: "game/data/img/shipMedium_pink.png"},   // 64x64
+    // {name: "medium_purple",  type: "image", src: "game/data/img/shipMedium_purple.png"},   // 64x64
+    // {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
 
+    {name: "medium_blue", type: "image", src: "game/data/img/new/medium/mediumEnemy_blue.png"},
+    {name: "medium_brick", type: "image", src: "game/data/img/new/medium/mediumEnemy_brick.png"},
+    {name: "medium_darkgold", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgold.png"},
+    {name: "medium_darkgreen", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgreen.png"},
+    {name: "medium_gold", type: "image", src: "game/data/img/new/medium/mediumEnemy_gold.png"},
+    {name: "medium_green", type: "image", src: "game/data/img/new/medium/mediumEnemy_green.png"},
+    {name: "medium_lime", type: "image", src: "game/data/img/new/medium/mediumEnemy_lime.png"},
+    {name: "medium_medblue", type: "image", src: "game/data/img/new/medium/mediumEnemy_medblue.png"},
+    {name: "medium_medlime", type: "image", src: "game/data/img/new/medium/mediumEnemy_medlime.png"},
+    {name: "medium_medorange", type: "image", src: "game/data/img/new/medium/mediumEnemy_medorange.png"},
+    {name: "medium_medpink", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpink.png"},
+    {name: "medium_medpurple", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpurple.png"},
+    {name: "medium_medred", type: "image", src: "game/data/img/new/medium/mediumEnemy_medred.png"},
+    {name: "medium_medteal", type: "image", src: "game/data/img/new/medium/mediumEnemy_medteal.png"},
+    {name: "medium_medyellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_medyellow.png"},
+    {name: "medium_orange", type: "image", src: "game/data/img/new/medium/mediumEnemy_orange.png"},
+    {name: "medium_pink", type: "image", src: "game/data/img/new/medium/mediumEnemy_pink.png"},
+    {name: "medium_purple", type: "image", src: "game/data/img/new/medium/mediumEnemy_purple.png"},
+    {name: "medium_teal", type: "image", src: "game/data/img/new/medium/mediumEnemy_teal.png"},
+    {name: "medium_white", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},
+    {name: "medium_yellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_yellow.png"},
 
+    
+    {name: "small_blue", image: "image" src: "smallEnemy_blue.png"},
+    {name: "small_brick", image: "image" src: "smallEnemy_brick.png"},
+    {name: "small_darkgold", image: "image" src: "smallEnemy_darkgold.png"},
+    {name: "small_darkgreen", image: "image" src: "smallEnemy_darkgreen.png"},
+    {name: "small_gold", image: "image" src: "smallEnemy_gold.png"},
+    {name: "small_green", image: "image" src: "smallEnemy_green.png"},
+    {name: "small_lime", image: "image" src: "smallEnemy_lime.png"},
+    {name: "small_medblue", image: "image" src: "smallEnemy_medblue.png"},
+    {name: "small_medlime", image: "image" src: "smallEnemy_medlime.png"},
+    {name: "small_medorange", image: "image" src: "smallEnemy_medorange.png"},
+    {name: "small_medpink", image: "image" src: "smallEnemy_medpink.png"},
+    {name: "small_medpurple", image: "image" src: "smallEnemy_medpurple.png"},
+    {name: "small_medred", image: "image" src: "smallEnemy_medred.png"},
+    {name: "small_medteal", image: "image" src: "smallEnemy_medteal.png"},
+    {name: "small_medyellow", image: "image" src: "smallEnemy_medyellow.png"},
+    {name: "small_orange", image: "image" src: "smallEnemy_orange.png"},
+    {name: "small_pink", image: "image" src: "smallEnemy_pink.png"},
+    {name: "small_purple", image: "image" src: "smallEnemy_purple.png"},
+    {name: "small_teal", image: "image" src: "smallEnemy_teal.png"},
+    {name: "small_white", image: "image" src: "smallEnemy_white.png"},
+    {name: "small_yellow", image: "image" src: "smallEnemy_yellow.png"},
+
+    /*
+    {name: "large_blue", image: "image" src: "largeEnemy_blue.png"},
+    {name: "large_brick", image: "image" src: "largeEnemy_brick.png"},
+    {name: "large_darkgold", image: "image" src: "largeEnemy_darkgold.png"},
+    {name: "large_darkgreen", image: "image" src: "largeEnemy_darkgreen.png"},
+    {name: "large_gold", image: "image" src: "largeEnemy_gold.png"},
+    {name: "large_green", image: "image" src: "largeEnemy_green.png"},
+    {name: "large_lime", image: "image" src: "largeEnemy_lime.png"},
+    {name: "large_medblue", image: "image" src: "largeEnemy_medblue.png"},
+    {name: "large_medlime", image: "image" src: "largeEnemy_medlime.png"},
+    {name: "large_medorange", image: "image" src: "largeEnemy_medorange.png"},
+    {name: "large_medpink", image: "image" src: "largeEnemy_medpink.png"},
+    {name: "large_medpurple", image: "image" src: "largeEnemy_medpurple.png"},
+    {name: "large_medred", image: "image" src: "largeEnemy_medred.png"},
+    {name: "large_medteal", image: "image" src: "largeEnemy_medteal.png"},
+    {name: "large_medyellow", image: "image" src: "largeEnemy_medyellow.png"},
+    {name: "large_orange", image: "image" src: "largeEnemy_orange.png"},
+    {name: "large_pink", image: "image" src: "largeEnemy_pink.png"},
+    {name: "large_purple", image: "image" src: "largeEnemy_purple.png"},
+    {name: "large_teal", image: "image" src: "largeEnemy_teal.png"},
+    {name: "large_white", image: "image" src: "largeEnemy_white.png"},
+    {name: "large_yellow", image: "image" src: "largeEnemy_yellow.png"}, */
 
     {name: "new_small", type: "image", src: "game/data/img/new/small/smallEnemy_white.png"}, // 16x16
     {name: "new_medium", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},  // 32x32

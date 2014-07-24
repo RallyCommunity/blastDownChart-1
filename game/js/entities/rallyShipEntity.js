@@ -17,8 +17,9 @@ game.RallyShipEntity = me.ObjectEntity.extend({
 
     update: function() {
         // did we hit the top wall?
-        if (this.pos.x > game.WINDOW_WIDTH) {
+        if (this.pos.x > game.WINDOW_WIDTH - 10) {
             me.game.world.removeChild(this);
+            game.rallyShipOnScreen = null;
         }
         this.pos.x += game.SPEED;
         return true;

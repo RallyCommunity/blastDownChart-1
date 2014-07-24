@@ -18,7 +18,11 @@ var game = {
     // #00B398 - teal
     // #8DC63F - green
 
-    FEATURE_SHIP_COLORS: ["teal", "purple", "pink", "orange", "yellow", "lime", "red", "blue"],
+
+    FEATURE_SHIP_COLORS: ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",
+                            "medblue", "medlime", "medorange", "medpink", "medpurple", "medred",
+                            "medteal", "medyellow", "orange", "pink", "purple", "teal", "white", "yellow"],
+
     FEATURE_SHIP_COLOR_INDEX: 0,
     featureColorMap: {},
 
@@ -30,8 +34,7 @@ var game = {
     WIDTH: 960,
 
     ENEMY_ENTITY_SMALL:  96, // small enemy type
-    ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
-    ENEMY_ENTITY_LARGE:  98, // large enemy type
+    ENEMY_ENTITY_MEDIUM: 97, // "medium enemy type",     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
     RALLY_SHIP_ENTITY: 91,
 
