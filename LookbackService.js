@@ -39,9 +39,6 @@ module.factory('LookbackService', function() {
 
     var creationEvent = function(currentType, record, oid) {
         currentType = getType(currentType);
-        if (currentType == "PortfolioItem/Initiative") {
-            //console.log("CREATED INITIATIVE");
-        }
         eventTrigger.trigger(currentType + "-Created", {
             record: record,
             oid: oid,
@@ -104,7 +101,13 @@ module.factory('LookbackService', function() {
 
             var typeHierarchy = record.get('_TypeHierarchy');
             var itemHierarchy = record.get('_ItemHierarchy');
-            var currentType = typeHierarchy[typeHierarchy.length  -1];
+            var currentType;
+
+            if (typeHierarchy && itemHierarchy) {
+                currentType = typeHierarchy[typeHierarchy.length  -1];
+            } else {
+                return;
+            }
 
 
             if (!hierarchyMap) {
@@ -207,7 +210,6 @@ module.factory('LookbackService', function() {
                     // Got less data back than an entire page size => done fetching data from the realtime
                     maxPage = page;
                 }
-
                 triggerEvents(page, records, operation, success);
                 if (records.length == PAGE_SIZE) {
                     page++;
@@ -251,19 +253,19 @@ module.factory('LookbackService', function() {
     return {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-                fetch: ["Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
+                fetch: ["ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
                 hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
                     "_ItemHierarchy": itemHierarchy
                 },
-                headers: {
-                    "datatype" : "jsonp"
-                }
+                proxy: 'rallylookbackjsonpproxy'
             });
 
-            lookbackStore.proxy.extraParams = {
-                "jsonp" : "pageLoaded"
+            lookbackStore.proxy.fetch = ["ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"];
+            lookbackStore.proxy.hydrate = ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"];
+            lookbackStore.proxy.find = {
+                "_ItemHierarchy": itemHierarchy
             };
 
             getProjects(function() {
