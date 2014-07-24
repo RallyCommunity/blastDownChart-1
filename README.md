@@ -5,6 +5,9 @@ Blast Down Chart
 A data visualization for Rally Software projects inspired by Space Invaders.
 This is a Summer 2014 Intern project.
 
+## Acknowledgements
+A special thank you to Grant Miller for helping create some awesome graphics.  Thank you to Charles and Chase for your support, criticism, and encouragement along the way.  Thanks to April Bender for helping brainstorm what this might look like and steering along the way.
+
 ## License
 
 MIT License:
