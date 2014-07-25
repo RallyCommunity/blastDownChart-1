@@ -10,11 +10,6 @@ game.RallyShipEntity = me.ObjectEntity.extend({
         this.type = game.RALLY_SHIP_ENTITY;
     },
 
-    draw: function(context, rect) {
-        this.parent(context, rect);
-
-    },
-
     update: function() {
         // did we hit the top wall?
         if (this.pos.x > game.WINDOW_WIDTH - 10) {

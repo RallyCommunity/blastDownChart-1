@@ -44,34 +44,16 @@ game.BulletEntity = me.ObjectEntity.extend({
             if (res.obj.type == game.RALLY_SHIP_ENTITY && this.teamShip.team == game.SPECIAL_TEAM) {
                 me.game.world.removeChild(this);
                 me.game.world.removeChild(res.obj);
-                var img = me.loader.getImage('explosionMedium');
-                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                    image: img,
-                    width: 4,
-                    totalParticles: 12,
-                    angle: 0.0856797996433583,
-                    angleVariation: 3.14159265358979,
-                    minLife: 400,
-                    maxLife: 1800,
-                    speed: 0.954545454545454,
-                    speedVariation: 9.95454545454546,
-                    minRotation: 1.34231686107927,
-                    minStartScale: 1.43181818181818,
-                    maxParticles: 17,
-                    frequency: 19,
-                    duration: 400,
-                    framesToSkip: 1
-                });
-                emitter.name = 'fire';
+                var img = me.loader.getImage('explosionLarge');
+
+                game.rallyShipOnScreen = null;
 
                 game.canShoot[this.teamShip.team] = true;
-                me.game.world.addChild(emitter, Number.POSITIVE_INFINITY);
-                me.game.world.addChild(emitter.container, Number.POSITIVE_INFINITY);
-                game.PENDING_REMOVE.push(emitter);
-                game.PENDING_REMOVE.push(emitter.container);
-                emitter.streamParticles();
 
-                // TODO special sounds, logging, score, something?
+                var xRange = res.obj.width / 2;
+                var yRange = res.obj.height;
+
+                this.addExplosions(2, 3, xRange, yRange, new Point(res.obj.pos.x, res.obj.pos.y));
 
                 if (game.audioOn) {
                     me.audio.play("explode");
@@ -81,14 +63,24 @@ game.BulletEntity = me.ObjectEntity.extend({
             }
 
             var image = null;
-            if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
-                image = me.loader.getImage('explosionSuper');
+            var height = 0;
+            var width = 0;
+            var duplicate = false;
+            var superDestroyed;
+            if (res.obj.type == game.ENEMY_ENTITY_MEDIUM || res.obj.type == game.ENEMY_ENTITY_SUPER) {
+                image = "explosionLarge"
+                height = 32;
+                width = 32;
             } else if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
-                image = me.loader.getImage('explosionLarge');
-            } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM) {
-                image = me.loader.getImage('explosionMedium');
+                image = "explosionLarge";
+                duplicate = true;
             } else if (res.obj.type == game.ENEMY_ENTITY_SMALL) {
-                image = me.loader.getImage('explosionSmall');
+                image = "explosionSmall"
+                height = 16;   
+                width = 16;
+            } else if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
+                image = "explosionLarge";
+
             }
 
             // Did the player shoot someone destructable?
@@ -96,24 +88,33 @@ game.BulletEntity = me.ObjectEntity.extend({
                 game.canShoot[this.teamShip.team] = true;
                 me.game.world.removeChild(this);
 
-                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                    image: image,
-                    width: 4,
-                    totalParticles: 12,
-                    angle: 0.0856797996433583,
-                    angleVariation: 3.14159265358979,
-                    minLife: 400,
-                    maxLife: 1800,
-                    speed: 0.954545454545454,
-                    speedVariation: 9.95454545454546,
-                    minRotation: 1.34231686107927,
-                    minStartScale: 1.43181818181818,
-                    maxParticles: 17,
-                    frequency: 19,
-                    duration: 400,
-                    framesToSkip: 1
-                });
-                emitter.name = 'fire';
+
+                if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
+                    this.addExplosions(4, 5, res.obj.width / 2, res.obj.height, new Point(res.obj.pos.x, res.obj.pos.y));
+                } else {
+                    var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.pos.y, {
+                        image: image,
+                        spriteheight: height,
+                        spritewidth: width,
+                        width: width * 2,
+                        height: height,
+                        z: Number.POSITIVE_INFINITY
+                    });
+
+                    me.game.world.addChild(explosion, Number.POSITIVE_INFINITY);
+
+                    if (duplicate) {
+                        me.game.world.addChild(me.pool.pull("explosion", res.obj.pos.x + width, res.obj.pos.y, {
+                            image: image,
+                            spriteheight: height,
+                            spritewidth: width,
+                            width: width * 2,
+                            height: height,
+                            z: Number.POSITIVE_INFINITY
+                        }), Number.POSITIVE_INFINITY);
+                    }
+                }
+                
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
@@ -121,19 +122,9 @@ game.BulletEntity = me.ObjectEntity.extend({
                     game.removeOidFromMap(res.obj.objectID, false);
                 }
 
-                emitter.z = res.obj.z + 1;
-
-                me.game.world.addChild(emitter);
-                me.game.world.addChild(emitter.container);
-                emitter.streamParticles();
-
-                game.PENDING_REMOVE.push(emitter);
-                game.PENDING_REMOVE.push(emitter.container);
-
                 if (game.audioOn) {
                     me.audio.play("explode");
                 }
-                //
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
@@ -162,37 +153,8 @@ game.BulletEntity = me.ObjectEntity.extend({
             }
             //else if (image && !this.shootDown && !res.obj.isDestructable()) {} // let it pass through for now, target could be above us
 
-
             // Did the player get hit?
             if (res.obj.type == game.PLAYER && this.shootDown) {
-                me.game.world.removeChild(this);
-                image = me.loader.getImage('explosionSmall');
-                var explosion = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                    image: image,
-                    width: 4,
-                    totalParticles: 12,
-                    angle: 0.0856797996433583,
-                    angleVariation: 3.14159265358979,
-                    minLife: 200,
-                    maxLife: 400,
-                    speed: 0.5,
-                    speedVariation: 4,
-                    minRotation: 1.34231686107927,
-                    minStartScale: 1.43181818181818,
-                    maxParticles: 17,
-                    frequency: 19,
-                    duration: 200,
-                    framesToSkip: 1
-                });
-
-                explosion.name = 'fire';
-                explosion.z = res.obj.z + 1;
-
-                me.game.world.addChild(explosion);
-                me.game.world.addChild(explosion.container);
-                game.PENDING_REMOVE.push(explosion);
-                game.PENDING_REMOVE.push(explosion.container);
-                explosion.streamParticles();
             }
         }
 
@@ -204,5 +166,41 @@ game.BulletEntity = me.ObjectEntity.extend({
         }
         this.updateMovement();
         return true;
+    },
+
+    addExplosions: function(numLarge, numSmall, xRange, yRange, position) {
+        var i;
+        var explosions = [];    
+        for (i = 0; i < numLarge; i++) {
+            xPos = Math.floor(Math.random() * xRange) + position.x;
+            yPos = Math.floor(Math.random() * yRange) + position.y;
+
+            explosions.push(me.pool.pull("explosion", xPos, yPos, {
+                image: "explosionLarge",
+                spriteheight: 32,
+                spritewidth: 32,
+                width: 64,
+                height: 32,
+                z: Number.POSITIVE_INFINITY
+            }));
+        }
+
+        for (i = 0; i < numSmall; i++) {
+            xPos = Math.floor(Math.random() * xRange) + position.x;
+            yPos = Math.floor(Math.random() * yRange) + position.y;
+
+            explosions.push(me.pool.pull("explosion",  xPos, yPos, {
+                image: "explosionSmall",
+                spriteheight: 16,
+                spritewidth: 16,
+                width: 32,
+                height: 16,
+                z: Number.POSITIVE_INFINITY
+            }));
+        }
+
+        _.each(explosions, function(oneExplosion) {
+            me.game.world.addChild(oneExplosion);
+        });
     }
 });

@@ -53246,7 +53246,11 @@ var game = {
     // #00B398 - teal
     // #8DC63F - green
 
-    FEATURE_SHIP_COLORS: ["teal", "purple", "pink", "orange", "yellow", "lime", "red", "blue"],
+
+    FEATURE_SHIP_COLORS: ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",
+                            "medblue", "medlime", "medorange", "medpink", "medpurple", "medred",
+                            "medteal", "medyellow", "orange", "pink", "purple", "teal", "white", "yellow"],
+
     FEATURE_SHIP_COLOR_INDEX: 0,
     featureColorMap: {},
 
@@ -53258,10 +53262,10 @@ var game = {
     WIDTH: 960,
 
     ENEMY_ENTITY_SMALL:  96, // small enemy type
-    ENEMY_ENTITY_MEDIUM: 97, // medium enemy type
-    ENEMY_ENTITY_LARGE:  98, // large enemy type
+    ENEMY_ENTITY_MEDIUM: 97, // "medium enemy type",     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
     RALLY_SHIP_ENTITY: 91,
+    EXPLOSION_TYPE: 17,
 
     SHOW_LABEL: true,
 
@@ -53603,16 +53607,82 @@ var game = {
 
 
 
-    {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
-    {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
-    {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
-    {name: "medium_yellow",  type: "image", src: "game/data/img/shipMedium_yellow.png"},   // 64x64
-    {name: "medium_orange",  type: "image", src: "game/data/img/shipMedium_orange.png"},   // 64x64
-    {name: "medium_pink",  type: "image", src: "game/data/img/shipMedium_pink.png"},   // 64x64
-    {name: "medium_purple",  type: "image", src: "game/data/img/shipMedium_purple.png"},   // 64x64
-    {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
+    // {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
+    // {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
+    // {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
+    // {name: "medium_yellow",  type: "image", src: "game/data/img/shipMedium_yellow.png"},   // 64x64
+    // {name: "medium_orange",  type: "image", src: "game/data/img/shipMedium_orange.png"},   // 64x64
+    // {name: "medium_pink",  type: "image", src: "game/data/img/shipMedium_pink.png"},   // 64x64
+    // {name: "medium_purple",  type: "image", src: "game/data/img/shipMedium_purple.png"},   // 64x64
+    // {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
 
+    {name: "medium_blue", type: "image", src: "game/data/img/new/medium/mediumEnemy_blue.png"},
+    {name: "medium_brick", type: "image", src: "game/data/img/new/medium/mediumEnemy_brick.png"},
+    {name: "medium_darkgold", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgold.png"},
+    {name: "medium_darkgreen", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgreen.png"},
+    {name: "medium_gold", type: "image", src: "game/data/img/new/medium/mediumEnemy_gold.png"},
+    {name: "medium_green", type: "image", src: "game/data/img/new/medium/mediumEnemy_green.png"},
+    {name: "medium_lime", type: "image", src: "game/data/img/new/medium/mediumEnemy_lime.png"},
+    {name: "medium_medblue", type: "image", src: "game/data/img/new/medium/mediumEnemy_medblue.png"},
+    {name: "medium_medlime", type: "image", src: "game/data/img/new/medium/mediumEnemy_medlime.png"},
+    {name: "medium_medorange", type: "image", src: "game/data/img/new/medium/mediumEnemy_medorange.png"},
+    {name: "medium_medpink", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpink.png"},
+    {name: "medium_medpurple", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpurple.png"},
+    {name: "medium_medred", type: "image", src: "game/data/img/new/medium/mediumEnemy_medred.png"},
+    {name: "medium_medteal", type: "image", src: "game/data/img/new/medium/mediumEnemy_medteal.png"},
+    {name: "medium_medyellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_medyellow.png"},
+    {name: "medium_orange", type: "image", src: "game/data/img/new/medium/mediumEnemy_orange.png"},
+    {name: "medium_pink", type: "image", src: "game/data/img/new/medium/mediumEnemy_pink.png"},
+    {name: "medium_purple", type: "image", src: "game/data/img/new/medium/mediumEnemy_purple.png"},
+    {name: "medium_teal", type: "image", src: "game/data/img/new/medium/mediumEnemy_teal.png"},
+    {name: "medium_white", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},
+    {name: "medium_yellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_yellow.png"},
 
+    
+    {name: "small_blue", type: "image", src: "game/data/img/new/small/smallEnemy_blue.png"},
+    {name: "small_brick", type: "image", src: "game/data/img/new/small/smallEnemy_brick.png"},
+    {name: "small_darkgold", type: "image", src: "game/data/img/new/small/smallEnemy_darkgold.png"},
+    {name: "small_darkgreen", type: "image", src: "game/data/img/new/small/smallEnemy_darkgreen.png"},
+    {name: "small_gold", type: "image", src: "game/data/img/new/small/smallEnemy_gold.png"},
+    {name: "small_green", type: "image", src: "game/data/img/new/small/smallEnemy_green.png"},
+    {name: "small_lime", type: "image", src: "game/data/img/new/small/smallEnemy_lime.png"},
+    {name: "small_medblue", type: "image", src: "game/data/img/new/small/smallEnemy_medblue.png"},
+    {name: "small_medlime", type: "image", src: "game/data/img/new/small/smallEnemy_medlime.png"},
+    {name: "small_medorange", type: "image", src: "game/data/img/new/small/smallEnemy_medorange.png"},
+    {name: "small_medpink", type: "image", src: "game/data/img/new/small/smallEnemy_medpink.png"},
+    {name: "small_medpurple", type: "image", src: "game/data/img/new/small/smallEnemy_medpurple.png"},
+    {name: "small_medred", type: "image", src: "game/data/img/new/small/smallEnemy_medred.png"},
+    {name: "small_medteal", type: "image", src: "game/data/img/new/small/smallEnemy_medteal.png"},
+    {name: "small_medyellow", type: "image", src: "game/data/img/new/small/smallEnemy_medyellow.png"},
+    {name: "small_orange", type: "image", src: "game/data/img/new/small/smallEnemy_orange.png"},
+    {name: "small_pink", type: "image", src: "game/data/img/new/small/smallEnemy_pink.png"},
+    {name: "small_purple", type: "image", src: "game/data/img/new/small/smallEnemy_purple.png"},
+    {name: "small_teal", type: "image", src: "game/data/img/new/small/smallEnemy_teal.png"},
+    {name: "small_white", type: "image", src: "game/data/img/new/small/smallEnemy_white.png"},
+    {name: "small_yellow", type: "image", src: "game/data/img/new/small/smallEnemy_yellow.png"},
+
+    /*
+    {name: "large_blue", type: "image", src: "largeEnemy_blue.png"},
+    {name: "large_brick", type: "image", src: "largeEnemy_brick.png"},
+    {name: "large_darkgold", type: "image", src: "largeEnemy_darkgold.png"},
+    {name: "large_darkgreen", type: "image", src: "largeEnemy_darkgreen.png"},
+    {name: "large_gold", type: "image", src: "largeEnemy_gold.png"},
+    {name: "large_green", type: "image", src: "largeEnemy_green.png"},
+    {name: "large_lime", type: "image", src: "largeEnemy_lime.png"},
+    {name: "large_medblue", type: "image", src: "largeEnemy_medblue.png"},
+    {name: "large_medlime", type: "image", src: "largeEnemy_medlime.png"},
+    {name: "large_medorange", type: "image", src: "largeEnemy_medorange.png"},
+    {name: "large_medpink", type: "image", src: "largeEnemy_medpink.png"},
+    {name: "large_medpurple", type: "image", src: "largeEnemy_medpurple.png"},
+    {name: "large_medred", type: "image", src: "largeEnemy_medred.png"},
+    {name: "large_medteal", type: "image", src: "largeEnemy_medteal.png"},
+    {name: "large_medyellow", type: "image", src: "largeEnemy_medyellow.png"},
+    {name: "large_orange", type: "image", src: "largeEnemy_orange.png"},
+    {name: "large_pink", type: "image", src: "largeEnemy_pink.png"},
+    {name: "large_purple", type: "image", src: "largeEnemy_purple.png"},
+    {name: "large_teal", type: "image", src: "largeEnemy_teal.png"},
+    {name: "large_white", type: "image", src: "largeEnemy_white.png"},
+    {name: "large_yellow", type: "image", src: "largeEnemy_yellow.png"}, */
 
     {name: "new_small", type: "image", src: "game/data/img/new/small/smallEnemy_white.png"}, // 16x16
     {name: "new_medium", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},  // 32x32
@@ -53626,10 +53696,10 @@ var game = {
     {name: "bullet", type: "image", src: "game/data/img/new/bulletSmall.png"},
 
     // explosions
-    {name: "explosionSmall", type:"image", src: "game/data/img/animations/explosionSmall.png"},
-    {name: "explosionMedium", type:"image", src: "game/data/img/animations/explosionMedium.png"},
-    {name: "explosionLarge", type:"image", src: "game/data/img/animations/explosionLarge.png"},
-    {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
+    {name: "explosionSmall", type:"image", src: "game/data/img/new/explosions/explosionSmall.png"},
+    // {name: "explosionMedium", type:"image", src: "game/data/img/animations/explosionMedium.png"},
+    {name: "explosionLarge", type:"image", src: "game/data/img/new/explosions/explosionLarge.png"},
+    // {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
 
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
@@ -53996,7 +54066,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
      * Shoots a laser!  The player can only have 1 shot outstanding at a time
      */
     shoot: function() {
-        var x = this.pos.x + this.width / 2;
+        var x = this.pos.x + this.width / 4 + 3;
         var teamShip = this;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
             height: 16,
@@ -54154,9 +54224,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
-                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+                LARGE: [],
+                MEDIUM: [],
+                SMALL: []
             }
 
             me.state.change(me.state.VICTORY);
@@ -54208,15 +54278,11 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.type = game.RALLY_SHIP_ENTITY;
     },
 
-    draw: function(context, rect) {
-        this.parent(context, rect);
-
-    },
-
     update: function() {
         // did we hit the top wall?
-        if (this.pos.x > game.WINDOW_WIDTH) {
+        if (this.pos.x > game.WINDOW_WIDTH - 10) {
             me.game.world.removeChild(this);
+            game.rallyShipOnScreen = null;
         }
         this.pos.x += game.SPEED;
         return true;
@@ -54616,6 +54682,30 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
     }
 });
 
+                game.ExplosionEntity = me.ObjectEntity.extend({
+
+    // constructor
+    init: function(x, y, settings) {
+        // call the constructor
+        this.parent(x, y, settings);
+        this.gravity = 0.0;
+        this.setVelocity(0, 0);
+        
+        this.type = game.EXPLOSION_TYPE;
+        this.numSteps = 0;
+    },
+
+    update: function(dt) {
+        this.numSteps++;
+        if (this.numSteps == 5) {
+            me.game.world.removeChild(this);
+        } else if (this.numSteps == 2) {
+            this.parent(100);
+        }
+        return true;
+    }
+});
+
                 game.BulletEntity = me.ObjectEntity.extend({
 
     // constructor
@@ -54662,32 +54752,32 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             if (res.obj.type == game.RALLY_SHIP_ENTITY && this.teamShip.team == game.SPECIAL_TEAM) {
                 me.game.world.removeChild(this);
                 me.game.world.removeChild(res.obj);
-                var img = me.loader.getImage('explosionMedium');
-                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                    image: img,
-                    width: 4,
-                    totalParticles: 12,
-                    angle: 0.0856797996433583,
-                    angleVariation: 3.14159265358979,
-                    minLife: 400,
-                    maxLife: 1800,
-                    speed: 0.954545454545454,
-                    speedVariation: 9.95454545454546,
-                    minRotation: 1.34231686107927,
-                    minStartScale: 1.43181818181818,
-                    maxParticles: 17,
-                    frequency: 19,
-                    duration: 400,
-                    framesToSkip: 1
-                });
-                emitter.name = 'fire';
+                var img = me.loader.getImage('explosionLarge');
+                // var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                //     image: img,
+                //     width: 4,
+                //     totalParticles: 12,
+                //     angle: 0.0856797996433583,
+                //     angleVariation: 3.14159265358979,
+                //     minLife: 400,
+                //     maxLife: 1800,
+                //     speed: 0.954545454545454,
+                //     speedVariation: 9.95454545454546,
+                //     minRotation: 1.34231686107927,
+                //     minStartScale: 1.43181818181818,
+                //     maxParticles: 17,
+                //     frequency: 19,
+                //     duration: 400,
+                //     framesToSkip: 1
+                // });
+                // emitter.name = 'fire';
 
                 game.canShoot[this.teamShip.team] = true;
-                me.game.world.addChild(emitter, Number.POSITIVE_INFINITY);
-                me.game.world.addChild(emitter.container, Number.POSITIVE_INFINITY);
-                game.PENDING_REMOVE.push(emitter);
-                game.PENDING_REMOVE.push(emitter.container);
-                emitter.streamParticles();
+                // me.game.world.addChild(emitter, Number.POSITIVE_INFINITY);
+                // me.game.world.addChild(emitter.container, Number.POSITIVE_INFINITY);
+                // game.PENDING_REMOVE.push(emitter);
+                // game.PENDING_REMOVE.push(emitter.container);
+                // emitter.streamParticles();
 
                 // TODO special sounds, logging, score, something?
 
@@ -54699,39 +54789,35 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             }
 
             var image = null;
-            if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
-                image = me.loader.getImage('explosionSuper');
-            } else if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
-                image = me.loader.getImage('explosionLarge');
-            } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM) {
-                image = me.loader.getImage('explosionMedium');
-            } else if (res.obj.type == game.ENEMY_ENTITY_SMALL) {
-                image = me.loader.getImage('explosionSmall');
+            var height = 0;
+            var width = 0;
+            if (res.obj.type == game.ENEMY_ENTITY_SUPER || res.obj.type == game.ENEMY_ENTITY_LARGE) {
+                image = "explosionLarge"
+                height = 32;
+                width = 32;
+            } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM || res.obj.type == game.ENEMY_ENTITY_SMALL) {
+                image = "explosionSmall"
+                height = 16;
+                width = 16;
             }
 
             // Did the player shoot someone destructable?
-            if (image && !this.shootDown && res.obj.isDestructable()) {
+            if (image && !this.shootDown && res.obj.isDestructable && res.obj.isDestructable()) {
                 game.canShoot[this.teamShip.team] = true;
                 me.game.world.removeChild(this);
 
-                var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
+                console.log("explosion", image);
+
+                var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.y, {
                     image: image,
-                    width: 4,
-                    totalParticles: 12,
-                    angle: 0.0856797996433583,
-                    angleVariation: 3.14159265358979,
-                    minLife: 400,
-                    maxLife: 1800,
-                    speed: 0.954545454545454,
-                    speedVariation: 9.95454545454546,
-                    minRotation: 1.34231686107927,
-                    minStartScale: 1.43181818181818,
-                    maxParticles: 17,
-                    frequency: 19,
-                    duration: 400,
-                    framesToSkip: 1
+                    spriteheight: height,
+                    spritewidth: width,
+                    width: width * 2,
+                    height: height,
+                    z: Number.POSITIVE_INFINITY
                 });
-                emitter.name = 'fire';
+
+                me.game.world.addChild(explosion, Number.POSITIVE_INFINITY);
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
@@ -54739,19 +54825,11 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                     game.removeOidFromMap(res.obj.objectID, false);
                 }
 
-                emitter.z = res.obj.z + 1;
-
-                me.game.world.addChild(emitter);
-                me.game.world.addChild(emitter.container);
-                emitter.streamParticles();
-
-                game.PENDING_REMOVE.push(emitter);
-                game.PENDING_REMOVE.push(emitter.container);
 
                 if (game.audioOn) {
                     me.audio.play("explode");
                 }
-                //
+                
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
@@ -54779,7 +54857,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 return true;
             }
             //else if (image && !this.shootDown && !res.obj.isDestructable()) {} // let it pass through for now, target could be above us
-
 
             // Did the player get hit?
             if (res.obj.type == game.PLAYER && this.shootDown) {
@@ -54877,20 +54954,20 @@ game.VictoryScreen = me.ScreenObject.extend({
         }, 1500);
 
 
-        this.victoryImg = me.loader.getImage('victoryImage');
-        // var victoryImg = me.loader.getImage('victoryImage');
         
-        // this.victoryImage = new me.ObjectEntity(game.WIDTH / 2 - 256, 768, {
-        //     image: victoryImg,
-        //     x: game.WIDTH / 2 - 256,
-        //     y: 768,
-        //     width: 512,
-        //     height: 128,
-        //     spritewidth: 512,
-        //     spriteheight: 128,
-        //     z: Number.POSITIVE_INFINITY
-        // });
-        // me.game.world.addChild(this.victoryImage, Number.POSITIVE_INFINITY);
+        var victoryImg = me.loader.getImage('victoryImage');
+        // TODO
+        this.victoryImage = new me.ObjectEntity(game.WIDTH / 2 - 256, 768, {
+            image: victoryImg,
+            x: game.WIDTH / 2 - 256,
+            y: 768,
+            width: 512,
+            height: 128,
+            spritewidth: 512,
+            spriteheight: 128,
+            z: Number.POSITIVE_INFINITY
+        });
+        me.game.world.addChild(this.victoryImage, Number.POSITIVE_INFINITY);
 
      
         // add a new renderable component with the scrolling text
@@ -54900,11 +54977,11 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
                 this.font = new me.Font("pressStart", 32, "white", "center");
-                 
+
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
-                this.scroller = game.INITIATIVE_SHIP.record.getImaget('Name') + " COMPLETED";
+                this.scroller = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
                 this.scrollerpos = 3000;
             },
              
@@ -54920,14 +54997,14 @@ game.VictoryScreen = me.ScreenObject.extend({
             },
              
             draw : function (context) {
-                context.drawImage(this.victoryImg, 256, 768);
                 this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
+                
             },
             onDestroyEvent : function() {
                 //just in case
                 this.scrollertween.stop();
             }
-        }))(), 2);
+        }))(), 3);
     },
 
     explosions: function(time) {
@@ -55100,19 +55177,19 @@ game.TitleScreen = me.ScreenObject.extend({
         
         var i = 0;
         setInterval(function() {
+            if (!game.rallyShipOnScreen) {
+                game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
+                    height: game.RALLY_SHIP.height,
+                    image: 'rallyShip',
+                    spriteheight: game.RALLY_SHIP.height,
+                    spritewidth: game.RALLY_SHIP.width,
+                    width: game.RALLY_SHIP.width,
+                    z: Number.POSITIVE_INFINITY
+                });
 
-            var ship = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
-                height: game.RALLY_SHIP.height,
-                image: 'rallyShip',
-                spriteheight: game.RALLY_SHIP.height,
-                spritewidth: game.RALLY_SHIP.width,
-                width: game.RALLY_SHIP.width,
-                z: Number.POSITIVE_INFINITY
-            });
-
-            game.cleanupOld();
-
-            me.game.world.addChild(ship, Number.POSITIVE_INFINITY);
+                me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
+            }
+            //game.cleanupOld(); explosions clean themselves up now
         }, 10000);
 
         // create a new one

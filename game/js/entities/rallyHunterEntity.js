@@ -62,7 +62,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
      * Shoots a laser!  The player can only have 1 shot outstanding at a time
      */
     shoot: function() {
-        var x = this.pos.x + this.width / 2;
+        var x = this.pos.x + this.width / 4 + 3;
         var teamShip = this;
         var shot = me.pool.pull("bullet", x, this.pos.y, {
             height: 16,
@@ -220,9 +220,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
-                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+                LARGE: [],
+                MEDIUM: [],
+                SMALL: []
             }
 
             me.state.change(me.state.VICTORY);

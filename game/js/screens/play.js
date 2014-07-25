@@ -46,7 +46,6 @@ game.PlayScreen = me.ScreenObject.extend({
 
                 me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
             }
-            game.cleanupOld();
         }, 10000);
 
         // create a new one
@@ -69,11 +68,12 @@ game.PlayScreen = me.ScreenObject.extend({
 
     addInitiative: function(record, oid, date) {
         if (this.numInitiative < 1) {
+            var offset = 32;
             console.info("putting initiative at x: " + (game.WIDTH / 2 - game.MOTHERSHIP.width / 2) + " y: " + game.PADDING, game.WIDTH, game.MOTHERSHIP);   
-            this.addEnemy(record, oid, date, "new_super", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width, game.PADDING);
+            this.addEnemy(record, oid, date, "new_super", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2 + offset, game.PADDING);
             this.numInitiative = 1;
             game.initiative = record;  
-            console.log(game.INITIATIVE_SHIP);           
+            console.log("INITIATIVE SHIP", game.INITIATIVE_SHIP);           
         }
     },  
 
@@ -447,7 +447,7 @@ game.PlayScreen = me.ScreenObject.extend({
             image: image,
             spriteheight: height,
             spritewidth: width,
-            width: width * 2,   
+            width: width,   
             objectID: oid,
             z: this.zIndex,
             type: type,
@@ -461,7 +461,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var ship = me.pool.pull("enemyShip", x, y, shipSettings);
 
-        if (image == 'new_super') {
+        if (!game.INITIATIVE_SHIP && image == 'new_super') {
             game.INITIATIVE_SHIP = ship;
         }
 

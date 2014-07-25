@@ -37,6 +37,7 @@ var game = {
     ENEMY_ENTITY_MEDIUM: 97, // "medium enemy type",     ENEMY_ENTITY_LARGE:  98, // large enemy type
     ENEMY_ENTITY_SUPER:  99, // super enemy type
     RALLY_SHIP_ENTITY: 91,
+    EXPLOSION_TYPE: 17,
 
     SHOW_LABEL: true,
 

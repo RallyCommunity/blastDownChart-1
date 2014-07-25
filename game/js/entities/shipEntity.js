@@ -103,22 +103,29 @@ game.Ship = me.ObjectEntity.extend({
         var normalMovement = function(dt, theShip) {
             if (theShip.numSteps > 6 * theShip.numPerMove) {
                 theShip.numSteps = 0;
+                theShip.moveRight = true;
+                game.aligned = true;
+            } else {
+                game.aligned = false;
             }
 
-            if (theShip.numSteps == theShip.numPerMove || theShip.numSteps == theShip.numPerMove * 2 || theShip.numSteps == theShip.numPerMove * 3) {
-                theShip.vel.x += theShip.accel.x * me.timer.tick;
-                theShip.moveRight = true;
-            } else if (theShip.numSteps == theShip.numPerMove * 4 || theShip.numSteps == theShip.numPerMove * 5 || theShip.numSteps == theShip.numPerMove * 6) {
-                theShip.vel.x -= theShip.accel.x * me.timer.tick;
-                theShip.moveRight = false;
+            if (theShip.numSteps != 0 && theShip.numSteps % theShip.numPerMove == 0) {
+                if (theShip.moveRight) {
+                    theShip.vel.x += theShip.accel.x * me.timer.tick;
+                } else {
+                    theShip.vel.x -= theShip.accel.x * me.timer.tick;
+                }
             } else {
+                if (theShip.numSteps / theShip.numPerMove > 3) {
+                    theShip.moveRight = false;
+                }
                 theShip.vel.x = 0;
             }
 
             theShip.updateMovement();
-            if (theShip.vel.x !=0 || theShip.vel.y != 0) {
+            if (theShip.vel.x != 0) {
                 // update object animation
-                theShip.parent(100);
+                theShip.parent(200);
                 return true;
             }
             return true;
@@ -133,7 +140,8 @@ game.Ship = me.ObjectEntity.extend({
             if (this.numSteps % this.numPerMove === 0) { // TODO increase this to make the game more choppy
                 this.vel.x = 0;
             }
-            if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 0) {
+            if (game.aligned) {
+                //console.log("now in sync", game.INITIATIVE_SHIP, game.INITIATIVE_SHIP.numSteps);
                 this.isInSync = true;
                 this.numSteps = 0;
             }
