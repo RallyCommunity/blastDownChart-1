@@ -45,7 +45,11 @@ Ext.define('CustomApp', {
                         $('#speakerIcon').toggleClass('hidden');
                         game.toggleMute();
                     });
-
+                    $('#playPause').click(function() {
+                        $('#playIcon').toggleClass('hidden');
+                        $('#pauseIcon').toggleClass('hidden');
+                        game.togglePlayPause();
+                    });
 
                 }
             }

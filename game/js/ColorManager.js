@@ -13,7 +13,7 @@ function ColorManager(featureImagePrefix, storyImagePrefix, taskImagePrefix) {
     var taskPrefix = taskImagePrefix;
 
     var getColor = function(featureOid) {
-        var color = featureColorMap[featureOid]
+        var color = featureColorMap[featureOid];
         if (!color) {
             // pick a new one and create a mapping
             color = FEATURE_SHIP_COLORS[FEATURE_SHIP_COLOR_INDEX % FEATURE_SHIP_COLORS.length];

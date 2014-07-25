@@ -53229,6 +53229,7 @@ me.DroptargetEntity = (function (Entity, Event) {
                 /* Game namespace */
 var game = {
     audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
+    play: true,
 
     TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
                         {name: "blue", hex: "#00A9E0"}, // cyan
@@ -53427,6 +53428,16 @@ var game = {
 
     toggleMute: function() {
         this.audioOn = !this.audioOn;
+    },
+
+    togglePlayPause: function() {
+        this.play = !this.play;
+        if (!this.play) {
+            // pause the game
+            me.state.change(me.state.PLAY);
+        } else {
+            me.state.change(me.state.PAUSE);
+        }
     },
 
     getImageFromSvg : function(rawSVG) {
@@ -53954,12 +53965,12 @@ function ColorManager(featureImagePrefix, storyImagePrefix, taskImagePrefix) {
     var taskPrefix = taskImagePrefix;
 
     var getColor = function(featureOid) {
-        var color = featureColorMap[featureOid]
+        var color = featureColorMap[featureOid];
         if (!color) {
             // pick a new one and create a mapping
-            color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
-            game.FEATURE_SHIP_COLOR_INDEX++;
-            game.featureColorMap[featureOid] = color;
+            color = FEATURE_SHIP_COLORS[FEATURE_SHIP_COLOR_INDEX % FEATURE_SHIP_COLORS.length];
+            FEATURE_SHIP_COLOR_INDEX++;
+            featureColorMap[featureOid] = color;
         }
         return color;
     };
@@ -55306,7 +55317,7 @@ game.TitleScreen = me.ScreenObject.extend({
         //console.log("add task");
         var featureOid = record.get('Feature');
         var x = 0;
-        var color = game.COLOR_MANAGER.getTask(featureOid);
+        var color = game.COLOR_MANAGER.getTaskColor(featureOid);
         if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
             x = game.OID_MAP[featureOid].ship.startingX;
         }
@@ -55620,7 +55631,7 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var ship = me.pool.pull("enemyShip", x, y, shipSettings);
 
-        if (!game.INITIATIVE_SHIP && image == 'new_super') {
+        if (!game.INITIATIVE_SHIP && image == 'super_white') {
             game.INITIATIVE_SHIP = ship;
         }
 
@@ -55728,7 +55739,11 @@ game.TitleScreen = me.ScreenObject.extend({
                         $('#speakerIcon').toggleClass('hidden');
                         game.toggleMute();
                     });
-
+                    $('#playPause').click(function() {
+                        $('#playIcon').toggleClass('hidden');
+                        $('#pauseIcon').toggleClass('hidden');
+                        game.togglePlayPause();
+                    });
 
                 }
             }
@@ -57173,6 +57188,10 @@ td.dataColumn {
                         <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
                             Realtime Status: {{realtimeStatus}}
                         </div>
+                        <div id="playPause" class="column">
+                            <img src="images/play.png" id="playIcon" class="hidden" alt="Play" title="Play Icon">
+                            <img src="images/pause.png" id="pauseIcon" alt="Pause" title="Pause Icon">
+                        </div> 
                         <div id="mute" class="column">
                             <img src="images/muteIcon.png" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
                             <img src="images/speakerIcon.png" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">

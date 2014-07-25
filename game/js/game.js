@@ -1,6 +1,7 @@
 /* Game namespace */
 var game = {
     audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
+    play: true,
 
     TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
                         {name: "blue", hex: "#00A9E0"}, // cyan
@@ -199,6 +200,96 @@ var game = {
 
     toggleMute: function() {
         this.audioOn = !this.audioOn;
+    },
+
+    togglePlayPause: function() {
+        $("#overlay").toggleClass("hidden");
+        this.play = !this.play;
+        if (!this.play) {
+            // pause the game
+            game.pause();
+        } else {
+            game.resume();
+        }
+    },
+
+    resume: function() {
+        // unmask, restart updates, play through queue of events
+        game.angularScope.eventHandler.playThrough();
+
+        // restart the enemy ships
+        _.each(game.OID_MAP, function(value, key) {
+            if (value.ship) {
+                console.log(value.ship.update, value.cachedUpdate);
+                value.ship.update = value.cachedUpdate;
+            }
+        });
+
+        // restart the player ships
+        _.each(game.TEAM_SHIPS, function(value, key) {
+            value.update = value.cachedUpdate;
+        });
+
+        this.startRallyShip();
+    },
+
+    pause: function() {
+        // stop updates, mask screen, stop going through queue of events
+
+        game.angularScope.eventHandler.stopEvents();
+        _.each(game.OID_MAP, function(value, key) {
+            if (value.ship) {
+                value.cachedUpdate = value.ship.update;
+                value.ship.update = function(dt) {
+                    return true;
+                }
+            }
+        });
+
+        // stop the player ships
+        _.each(game.TEAM_SHIPS, function(value, key) {
+            value.cachedUpdate = value.update;
+            value.update = function(dt) {
+                return true;
+            }
+        });
+
+        // stop the rally ship
+        this.stopRallyShip();
+    },
+
+    startRallyShip: function() {
+        if (!game.rallyShipInterval) {
+            if (game.rallyShipOnScreen) {
+                game.rallyShipOnScreen.update = game.rallyShipOnScreen.cachedUpdate;
+            }
+            game.rallyShipInterval = setInterval(function() {
+                if (!game.rallyShipOnScreen) {
+                    game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
+                        height: game.RALLY_SHIP.height,
+                        image: 'rallyShip',
+                        spriteheight: game.RALLY_SHIP.height,
+                        spritewidth: game.RALLY_SHIP.width,
+                        width: game.RALLY_SHIP.width,
+                        z: Number.POSITIVE_INFINITY
+                    });
+
+                    me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
+                }
+            }, 10000);
+        }
+
+    },
+
+    stopRallyShip: function() {
+        if (game.rallyShipOnScreen) {
+            game.rallyShipOnScreen.cachedUpdate = game.rallyShipOnScreen.update;
+            game.rallyShipOnScreen.update = function(dt) {
+                return true;
+            }
+        }
+        clearInterval(game.rallyShipInterval);
+        game.rallyShipInterval = null;
     },
 
     getImageFromSvg : function(rawSVG) {

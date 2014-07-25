@@ -51,8 +51,11 @@ var GameEventHandler = function(realtime) {
     };
 
     this.resetSpeed = function() {
-        clearInterval(timer);
-        timer = null;
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+
         this.playThrough();
     };
 

@@ -14,6 +14,7 @@ game.PlayScreen = me.ScreenObject.extend({
      *  action to perform on state change
      */
     onResetEvent: function() {
+
         // Just load the level on page load
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
@@ -34,20 +35,8 @@ game.PlayScreen = me.ScreenObject.extend({
         var scope = angular.element($("#root")).scope();
         
         var i = 0;
-        setInterval(function() {
-            if (!game.rallyShipOnScreen) {
-                game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
-                    height: game.RALLY_SHIP.height,
-                    image: 'rallyShip',
-                    spriteheight: game.RALLY_SHIP.height,
-                    spritewidth: game.RALLY_SHIP.width,
-                    width: game.RALLY_SHIP.width,
-                    z: Number.POSITIVE_INFINITY
-                });
-
-                me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
-            }
-        }, 10000);
+        game.startRallyShip();
+        
 
         // create a new one
         var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
@@ -456,7 +445,7 @@ game.PlayScreen = me.ScreenObject.extend({
 
         var ship = me.pool.pull("enemyShip", x, y, shipSettings);
 
-        if (!game.INITIATIVE_SHIP && image == 'new_super') {
+        if (!game.INITIATIVE_SHIP && image == 'super_white') {
             game.INITIATIVE_SHIP = ship;
         }
 
@@ -512,7 +501,7 @@ game.PlayScreen = me.ScreenObject.extend({
                 me.game.world.removeChild(destroy);
             }
         });
-        var scope = angular.element($("#root")).scope();
-        scope.eventHandler.stopEvents();
+
+        game.angularScope.eventHandler.stopEvents();
     }
 });

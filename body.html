@@ -57,12 +57,19 @@
             </div>
             <div>
                 <div id="screen">
+                    <div id="overlay" class="hidden">
+                    </div>
                 </div>
+                
                 <div id="log">
                     <div class="header">
                         <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
                             Realtime Status: {{realtimeStatus}}
                         </div>
+                        <div id="playPause" class="column">
+                            <img src="images/play.png" id="playIcon" class="hidden" alt="Play" title="Play Icon">
+                            <img src="images/pause.png" id="pauseIcon" alt="Pause" title="Pause Icon">
+                        </div> 
                         <div id="mute" class="column">
                             <img src="images/muteIcon.png" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
                             <img src="images/speakerIcon.png" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">
