@@ -216,7 +216,6 @@ var game = {
         // restart the enemy ships
         _.each(game.OID_MAP, function(value, key) {
             if (value.ship) {
-                console.log(value.ship.update, value.cachedUpdate);
                 value.ship.update = value.cachedUpdate;
             }
         });
@@ -230,8 +229,32 @@ var game = {
     },
 
     pause: function() {
-        // stop updates, mask screen, stop going through queue of events
+        $('canvas').click(function(e) {
+            e.preventDefault();
+            var offset = $(this).offset();
+            var x = e.clientX - offset.left;
+            var y = event.y - offset.top + 25;
+            console.log("searching", x, y);
+            var ship = _.find(game.OID_MAP, function(value, key) {
+                if (value.ship) {
+                    var left = value.ship.pos.x;
+                    var right = left + value.ship.width;
+                    var top = value.ship.pos.y;
+                    var bottom = top + value.ship.height;
+                    console.log(left, right, top, bottom);
+                    if (x > left && x < right && y > top && y < bottom) {
+                        return value;
+                    }
+                }
+            });
 
+            if (ship) {
+                console.log(ship);
+                var popup = $("<div id='overlay'><h1>" + ship.ship.record.get("Name") + "</h1></div>");
+                $('body').append(popup);
+            }
+        });
+        // stop updates, mask screen, stop going through queue of events
         game.angularScope.eventHandler.stopEvents();
         _.each(game.OID_MAP, function(value, key) {
             if (value.ship) {
