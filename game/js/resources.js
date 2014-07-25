@@ -89,8 +89,6 @@ game.resources = [
     {name: "explosionSmall", type:"image", src: "game/data/img/new/explosions/explosionSmall.png"},
     {name: "explosionLarge", type:"image", src: "game/data/img/new/explosions/explosionLarge.png"},
 
-
-
     {name: "rallyShip", type:"image", src: "game/data/img/new/rallyShip.png"},
 
     {name: "victoryImage", type:"image", src: "game/data/img/new/victory.png"},
@@ -100,10 +98,8 @@ game.resources = [
      * Maps and backgrounds
      */
 
-    {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},
-
     // background
-    {name: "background", type: "image", src: "game/data/img/background-2.png"},
+    {name: "background", type: "image", src: "game/data/img/new/background/background.png"},
     
     // tileset
     {name: "sprites", type:"image", src: "game/data/sprites.png"},

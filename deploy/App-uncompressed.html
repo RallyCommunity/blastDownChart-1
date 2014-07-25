@@ -53419,9 +53419,6 @@ var game = {
         // Load the resources.
         me.loader.preload(game.resources);
 
-
-        game.redRectangle = this.getImageFromSvg('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd" [<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/"><!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/"><!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/"><!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">]><svg version="1.1" baseProfile="tiny" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"x="0px" y="0px" width="42px" height="42px" viewBox="-0.5 0.5 42 42" xml:space="preserve"><path d="M0.5,4.5v33h40v-33H0.5z M3.5,7.5h34v27h-34V7.5z" style="stroke: red; stroke-width: 2"/></svg>');
-        game.blueRectangle = this.getImageFromSvg('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd" [<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/"><!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/"><!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/"><!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">]><svg version="1.1" baseProfile="tiny" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"x="0px" y="0px" width="42px" height="42px" viewBox="-0.5 0.5 42 42" xml:space="preserve"><path d="M0.5,4.5v33h40v-33H0.5z M3.5,7.5h34v27h-34V7.5z" style="stroke: blue; stroke-width: 2"/></svg>');
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
     },
@@ -53434,10 +53431,89 @@ var game = {
         this.play = !this.play;
         if (!this.play) {
             // pause the game
-            me.state.change(me.state.PLAY);
+            game.pause();
         } else {
-            me.state.change(me.state.PAUSE);
+            game.resume();
         }
+    },
+
+    resume: function() {
+        // unmask, restart updates, play through queue of events
+        game.angularScope.eventHandler.playThrough();
+
+        // restart the enemy ships
+        _.each(game.OID_MAP, function(value, key) {
+            if (value.ship) {
+                console.log(value.ship.update, value.cachedUpdate);
+                value.ship.update = value.cachedUpdate;
+            }
+        });
+
+        // restart the player ships
+        _.each(game.TEAM_SHIPS, function(value, key) {
+            value.update = value.cachedUpdate;
+        });
+
+        this.startRallyShip();
+    },
+
+    pause: function() {
+        // stop updates, mask screen, stop going through queue of events
+
+        game.angularScope.eventHandler.stopEvents();
+        _.each(game.OID_MAP, function(value, key) {
+            if (value.ship) {
+                value.cachedUpdate = value.ship.update;
+                value.ship.update = function(dt) {
+                    return true;
+                }
+            }
+        });
+
+        // stop the player ships
+        _.each(game.TEAM_SHIPS, function(value, key) {
+            value.cachedUpdate = value.update;
+            value.update = function(dt) {
+                return true;
+            }
+        });
+
+        // stop the rally ship
+        this.stopRallyShip();
+    },
+
+    startRallyShip: function() {
+        if (!game.rallyShipInterval) {
+            if (game.rallyShipOnScreen) {
+                game.rallyShipOnScreen.update = game.rallyShipOnScreen.cachedUpdate;
+            }
+            game.rallyShipInterval = setInterval(function() {
+                if (!game.rallyShipOnScreen) {
+                    game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
+                        height: game.RALLY_SHIP.height,
+                        image: 'rallyShip',
+                        spriteheight: game.RALLY_SHIP.height,
+                        spritewidth: game.RALLY_SHIP.width,
+                        width: game.RALLY_SHIP.width,
+                        z: Number.POSITIVE_INFINITY
+                    });
+
+                    me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
+                }
+            }, 10000);
+        }
+
+    },
+
+    stopRallyShip: function() {
+        if (game.rallyShipOnScreen) {
+            game.rallyShipOnScreen.cachedUpdate = game.rallyShipOnScreen.update;
+            game.rallyShipOnScreen.update = function(dt) {
+                return true;
+            }
+        }
+        clearInterval(game.rallyShipInterval);
+        game.rallyShipInterval = null;
     },
 
     getImageFromSvg : function(rawSVG) {
@@ -53681,8 +53757,6 @@ var game = {
     {name: "explosionSmall", type:"image", src: "game/data/img/new/explosions/explosionSmall.png"},
     {name: "explosionLarge", type:"image", src: "game/data/img/new/explosions/explosionLarge.png"},
 
-
-
     {name: "rallyShip", type:"image", src: "game/data/img/new/rallyShip.png"},
 
     {name: "victoryImage", type:"image", src: "game/data/img/new/victory.png"},
@@ -53691,8 +53765,6 @@ var game = {
     /*
      * Maps and backgrounds
      */
-
-    {name: "titleScreen", type: "image", src: "game/data/img/titleScreen.png"},
 
     // background
     {name: "background", type: "image", src: "game/data/img/background-2.png"},
@@ -55189,6 +55261,7 @@ game.TitleScreen = me.ScreenObject.extend({
      *  action to perform on state change
      */
     onResetEvent: function() {
+
         // Just load the level on page load
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
@@ -55209,20 +55282,8 @@ game.TitleScreen = me.ScreenObject.extend({
         var scope = angular.element($("#root")).scope();
         
         var i = 0;
-        setInterval(function() {
-            if (!game.rallyShipOnScreen) {
-                game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
-                    height: game.RALLY_SHIP.height,
-                    image: 'rallyShip',
-                    spriteheight: game.RALLY_SHIP.height,
-                    spritewidth: game.RALLY_SHIP.width,
-                    width: game.RALLY_SHIP.width,
-                    z: Number.POSITIVE_INFINITY
-                });
-
-                me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
-            }
-        }, 10000);
+        game.startRallyShip();
+        
 
         // create a new one
         var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
@@ -55687,8 +55748,8 @@ game.TitleScreen = me.ScreenObject.extend({
                 me.game.world.removeChild(destroy);
             }
         });
-        var scope = angular.element($("#root")).scope();
-        scope.eventHandler.stopEvents();
+
+        game.angularScope.eventHandler.stopEvents();
     }
 });
 
@@ -56612,8 +56673,11 @@ var GameEventHandler = function(realtime) {
     };
 
     this.resetSpeed = function() {
-        clearInterval(timer);
-        timer = null;
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+
         this.playThrough();
     };
 
@@ -57155,27 +57219,27 @@ td.dataColumn {
                 </div>
                 <div id="legend">
                     <div class="content">
-                        <div class="shipContainer logo">
+<!--                         <div class="shipContainer logo">
                             <img src="game/data/img/rally8bit.png">
-                        </div>
+                        </div> -->
                         <div class="shipContainer">
                             Initiative
                             <br />
-                            <img src="game/data/img/shipSuper.png">
+                            <img src="game/data/img/new/super/superEnemy_white.png">
                         </div>
                         <div class="shipContainer">
                             Feature
                             <br />
-                            <img src="game/data/img/shipLarge.png">
+                            <img src="game/data/img/new/large/largeEnemy_white.png">
                         </div>
                         <div class="shipContainer">
                             User Story
-                            <img src="game/data/img/shipMedium.png">
+                            <img src="game/data/img/new/medium/mediumEnemy_white.png">
                         </div>
                         <div class="shipContainer">
                             Task
                             <br />
-                            <img src="game/data/img/shipSmall.png">
+                            <img src="game/data/img/new/small/smallEnemy_white.png">
                         </div>
                     </div>
                 </div>
@@ -57183,6 +57247,7 @@ td.dataColumn {
             <div>
                 <div id="screen">
                 </div>
+                
                 <div id="log">
                     <div class="header">
                         <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
