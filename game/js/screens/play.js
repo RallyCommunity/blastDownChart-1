@@ -29,7 +29,8 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     eventDrivenSetup: function() {
-        game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height);
+        game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height + 8);
+        game.COLOR_MANAGER = new ColorManager("large_", "medium_", "small_");
         var scope = angular.element($("#root")).scope();
         
         var i = 0;
@@ -70,7 +71,7 @@ game.PlayScreen = me.ScreenObject.extend({
         if (this.numInitiative < 1) {
             var offset = 32;
             console.info("putting initiative at x: " + (game.WIDTH / 2 - game.MOTHERSHIP.width / 2) + " y: " + game.PADDING, game.WIDTH, game.MOTHERSHIP);   
-            this.addEnemy(record, oid, date, "new_super", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2 + offset, game.PADDING);
+            this.addEnemy(record, oid, date, "super_white", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2 + offset, game.PADDING);
             this.numInitiative = 1;
             game.initiative = record;  
             console.log("INITIATIVE SHIP", game.INITIATIVE_SHIP);           
@@ -80,14 +81,10 @@ game.PlayScreen = me.ScreenObject.extend({
     addFeature: function(record, oid, date, pt) {
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getFeaturePosition();
         if (point) {
-            var color = game.featureColorMap[oid];
-            if (!color) {
-                color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
-                game.FEATURE_SHIP_COLOR_INDEX++;
-                game.featureColorMap[oid] = color;
-            }
+            var color = game.COLOR_MANAGER.getFeatureColor(oid);
+
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "new_large", game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
                 this.numFeatures++;
             }
             
@@ -115,16 +112,15 @@ game.PlayScreen = me.ScreenObject.extend({
         }
         var featureOid = record.get('Feature');
         var x = 0;
-        var color = 'medium';
+        var color = game.COLOR_MANAGER.getStoryColor(featureOid);
         if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
             x = game.OID_MAP[featureOid].ship.startingX;
-            color = 'medium_' + game.featureColorMap[featureOid] || 'medium';
         }
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getStoryPosition(x);
         if (point) {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "new_medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
                 this.numStories++;
             }
         } else {
@@ -146,16 +142,15 @@ game.PlayScreen = me.ScreenObject.extend({
         //console.log("add task");
         var featureOid = record.get('Feature');
         var x = 0;
-        var color = 'small';
+        var color = game.COLOR_MANAGER.getTaskColor(featureOid);
         if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
             x = game.OID_MAP[featureOid].ship.startingX;
-            color = 'small_' + game.featureColorMap[featureOid] || 'small';
         }
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getTaskPosition(x);
         if (point) {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "new_small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
                 this.numStories++;
             }
         } else {

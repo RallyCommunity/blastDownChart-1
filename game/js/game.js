@@ -1,9 +1,15 @@
 /* Game namespace */
 var game = {
-    audioOn: false, // turn sounds off for debugging so I can listen to music :)
+    audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
 
-    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"}, // rally red
-                        {name: "blue", hex: "#00A9E0"}], // cyan
+    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
+                        {name: "blue", hex: "#00A9E0"}, // cyan
+                        {name: "grey", hex: "#C0C0C0"},
+                        {name: "darkgold", hex: "#CF871B"},
+                        {name: "darkgreen", hex: "#1E7C00"},
+                        {name: "purplelt", hex: "#D7CCE5"},
+                        {name: "cyanlt", hex: "#BFE9F5"},
+                        {name: "white", hex: "#FFFFFF" }], 
 
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
 
@@ -17,14 +23,6 @@ var game = {
     // #005EB8 - dark blue
     // #00B398 - teal
     // #8DC63F - green
-
-
-    FEATURE_SHIP_COLORS: ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",
-                            "medblue", "medlime", "medorange", "medpink", "medpurple", "medred",
-                            "medteal", "medyellow", "orange", "pink", "purple", "teal", "white", "yellow"],
-
-    FEATURE_SHIP_COLOR_INDEX: 0,
-    featureColorMap: {},
 
     // size of the game canvas
     WINDOW_WIDTH: 1024,

@@ -53228,10 +53228,16 @@ me.DroptargetEntity = (function (Entity, Event) {
 }
                 /* Game namespace */
 var game = {
-    audioOn: false, // turn sounds off for debugging so I can listen to music :)
+    audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
 
-    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"}, // rally red
-                        {name: "blue", hex: "#00A9E0"}], // cyan
+    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
+                        {name: "blue", hex: "#00A9E0"}, // cyan
+                        {name: "grey", hex: "#C0C0C0"},
+                        {name: "darkgold", hex: "#CF871B"},
+                        {name: "darkgreen", hex: "#1E7C00"},
+                        {name: "purplelt", hex: "#D7CCE5"},
+                        {name: "cyanlt", hex: "#BFE9F5"},
+                        {name: "white", hex: "#FFFFFF" }], 
 
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
 
@@ -53245,14 +53251,6 @@ var game = {
     // #005EB8 - dark blue
     // #00B398 - teal
     // #8DC63F - green
-
-
-    FEATURE_SHIP_COLORS: ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",
-                            "medblue", "medlime", "medorange", "medpink", "medpurple", "medred",
-                            "medteal", "medyellow", "orange", "pink", "purple", "teal", "white", "yellow"],
-
-    FEATURE_SHIP_COLOR_INDEX: 0,
-    featureColorMap: {},
 
     // size of the game canvas
     WINDOW_WIDTH: 1024,
@@ -53587,58 +53585,13 @@ var game = {
     {name: "player_white", type: "image", src: "game/data/img/new/team/teamShip_white.png"},
     {name: "player_red", type: "image", src: "game/data/img/new/team/teamShip_red.png"},
     {name: "player_blue", type: "image", src: "game/data/img/new/team/teamShip_blue.png"},
+    {name: "player_grey", type: "image", src: "game/data/img/new/team/teamShip_grey.png"},
+    {name: "player_cyanlt", type: "image", src: "game/data/img/new/team/teamShip_cyanlt.png"},
+    {name: "player_purplelt", type: "image", src: "game/data/img/new/team/teamShip_purplelt.png"},
+    {name: "player_darkgold", type: "image", src: "game/data/img/new/team/teamShip_darkgold.png"},
+    {name: "player_darkgreen", type: "image", src: "game/data/img/new/team/teamShip_darkgreen.png"},
 
-    // ships
-    {name: "xlarge", type: "image", src: "game/data/img/shipSuper.png"},  // 320 x 160
-
-
-    // FEATURE_SHIP_COLORS: ["blue", "red", "lime", "yellow", "orange", "pink", "purple", "teal"],
-    {name: "large",  type: "image", src: "game/data/img/shipLarge.png"},   // 64x64
-    {name: "large_blue",  type: "image", src: "game/data/img/shipLarge_blue.png"},   // 64x64
-    {name: "large_red",  type: "image", src: "game/data/img/shipLarge_red.png"},   // 64x64
-    {name: "large_lime",  type: "image", src: "game/data/img/shipLarge_lime.png"},   // 64x64
-    {name: "large_yellow",  type: "image", src: "game/data/img/shipLarge_yellow.png"},   // 64x64
-    {name: "large_orange",  type: "image", src: "game/data/img/shipLarge_orange.png"},   // 64x64
-    {name: "large_pink",  type: "image", src: "game/data/img/shipLarge_pink.png"},   // 64x64
-    {name: "large_purple",  type: "image", src: "game/data/img/shipLarge_purple.png"},   // 64x64
-    {name: "large_teal",  type: "image", src: "game/data/img/shipLarge_teal.png"},   // 64x64
-
-    {name: "medium", type: "image", src: "game/data/img/shipMedium.png"},  // 32x32
-
-
-
-    // {name: "medium_blue",  type: "image", src: "game/data/img/shipMedium_blue.png"},   // 64x64
-    // {name: "medium_red",  type: "image", src: "game/data/img/shipMedium_red.png"},   // 64x64
-    // {name: "medium_lime",  type: "image", src: "game/data/img/shipMedium_lime.png"},   // 64x64
-    // {name: "medium_yellow",  type: "image", src: "game/data/img/shipMedium_yellow.png"},   // 64x64
-    // {name: "medium_orange",  type: "image", src: "game/data/img/shipMedium_orange.png"},   // 64x64
-    // {name: "medium_pink",  type: "image", src: "game/data/img/shipMedium_pink.png"},   // 64x64
-    // {name: "medium_purple",  type: "image", src: "game/data/img/shipMedium_purple.png"},   // 64x64
-    // {name: "medium_teal",  type: "image", src: "game/data/img/shipMedium_teal.png"},   // 64x64
-
-    {name: "medium_blue", type: "image", src: "game/data/img/new/medium/mediumEnemy_blue.png"},
-    {name: "medium_brick", type: "image", src: "game/data/img/new/medium/mediumEnemy_brick.png"},
-    {name: "medium_darkgold", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgold.png"},
-    {name: "medium_darkgreen", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgreen.png"},
-    {name: "medium_gold", type: "image", src: "game/data/img/new/medium/mediumEnemy_gold.png"},
-    {name: "medium_green", type: "image", src: "game/data/img/new/medium/mediumEnemy_green.png"},
-    {name: "medium_lime", type: "image", src: "game/data/img/new/medium/mediumEnemy_lime.png"},
-    {name: "medium_medblue", type: "image", src: "game/data/img/new/medium/mediumEnemy_medblue.png"},
-    {name: "medium_medlime", type: "image", src: "game/data/img/new/medium/mediumEnemy_medlime.png"},
-    {name: "medium_medorange", type: "image", src: "game/data/img/new/medium/mediumEnemy_medorange.png"},
-    {name: "medium_medpink", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpink.png"},
-    {name: "medium_medpurple", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpurple.png"},
-    {name: "medium_medred", type: "image", src: "game/data/img/new/medium/mediumEnemy_medred.png"},
-    {name: "medium_medteal", type: "image", src: "game/data/img/new/medium/mediumEnemy_medteal.png"},
-    {name: "medium_medyellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_medyellow.png"},
-    {name: "medium_orange", type: "image", src: "game/data/img/new/medium/mediumEnemy_orange.png"},
-    {name: "medium_pink", type: "image", src: "game/data/img/new/medium/mediumEnemy_pink.png"},
-    {name: "medium_purple", type: "image", src: "game/data/img/new/medium/mediumEnemy_purple.png"},
-    {name: "medium_teal", type: "image", src: "game/data/img/new/medium/mediumEnemy_teal.png"},
-    {name: "medium_white", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},
-    {name: "medium_yellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_yellow.png"},
-
-    
+    // small ships - 16x16
     {name: "small_blue", type: "image", src: "game/data/img/new/small/smallEnemy_blue.png"},
     {name: "small_brick", type: "image", src: "game/data/img/new/small/smallEnemy_brick.png"},
     {name: "small_darkgold", type: "image", src: "game/data/img/new/small/smallEnemy_darkgold.png"},
@@ -53661,57 +53614,68 @@ var game = {
     {name: "small_white", type: "image", src: "game/data/img/new/small/smallEnemy_white.png"},
     {name: "small_yellow", type: "image", src: "game/data/img/new/small/smallEnemy_yellow.png"},
 
-    /*
-    {name: "large_blue", type: "image", src: "largeEnemy_blue.png"},
-    {name: "large_brick", type: "image", src: "largeEnemy_brick.png"},
-    {name: "large_darkgold", type: "image", src: "largeEnemy_darkgold.png"},
-    {name: "large_darkgreen", type: "image", src: "largeEnemy_darkgreen.png"},
-    {name: "large_gold", type: "image", src: "largeEnemy_gold.png"},
-    {name: "large_green", type: "image", src: "largeEnemy_green.png"},
-    {name: "large_lime", type: "image", src: "largeEnemy_lime.png"},
-    {name: "large_medblue", type: "image", src: "largeEnemy_medblue.png"},
-    {name: "large_medlime", type: "image", src: "largeEnemy_medlime.png"},
-    {name: "large_medorange", type: "image", src: "largeEnemy_medorange.png"},
-    {name: "large_medpink", type: "image", src: "largeEnemy_medpink.png"},
-    {name: "large_medpurple", type: "image", src: "largeEnemy_medpurple.png"},
-    {name: "large_medred", type: "image", src: "largeEnemy_medred.png"},
-    {name: "large_medteal", type: "image", src: "largeEnemy_medteal.png"},
-    {name: "large_medyellow", type: "image", src: "largeEnemy_medyellow.png"},
-    {name: "large_orange", type: "image", src: "largeEnemy_orange.png"},
-    {name: "large_pink", type: "image", src: "largeEnemy_pink.png"},
-    {name: "large_purple", type: "image", src: "largeEnemy_purple.png"},
-    {name: "large_teal", type: "image", src: "largeEnemy_teal.png"},
-    {name: "large_white", type: "image", src: "largeEnemy_white.png"},
-    {name: "large_yellow", type: "image", src: "largeEnemy_yellow.png"}, */
+    // medium ships - 32x32
+    {name: "medium_blue", type: "image", src: "game/data/img/new/medium/mediumEnemy_blue.png"},
+    {name: "medium_brick", type: "image", src: "game/data/img/new/medium/mediumEnemy_brick.png"},
+    {name: "medium_darkgold", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgold.png"},
+    {name: "medium_darkgreen", type: "image", src: "game/data/img/new/medium/mediumEnemy_darkgreen.png"},
+    {name: "medium_gold", type: "image", src: "game/data/img/new/medium/mediumEnemy_gold.png"},
+    {name: "medium_green", type: "image", src: "game/data/img/new/medium/mediumEnemy_green.png"},
+    {name: "medium_lime", type: "image", src: "game/data/img/new/medium/mediumEnemy_lime.png"},
+    {name: "medium_medblue", type: "image", src: "game/data/img/new/medium/mediumEnemy_medblue.png"},
+    {name: "medium_medlime", type: "image", src: "game/data/img/new/medium/mediumEnemy_medlime.png"},
+    {name: "medium_medorange", type: "image", src: "game/data/img/new/medium/mediumEnemy_medorange.png"},
+    {name: "medium_medpink", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpink.png"},
+    {name: "medium_medpurple", type: "image", src: "game/data/img/new/medium/mediumEnemy_medpurple.png"},
+    {name: "medium_medred", type: "image", src: "game/data/img/new/medium/mediumEnemy_medred.png"},
+    {name: "medium_medteal", type: "image", src: "game/data/img/new/medium/mediumEnemy_medteal.png"},
+    {name: "medium_medyellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_medyellow.png"},
+    {name: "medium_orange", type: "image", src: "game/data/img/new/medium/mediumEnemy_orange.png"},
+    {name: "medium_pink", type: "image", src: "game/data/img/new/medium/mediumEnemy_pink.png"},
+    {name: "medium_purple", type: "image", src: "game/data/img/new/medium/mediumEnemy_purple.png"},
+    {name: "medium_teal", type: "image", src: "game/data/img/new/medium/mediumEnemy_teal.png"},
+    {name: "medium_white", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},
+    {name: "medium_yellow", type: "image", src: "game/data/img/new/medium/mediumEnemy_yellow.png"},
 
-    {name: "new_small", type: "image", src: "game/data/img/new/small/smallEnemy_white.png"}, // 16x16
-    {name: "new_medium", type: "image", src: "game/data/img/new/medium/mediumEnemy_white.png"},  // 32x32
-    {name: "new_large", type: "image", src: "game/data/img/new/large/largeEnemy_white.png"},  // 64x32
-    {name: "new_super", type: "image", src: "game/data/img/new/super/superEnemy_white.png"},  // 256x64
+    // medium ships - 64x32
+    {name: "large_blue", type: "image", src: "game/data/img/new/large/largeEnemy_blue.png"},
+    {name: "large_brick", type: "image", src: "game/data/img/new/large/largeEnemy_brick.png"},
+    {name: "large_darkgold", type: "image", src: "game/data/img/new/large/largeEnemy_darkgold.png"},
+    {name: "large_darkgreen", type: "image", src: "game/data/img/new/large/largeEnemy_darkgreen.png"},
+    {name: "large_gold", type: "image", src: "game/data/img/new/large/largeEnemy_gold.png"},
+    {name: "large_green", type: "image", src: "game/data/img/new/large/largeEnemy_green.png"},
+    {name: "large_lime", type: "image", src: "game/data/img/new/large/largeEnemy_lime.png"},
+    {name: "large_medblue", type: "image", src: "game/data/img/new/large/largeEnemy_medblue.png"},
+    {name: "large_medlime", type: "image", src: "game/data/img/new/large/largeEnemy_medlime.png"},
+    {name: "large_medorange", type: "image", src: "game/data/img/new/large/largeEnemy_medorange.png"},
+    {name: "large_medpink", type: "image", src: "game/data/img/new/large/largeEnemy_medpink.png"},
+    {name: "large_medpurple", type: "image", src: "game/data/img/new/large/largeEnemy_medpurple.png"},
+    {name: "large_medred", type: "image", src: "game/data/img/new/large/largeEnemy_medred.png"},
+    {name: "large_medteal", type: "image", src: "game/data/img/new/large/largeEnemy_medteal.png"},
+    {name: "large_medyellow", type: "image", src: "game/data/img/new/large/largeEnemy_medyellow.png"},
+    {name: "large_orange", type: "image", src: "game/data/img/new/large/largeEnemy_orange.png"},
+    {name: "large_pink", type: "image", src: "game/data/img/new/large/largeEnemy_pink.png"},
+    {name: "large_purple", type: "image", src: "game/data/img/new/large/largeEnemy_purple.png"},
+    {name: "large_teal", type: "image", src: "game/data/img/new/large/largeEnemy_teal.png"},
+    {name: "large_white", type: "image", src: "game/data/img/new/large/largeEnemy_white.png"},
+    {name: "large_yellow", type: "image", src: "game/data/img/new/large/largeEnemy_yellow.png"},
 
-    {name: "small",  type: "image", src: "game/data/img/shipSmall.png"},   // 16x16
-
+    // super ships - 256x64
+    {name: "super_white", type: "image", src: "game/data/img/new/super/superEnemy_white.png"},
     
     // bullet
     {name: "bullet", type: "image", src: "game/data/img/new/bulletSmall.png"},
 
     // explosions
     {name: "explosionSmall", type:"image", src: "game/data/img/new/explosions/explosionSmall.png"},
-    // {name: "explosionMedium", type:"image", src: "game/data/img/animations/explosionMedium.png"},
     {name: "explosionLarge", type:"image", src: "game/data/img/new/explosions/explosionLarge.png"},
-    // {name: "explosionSuper", type:"image", src: "game/data/img/animations/explosionSuper.png"},
 
-    //////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
+
 
     {name: "rallyShip", type:"image", src: "game/data/img/new/rallyShip.png"},
 
-
-
     {name: "victoryImage", type:"image", src: "game/data/img/new/victory.png"},
 
-    //////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
 
     /*
      * Maps and backgrounds
@@ -53772,19 +53736,20 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         small: new Array()
     }
 
+    var paddingLeft = 32;
+
     var largePositionsToIndex = {};
 
     var i = 0;
     for (i = 0; i < availablePositions.large.length; i++) {
-        availablePositions.large[i] = new Point(i * shipWidth.large, topOffset);
+        availablePositions.large[i] = new Point(i * shipWidth.large + paddingLeft, topOffset);
     }
 
     for (i = 0; i < availablePositions.medium.length; i++) {
-        availablePositions.medium[i] = new Point((i % numMedium) * shipWidth.medium, topOffset + shipHeight.large + shipHeight.medium * Math.floor(i/numMedium));
+        availablePositions.medium[i] = new Point((i % numMedium) * shipWidth.medium + paddingLeft,  8 + topOffset + shipHeight.large + shipHeight.medium * Math.floor(i/numMedium));   
     }
-
     for (i = 0; i < availablePositions.small.length; i++) {
-        availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small, topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
+        availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft,  16 + topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
     }
 
     var nextFeatureIndex = -1;
@@ -53973,6 +53938,44 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     this.removePending = function(oid) {
         !removeFromArr(oid, pendingPlacement.large) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
     };
+}
+                // Manages open ship positions and pending records
+
+function ColorManager(featureImagePrefix, storyImagePrefix, taskImagePrefix) {
+    var FEATURE_SHIP_COLORS = ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",
+                            "medblue", "medlime", "medorange", "medpink", "medpurple", "medred",
+                            "medteal", "medyellow", "orange", "pink", "purple", "teal", "white", "yellow"];
+
+    var FEATURE_SHIP_COLOR_INDEX = 0;
+    var featureColorMap = {};
+
+    var featurePrefix = featureImagePrefix;
+    var storyPrefix = storyImagePrefix;
+    var taskPrefix = taskImagePrefix;
+
+    var getColor = function(featureOid) {
+        var color = featureColorMap[featureOid]
+        if (!color) {
+            // pick a new one and create a mapping
+            color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
+            game.FEATURE_SHIP_COLOR_INDEX++;
+            game.featureColorMap[featureOid] = color;
+        }
+        return color;
+    };
+
+    this.getFeatureColor = function(featureOid) {
+        return featurePrefix + "" + getColor(featureOid);
+    };
+
+    this.getStoryColor = function(featureOid) {
+        return storyPrefix + "" + getColor(featureOid);
+    };
+
+    this.getTaskColor = function(featureOid) {
+        return taskPrefix + "" + getColor(featureOid);
+    }
+
 }
                 game.LabelEntity = me.ObjectEntity.extend({
 
@@ -54631,22 +54634,29 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         var normalMovement = function(dt, theShip) {
             if (theShip.numSteps > 6 * theShip.numPerMove) {
                 theShip.numSteps = 0;
+                theShip.moveRight = true;
+                game.aligned = true;
+            } else {
+                game.aligned = false;
             }
 
-            if (theShip.numSteps == theShip.numPerMove || theShip.numSteps == theShip.numPerMove * 2 || theShip.numSteps == theShip.numPerMove * 3) {
-                theShip.vel.x += theShip.accel.x * me.timer.tick;
-                theShip.moveRight = true;
-            } else if (theShip.numSteps == theShip.numPerMove * 4 || theShip.numSteps == theShip.numPerMove * 5 || theShip.numSteps == theShip.numPerMove * 6) {
-                theShip.vel.x -= theShip.accel.x * me.timer.tick;
-                theShip.moveRight = false;
+            if (theShip.numSteps != 0 && theShip.numSteps % theShip.numPerMove == 0) {
+                if (theShip.moveRight) {
+                    theShip.vel.x += theShip.accel.x * me.timer.tick;
+                } else {
+                    theShip.vel.x -= theShip.accel.x * me.timer.tick;
+                }
             } else {
+                if (theShip.numSteps / theShip.numPerMove > 3) {
+                    theShip.moveRight = false;
+                }
                 theShip.vel.x = 0;
             }
 
             theShip.updateMovement();
-            if (theShip.vel.x !=0 || theShip.vel.y != 0) {
+            if (theShip.vel.x != 0) {
                 // update object animation
-                theShip.parent(100);
+                theShip.parent(200);
                 return true;
             }
             return true;
@@ -54661,7 +54671,8 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             if (this.numSteps % this.numPerMove === 0) { // TODO increase this to make the game more choppy
                 this.vel.x = 0;
             }
-            if (game.INITIATIVE_SHIP && game.INITIATIVE_SHIP.numSteps == 0) {
+            if (game.aligned) {
+                //console.log("now in sync", game.INITIATIVE_SHIP, game.INITIATIVE_SHIP.numSteps);
                 this.isInSync = true;
                 this.numSteps = 0;
             }
@@ -54697,9 +54708,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
     update: function(dt) {
         this.numSteps++;
-        if (this.numSteps == 5) {
+        if (this.numSteps == 17) {
             me.game.world.removeChild(this);
-        } else if (this.numSteps == 2) {
+        } else if (this.numSteps == 8) {
             this.parent(100);
         }
         return true;
@@ -54753,33 +54764,15 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 me.game.world.removeChild(this);
                 me.game.world.removeChild(res.obj);
                 var img = me.loader.getImage('explosionLarge');
-                // var emitter = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                //     image: img,
-                //     width: 4,
-                //     totalParticles: 12,
-                //     angle: 0.0856797996433583,
-                //     angleVariation: 3.14159265358979,
-                //     minLife: 400,
-                //     maxLife: 1800,
-                //     speed: 0.954545454545454,
-                //     speedVariation: 9.95454545454546,
-                //     minRotation: 1.34231686107927,
-                //     minStartScale: 1.43181818181818,
-                //     maxParticles: 17,
-                //     frequency: 19,
-                //     duration: 400,
-                //     framesToSkip: 1
-                // });
-                // emitter.name = 'fire';
+
+                game.rallyShipOnScreen = null;
 
                 game.canShoot[this.teamShip.team] = true;
-                // me.game.world.addChild(emitter, Number.POSITIVE_INFINITY);
-                // me.game.world.addChild(emitter.container, Number.POSITIVE_INFINITY);
-                // game.PENDING_REMOVE.push(emitter);
-                // game.PENDING_REMOVE.push(emitter.container);
-                // emitter.streamParticles();
 
-                // TODO special sounds, logging, score, something?
+                var xRange = res.obj.width;
+                var yRange = res.obj.height;
+
+                this.addExplosions(2, 3, xRange, yRange, new Point(res.obj.pos.x, res.obj.pos.y));
 
                 if (game.audioOn) {
                     me.audio.play("explode");
@@ -54791,14 +54784,22 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             var image = null;
             var height = 0;
             var width = 0;
-            if (res.obj.type == game.ENEMY_ENTITY_SUPER || res.obj.type == game.ENEMY_ENTITY_LARGE) {
+            var duplicate = false;
+            var superDestroyed;
+            if (res.obj.type == game.ENEMY_ENTITY_MEDIUM || res.obj.type == game.ENEMY_ENTITY_SUPER) {
                 image = "explosionLarge"
                 height = 32;
                 width = 32;
-            } else if (res.obj.type == game.ENEMY_ENTITY_MEDIUM || res.obj.type == game.ENEMY_ENTITY_SMALL) {
+            } else if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
+                image = "explosionLarge";
+                duplicate = true;
+            } else if (res.obj.type == game.ENEMY_ENTITY_SMALL) {
                 image = "explosionSmall"
-                height = 16;
+                height = 16;   
                 width = 16;
+            } else if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
+                image = "explosionLarge";
+
             }
 
             // Did the player shoot someone destructable?
@@ -54806,18 +54807,32 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 game.canShoot[this.teamShip.team] = true;
                 me.game.world.removeChild(this);
 
-                console.log("explosion", image);
 
-                var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.y, {
-                    image: image,
-                    spriteheight: height,
-                    spritewidth: width,
-                    width: width * 2,
-                    height: height,
-                    z: Number.POSITIVE_INFINITY
-                });
+                if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
+                    this.addExplosions(4, 5, res.obj.width / 2, res.obj.height, new Point(res.obj.pos.x, res.obj.pos.y));
+                } else {
+                    var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.pos.y, {
+                        image: image,
+                        spriteheight: height,
+                        spritewidth: width,
+                        width: width,
+                        height: height,
+                        z: Number.POSITIVE_INFINITY
+                    });
 
-                me.game.world.addChild(explosion, Number.POSITIVE_INFINITY);
+                    me.game.world.addChild(explosion, Number.POSITIVE_INFINITY);
+
+                    if (duplicate) {
+                        me.game.world.addChild(me.pool.pull("explosion", res.obj.pos.x + width, res.obj.pos.y, {
+                            image: image,
+                            spriteheight: height,
+                            spritewidth: width,
+                            width: width,
+                            height: height,
+                            z: Number.POSITIVE_INFINITY
+                        }), Number.POSITIVE_INFINITY);
+                    }
+                }
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
@@ -54825,11 +54840,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                     game.removeOidFromMap(res.obj.objectID, false);
                 }
 
-
                 if (game.audioOn) {
                     me.audio.play("explode");
                 }
-                
 
                 game.scoreboard.addPoints(res.obj.record.get('Project'), res.obj.record.get('PlanEstimate'));
 
@@ -54860,34 +54873,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
             // Did the player get hit?
             if (res.obj.type == game.PLAYER && this.shootDown) {
-                me.game.world.removeChild(this);
-                image = me.loader.getImage('explosionSmall');
-                var explosion = new me.ParticleEmitter(res.obj.pos.x + (res.obj.width / 2), res.obj.pos.y + (res.obj.height / 2), {
-                    image: image,
-                    width: 4,
-                    totalParticles: 12,
-                    angle: 0.0856797996433583,
-                    angleVariation: 3.14159265358979,
-                    minLife: 200,
-                    maxLife: 400,
-                    speed: 0.5,
-                    speedVariation: 4,
-                    minRotation: 1.34231686107927,
-                    minStartScale: 1.43181818181818,
-                    maxParticles: 17,
-                    frequency: 19,
-                    duration: 200,
-                    framesToSkip: 1
-                });
-
-                explosion.name = 'fire';
-                explosion.z = res.obj.z + 1;
-
-                me.game.world.addChild(explosion);
-                me.game.world.addChild(explosion.container);
-                game.PENDING_REMOVE.push(explosion);
-                game.PENDING_REMOVE.push(explosion.container);
-                explosion.streamParticles();
             }
         }
 
@@ -54899,6 +54884,42 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         }
         this.updateMovement();
         return true;
+    },
+
+    addExplosions: function(numLarge, numSmall, xRange, yRange, position) {
+        var i;
+        var explosions = [];    
+        for (i = 0; i < numLarge; i++) {
+            xPos = Math.floor(Math.random() * xRange) + position.x;
+            yPos = Math.floor(Math.random() * yRange) + position.y;
+
+            explosions.push(me.pool.pull("explosion", xPos, yPos, {
+                image: "explosionLarge",
+                spriteheight: 32,
+                spritewidth: 32,
+                width: 32,
+                height: 32,
+                z: Number.POSITIVE_INFINITY
+            }));
+        }
+
+        for (i = 0; i < numSmall; i++) {
+            xPos = Math.floor(Math.random() * xRange) + position.x;
+            yPos = Math.floor(Math.random() * yRange) + position.y;
+
+            explosions.push(me.pool.pull("explosion",  xPos, yPos, {
+                image: "explosionSmall",
+                spriteheight: 16,
+                spritewidth: 16,
+                width: 16,
+                height: 16,
+                z: Number.POSITIVE_INFINITY
+            }));
+        }
+
+        _.each(explosions, function(oneExplosion) {
+            me.game.world.addChild(oneExplosion);
+        });
     }
 });
 
@@ -55172,7 +55193,8 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     eventDrivenSetup: function() {
-        game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height);
+        game.POSITION_MANAGER = new PositionManager(game.WIDTH, game.FEATURE_SHIP, game.STORY_SHIP, game.TASK_SHIP, game.PADDING + game.MOTHERSHIP.height + 8);
+        game.COLOR_MANAGER = new ColorManager("large_", "medium_", "small_");
         var scope = angular.element($("#root")).scope();
         
         var i = 0;
@@ -55189,7 +55211,6 @@ game.TitleScreen = me.ScreenObject.extend({
 
                 me.game.world.addChild(game.rallyShipOnScreen, Number.POSITIVE_INFINITY);
             }
-            //game.cleanupOld(); explosions clean themselves up now
         }, 10000);
 
         // create a new one
@@ -55212,25 +55233,22 @@ game.TitleScreen = me.ScreenObject.extend({
 
     addInitiative: function(record, oid, date) {
         if (this.numInitiative < 1) {
+            var offset = 32;
             console.info("putting initiative at x: " + (game.WIDTH / 2 - game.MOTHERSHIP.width / 2) + " y: " + game.PADDING, game.WIDTH, game.MOTHERSHIP);   
-            this.addEnemy(record, oid, date, "new_super", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width, game.PADDING);
+            this.addEnemy(record, oid, date, "super_white", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2 + offset, game.PADDING);
             this.numInitiative = 1;
             game.initiative = record;  
-            console.log(game.INITIATIVE_SHIP);           
+            console.log("INITIATIVE SHIP", game.INITIATIVE_SHIP);           
         }
     },  
 
     addFeature: function(record, oid, date, pt) {
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getFeaturePosition();
         if (point) {
-            var color = game.featureColorMap[oid];
-            if (!color) {
-                color = game.FEATURE_SHIP_COLORS[game.FEATURE_SHIP_COLOR_INDEX % game.FEATURE_SHIP_COLORS.length];
-                game.FEATURE_SHIP_COLOR_INDEX++;
-                game.featureColorMap[oid] = color;
-            }
+            var color = game.COLOR_MANAGER.getFeatureColor(oid);
+
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "new_large", game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_LARGE, game.FEATURE_SHIP.height, game.FEATURE_SHIP.width, point.x, point.y);
                 this.numFeatures++;
             }
             
@@ -55258,16 +55276,15 @@ game.TitleScreen = me.ScreenObject.extend({
         }
         var featureOid = record.get('Feature');
         var x = 0;
-        var color = 'medium';
+        var color = game.COLOR_MANAGER.getStoryColor(featureOid);
         if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
             x = game.OID_MAP[featureOid].ship.startingX;
-            color = 'medium_' + game.featureColorMap[featureOid] || 'medium';
         }
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getStoryPosition(x);
         if (point) {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "new_medium", game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_MEDIUM, game.STORY_SHIP.height, game.STORY_SHIP.width, point.x, point.y, featureOid);
                 this.numStories++;
             }
         } else {
@@ -55289,16 +55306,15 @@ game.TitleScreen = me.ScreenObject.extend({
         //console.log("add task");
         var featureOid = record.get('Feature');
         var x = 0;
-        var color = 'small';
+        var color = game.COLOR_MANAGER.getTask(featureOid);
         if (game.OID_MAP[featureOid] && game.OID_MAP[featureOid].ship) {
             x = game.OID_MAP[featureOid].ship.startingX;
-            color = 'small_' + game.featureColorMap[featureOid] || 'small';
         }
 
         var point = pt && typeof pt == "object" ? pt : game.POSITION_MANAGER.getTaskPosition(x);
         if (point) {
             if (!game.OID_MAP[oid] || !game.OID_MAP[oid].ship) {
-                this.addEnemy(record, oid, date, "new_small", game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
+                this.addEnemy(record, oid, date, color, game.ENEMY_ENTITY_SMALL, game.TASK_SHIP.height, game.TASK_SHIP.width, point.x, point.y, featureOid);
                 this.numStories++;
             }
         } else {
@@ -55590,7 +55606,7 @@ game.TitleScreen = me.ScreenObject.extend({
             image: image,
             spriteheight: height,
             spritewidth: width,
-            width: width * 2,   
+            width: width,   
             objectID: oid,
             z: this.zIndex,
             type: type,
@@ -55604,7 +55620,7 @@ game.TitleScreen = me.ScreenObject.extend({
 
         var ship = me.pool.pull("enemyShip", x, y, shipSettings);
 
-        if (image == 'new_super') {
+        if (!game.INITIATIVE_SHIP && image == 'new_super') {
             game.INITIATIVE_SHIP = ship;
         }
 

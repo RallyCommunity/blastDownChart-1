@@ -47,10 +47,10 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     }
 
     for (i = 0; i < availablePositions.medium.length; i++) {
-        availablePositions.medium[i] = new Point((i % numMedium) * shipWidth.medium + paddingLeft, topOffset + shipHeight.large + shipHeight.medium * Math.floor(i/numMedium));   
+        availablePositions.medium[i] = new Point((i % numMedium) * shipWidth.medium + paddingLeft,  8 + topOffset + shipHeight.large + shipHeight.medium * Math.floor(i/numMedium));   
     }
     for (i = 0; i < availablePositions.small.length; i++) {
-        availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft, topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
+        availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft,  16 + topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
     }
 
     var nextFeatureIndex = -1;

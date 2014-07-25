@@ -50,7 +50,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 game.canShoot[this.teamShip.team] = true;
 
-                var xRange = res.obj.width / 2;
+                var xRange = res.obj.width;
                 var yRange = res.obj.height;
 
                 this.addExplosions(2, 3, xRange, yRange, new Point(res.obj.pos.x, res.obj.pos.y));
@@ -96,7 +96,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                         image: image,
                         spriteheight: height,
                         spritewidth: width,
-                        width: width * 2,
+                        width: width,
                         height: height,
                         z: Number.POSITIVE_INFINITY
                     });
@@ -108,13 +108,12 @@ game.BulletEntity = me.ObjectEntity.extend({
                             image: image,
                             spriteheight: height,
                             spritewidth: width,
-                            width: width * 2,
+                            width: width,
                             height: height,
                             z: Number.POSITIVE_INFINITY
                         }), Number.POSITIVE_INFINITY);
                     }
                 }
-                
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
@@ -179,7 +178,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 image: "explosionLarge",
                 spriteheight: 32,
                 spritewidth: 32,
-                width: 64,
+                width: 32,
                 height: 32,
                 z: Number.POSITIVE_INFINITY
             }));
@@ -193,7 +192,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                 image: "explosionSmall",
                 spriteheight: 16,
                 spritewidth: 16,
-                width: 32,
+                width: 16,
                 height: 16,
                 z: Number.POSITIVE_INFINITY
             }));
