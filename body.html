@@ -54,11 +54,17 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>
-                                        Score
+                                    <td class="dataColumnHeader">
+                                        Points
+                                    </td>
+                                    <td class="dataColumnHeader hidden">
+                                        Count
                                     </td>
                                     <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
                                         {{teamInfo.points}}
+                                    </td>
+                                    <td class="dataColumn hidden" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
+                                        {{teamInfo.completed}}
                                     </td>
                                 </tr>
                             </tbody>
@@ -113,7 +119,13 @@
                                   <option value="recycled">Recycled</option>
                                 </select>
                             </div>
+                            <div id="scoreboardToggle" class="column">
+                                Score:
+                                <div id="scoreByPoints" class="scoreboardToggleOption">by points</div>
+                                <div id="scoreByCount" class="scoreboardToggleOption hidden">by count</div>
+                            </div> 
                         </div>
+                        <div id="howItWorksButton">How it Works</div>
                     </div>
                     <div class="content">
                         <ul id="historyLog">

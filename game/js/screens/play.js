@@ -26,6 +26,7 @@ game.PlayScreen = me.ScreenObject.extend({
         game.shipScreen = this;
 
         $('#controls').show();
+        $('#howItWorksButton').hide();
 
         me.input.bindKey(me.input.KEY.ENTER, "enter", true);
         me.input.bindPointer(me.input.mouse.LEFT, me.input.KEY.ENTER);

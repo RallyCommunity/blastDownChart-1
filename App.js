@@ -51,6 +51,14 @@ Ext.define('CustomApp', {
                         game.showHowItWorks();
                     });
 
+                    $("#howItWorksButton").click(function() {
+                        game.showHowItWorks();
+                    });
+
+                    $("#scoreboardToggle").click(function() {
+                        game.toggleScoreboard();
+                    });
+
                 }
             }
         }

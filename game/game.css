@@ -207,6 +207,10 @@ li {
     display: none;
 }
 
+#controls, #howItWorksButton {
+    margin-top: 5px;
+}
+
 #controls > .column {
     display: table-cell;
     vertical-align: middle;
@@ -359,4 +363,32 @@ p {
     border: 0;
     border-bottom: 1px dashed #fff;
     background: #000;
+}
+
+.scoreboardToggleOption {
+    display: inline;
+}
+
+.scoreboardToggleOption.hidden {
+    display: none;
+}
+
+#scoreboardToggle {
+    -webkit-border-radius: 2px;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
+    color: black;
+    background-color: white;
+    cursor: pointer;
+}
+
+#howItWorksButton {
+    -webkit-border-radius: 2px;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
+    color: black;
+    background-color: white;
+    font-style: bold;
+    text-align: center;
+    cursor: pointer;
 }

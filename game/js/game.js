@@ -93,7 +93,7 @@ var game = {
     log : {
         addCompletedItem: function(record, projectName, pointsEarned, time) {
             if (projectName && pointsEarned) {
-                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
+                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName + " (" + pointsEarned + " points)", time, 'completed');
             } else if (projectName) {
                 game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName, time, 'completed');
             } else {
@@ -225,6 +225,12 @@ var game = {
         me.state.change(me.state.LOADING);
 
 
+    },
+
+    toggleScoreboard: function() {
+        $('.dataColumn').toggleClass('hidden');
+        $('.scoreboardToggleOption').toggleClass('hidden');
+        $('.dataColumnHeader').toggleClass('hidden');
     },
 
     showHowItWorks: function() {

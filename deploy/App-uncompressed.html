@@ -53321,7 +53321,7 @@ var game = {
     log : {
         addCompletedItem: function(record, projectName, pointsEarned, time) {
             if (projectName && pointsEarned) {
-                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName + " for +" + pointsEarned, time, 'completed');
+                game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName + " (" + pointsEarned + " points)", time, 'completed');
             } else if (projectName) {
                 game.angularScope.addLogItem(record.get('Name') + " - completed by " + projectName, time, 'completed');
             } else {
@@ -53453,6 +53453,12 @@ var game = {
         me.state.change(me.state.LOADING);
 
 
+    },
+
+    toggleScoreboard: function() {
+        $('.dataColumn').toggleClass('hidden');
+        $('.scoreboardToggleOption').toggleClass('hidden');
+        $('.dataColumnHeader').toggleClass('hidden');
     },
 
     showHowItWorks: function() {
@@ -55394,6 +55400,7 @@ game.TitleScreen = me.ScreenObject.extend({
         game.shipScreen = this;
 
         $('#controls').show();
+        $('#howItWorksButton').hide();
 
         me.input.bindKey(me.input.KEY.ENTER, "enter", true);
         me.input.bindPointer(me.input.mouse.LEFT, me.input.KEY.ENTER);
@@ -55921,6 +55928,14 @@ game.TitleScreen = me.ScreenObject.extend({
                         game.showHowItWorks();
                     });
 
+                    $("#howItWorksButton").click(function() {
+                        game.showHowItWorks();
+                    });
+
+                    $("#scoreboardToggle").click(function() {
+                        game.toggleScoreboard();
+                    });
+
                 }
             }
         }
@@ -56004,13 +56019,14 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
-
+            $scope.scoreboard[team].completed += 1;
             $scope.scoreboard[team].points += points || 0;
         } else {
             var newPoints = points || 0;
             $scope.scoreboard[team] = {
                 points: newPoints,
-                color: "#000000"
+                color: "#000000",
+                completed: 1
             };
         }
         $scope.$digest();
@@ -56020,7 +56036,8 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         if (!$scope.scoreboard[team]) {
             $scope.scoreboard[team] = {
                 points: 0,
-                color: color
+                color: color,
+                completed: 0
             };
             $scope.$digest();
         }
@@ -57264,6 +57281,9 @@ li {
 .hidden {
   display: none;
 }
+#controls {
+  margin-top: 5px;
+}
 #controls > .column {
   display: table-cell;
   vertical-align: middle;
@@ -57397,6 +57417,27 @@ p {
   border-bottom: 1px dashed #fff;
   background: #000;
 }
+.scoreboardToggleOption {
+  display: inline;
+}
+.scoreboardToggleOption.hidden {
+  display: none;
+}
+#scoreboardToggle {
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+  color: black;
+  background-color: white;
+  cursor: pointer;
+}
+#howItWorksButton {
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+  color: black;
+  background-color: green;
+}
 
     </style>
     <style type="text/css">
@@ -57478,11 +57519,17 @@ td.dataColumn {
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>
-                                        Score
+                                    <td class="dataColumnHeader">
+                                        Points
+                                    </td>
+                                    <td class="dataColumnHeader hidden">
+                                        Count
                                     </td>
                                     <td class="dataColumn" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
                                         {{teamInfo.points}}
+                                    </td>
+                                    <td class="dataColumn hidden" ng-repeat="(teamName, teamInfo) in scoreboard" style="color: {{teamInfo.color}}">
+                                        {{teamInfo.completed}}
                                     </td>
                                 </tr>
                             </tbody>
@@ -57537,7 +57584,13 @@ td.dataColumn {
                                   <option value="recycled">Recycled</option>
                                 </select>
                             </div>
+                            <div id="scoreboardToggle" class="column">
+                                Score:
+                                <div id="scoreByPoints" class="scoreboardToggleOption">by points</div>
+                                <div id="scoreByCount" class="scoreboardToggleOption hidden">by count</div>
+                            </div> 
                         </div>
+                        <div id="howItWorksButton">How it Works</div>
                     </div>
                     <div class="content">
                         <ul id="historyLog">

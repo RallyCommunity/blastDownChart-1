@@ -67,13 +67,14 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.addPoints = function(team, points) {
         if ($scope.scoreboard[team]) {
-
+            $scope.scoreboard[team].completed += 1;
             $scope.scoreboard[team].points += points || 0;
         } else {
             var newPoints = points || 0;
             $scope.scoreboard[team] = {
                 points: newPoints,
-                color: "#000000"
+                color: "#000000",
+                completed: 1
             };
         }
         $scope.$digest();
@@ -83,7 +84,8 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         if (!$scope.scoreboard[team]) {
             $scope.scoreboard[team] = {
                 points: 0,
-                color: color
+                color: color,
+                completed: 0
             };
             $scope.$digest();
         }
