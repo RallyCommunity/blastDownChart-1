@@ -161,7 +161,7 @@ var game = {
         // Initialize the video.
         me.sys.fps = 50;
         me.sys.pauseOnBlur = false;
-        if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
+        if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true)) {
             alert("Your browser does not support HTML5 canvas.");
             return;
         }
@@ -185,6 +185,41 @@ var game = {
         $('.closePopup').click(function(){
             game.closeHowItWorks();
         });
+
+        // $('.closeInfo').click(function(){
+        //     $(this).closest('.workItemDetail').remove();
+        // });
+
+        // $('canvas').click(function(e) {
+        //     e.preventDefault();
+        //     var offset = $(this).offset();
+        //     var x = e.clientX - offset.left;
+        //     var y = event.y - offset.top;
+        //     console.log("searching", x, y);
+        //     var ship = _.find(game.OID_MAP, function(value, key) {
+        //         if (value.ship) {
+        //             var left = value.ship.pos.x;
+        //             var right = left + value.ship.width;
+        //             var top = value.ship.pos.y;
+        //             var bottom = top + value.ship.height;
+        //             console.log(left, right, top, bottom);
+        //             if (x > left && x < right && y > top && y < bottom) {
+        //                 return value;
+        //             }
+        //         }
+        //     });
+
+        //     if (ship) {
+        //         $('body').remove('.workItemDetail');
+        //         console.log(ship);
+        //         var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><h1>" + ship.ship.record.get("Name") + "</h1></div>").css({top: y, left: x, position:'absolute'});
+        //         $('body').append(info);
+
+        //         $('.closeInfo').click(function(){
+        //             $('body').remove('.workItemDetail');
+        //         });
+        //     }
+        // });
 
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
@@ -246,31 +281,6 @@ var game = {
     },
 
     pause: function() {
-        $('canvas').click(function(e) {
-            e.preventDefault();
-            var offset = $(this).offset();
-            var x = e.clientX - offset.left;
-            var y = event.y - offset.top + 25;
-            console.log("searching", x, y);
-            var ship = _.find(game.OID_MAP, function(value, key) {
-                if (value.ship) {
-                    var left = value.ship.pos.x;
-                    var right = left + value.ship.width;
-                    var top = value.ship.pos.y;
-                    var bottom = top + value.ship.height;
-                    console.log(left, right, top, bottom);
-                    if (x > left && x < right && y > top && y < bottom) {
-                        return value;
-                    }
-                }
-            });
-
-            if (ship) {
-                console.log(ship);
-                var popup = $("<div id='overlay'><h1>" + ship.ship.record.get("Name") + "</h1></div>");
-                $('body').append(popup);
-            }
-        });
         // stop updates, mask screen, stop going through queue of events
         game.angularScope.eventHandler.stopEvents();
         _.each(game.OID_MAP, function(value, key) {
@@ -342,6 +352,10 @@ var game = {
 
     // Run on game resources loaded.
     "loaded" : function () {
+        me.input.registerPointerEvent("pointerdown", me.game.viewport, function (event) {
+            me.event.publish("pointerdown", [ event ]);
+        });
+
         me.state.set(me.state.MENU, new game.TitleScreen());
         me.state.set(me.state.PLAY, new game.PlayScreen());
         me.state.set(me.state.VICTORY, new game.VictoryScreen());

@@ -70,22 +70,28 @@ game.Ship = me.ObjectEntity.extend({
 
     },
 
-    // // TODO
-    // draw: function(context) {
-    //     context.save();
-          
-    //     //context.clearRect(this.pos.x, this.pos.y, this.spritewidth, this.height); 
-    //     this.parent(context);    
-    //     context.globalCompositeOperation = "source-in";
+    mouseDown: function() {
+        this.renderable.flicker(750);
+        $('.workItemDetail').remove();
+        // TODO top and left positions
+        var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><h1>" + this.record.get("Name") + "</h1></div>").css({top: 256, left: 1024, position:'absolute'});
+        $('body').append(info);
 
-    //     context.fillStyle="green";
-    //     context.fillRect(this.pos.x, this.pos.y, this.spritewidth, this.height);
-
-    //     context.globalCompositeOperation = "source-over";
-    //     context.restore();
-    // },
+        $('.closeInfo').click(function(){
+            $('.workItemDetail').remove();
+        });
+    },
 
     update: function(dt) {
+        if (me.input.keyStatus('enter')) {
+            // check if this is me
+            var x = me.input.mouse.pos.x;
+            var y = me.input.mouse.pos.y - 208;
+            if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
+                this.mouseDown();
+            }
+        }
+
         this.numSteps++;
         if (!this.setupComplete) {
             // move in to position
@@ -100,55 +106,60 @@ game.Ship = me.ObjectEntity.extend({
             return true;
         }
 
-        var normalMovement = function(dt, theShip) {
-            if (theShip.numSteps > 6 * theShip.numPerMove) {
-                theShip.numSteps = 0;
-                theShip.moveRight = true;
-                game.aligned = true;
-            } else {
-                game.aligned = false;
-            }
-
-            if (theShip.numSteps != 0 && theShip.numSteps % theShip.numPerMove == 0) {
-                if (theShip.moveRight) {
-                    theShip.vel.x += theShip.accel.x * me.timer.tick;
-                } else {
-                    theShip.vel.x -= theShip.accel.x * me.timer.tick;
-                }
-            } else {
-                if (theShip.numSteps / theShip.numPerMove > 3) {
-                    theShip.moveRight = false;
-                }
-                theShip.vel.x = 0;
-            }
-
-            theShip.updateMovement();
-            if (theShip.vel.x != 0) {
-                // update object animation
-                theShip.parent(200);
-                return true;
-            }
-            return true;
-        };
-
 
         if (this.type == game.ENEMY_ENTITY_SUPER) {
-            return normalMovement(dt, this);
+            this.normalMovement.call(this, dt);
+            if (this.vel.x != 0) {
+                // update object animation
+                this.parent(200);
+            }
+            return true;
         }
 
         if (!this.isInSync) {
-            if (this.numSteps % this.numPerMove === 0) { // TODO increase this to make the game more choppy
+            if (this.numSteps % this.numPerMove === 0) { // increase this to make the game more choppy
                 this.vel.x = 0;
             }
             if (game.aligned) {
-                //console.log("now in sync", game.INITIATIVE_SHIP, game.INITIATIVE_SHIP.numSteps);
                 this.isInSync = true;
                 this.numSteps = 0;
             }
             return true;
         }
 
-        return normalMovement(dt, this);
+        this.normalMovement.call(this, dt);
+        if (this.vel.x != 0) {
+            // update object animation
+            this.parent(200);
+        }
+        return true;
+    },
+
+    normalMovement: function(dt) {
+        if (this.numSteps > 6 * this.numPerMove) {
+            this.numSteps = 0;
+            this.moveRight = true;
+            game.aligned = true;
+        } else {
+            game.aligned = false;
+        }
+
+        if (this.numSteps != 0 && this.numSteps % this.numPerMove == 0) {
+            if (this.moveRight) {
+                this.vel.x += this.accel.x * me.timer.tick;
+            } else {
+                this.vel.x -= this.accel.x * me.timer.tick;
+            }
+        } else {
+            if (this.numSteps / this.numPerMove > 3) {
+                this.moveRight = false;
+            }
+            this.vel.x = 0;
+        }
+
+        this.updateMovement();
+
+        return true;
     },
 
     /**

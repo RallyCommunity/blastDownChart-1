@@ -14,6 +14,8 @@ game.PlayScreen = me.ScreenObject.extend({
      *  action to perform on state change
      */
     onResetEvent: function() {
+
+
         // Just load the level on page load
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
@@ -22,6 +24,9 @@ game.PlayScreen = me.ScreenObject.extend({
         // otherwise, act on a purely event-driven approach
         game.farRight = game.WIDTH;
         game.shipScreen = this;
+
+        me.input.bindKey(me.input.KEY.ENTER, "enter", true);
+        me.input.bindPointer(me.input.mouse.LEFT, me.input.KEY.ENTER);
 
         this.eventDrivenSetup();
     },
@@ -277,7 +282,7 @@ game.PlayScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        console.log("SWAPPED!");
+                        //console.log("SWAPPED!");
                         return;
                     }
                 }
@@ -360,13 +365,13 @@ game.PlayScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        console.log("SWAPPED!");
+                        //console.log("SWAPPED!");
                         return;
                     } else {
-                        console.log("NO MATCH, COULD NOT SWAP");
+                        //console.log("NO MATCH, COULD NOT SWAP");
                     }
                 } else {
-                    console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
+                   // console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
                 }
                 
                 // oh well, we tried to make it more fun!
@@ -464,6 +469,8 @@ game.PlayScreen = me.ScreenObject.extend({
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent: function() {
+        me.input.unbindKey(me.input.KEY.ENTER);
+        me.input.unbindPointer(me.input.mouse.LEFT);
         // remove all remaining ships
         _.each(game.OID_MAP, function(element, index, list) {
             if (element.ship) {

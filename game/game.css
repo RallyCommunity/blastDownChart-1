@@ -18,7 +18,7 @@ body {
     font-family: "Courier New", Courier, monospace;
 }
 
-#screen canvas {
+#screen > canvas {
 
     width: 1024px;
     height: 512px;
@@ -26,12 +26,12 @@ body {
     display: block;
 
     /* disable scaling interpolation */
-    image-rendering: optimizeSpeed;
+/*    image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
     image-rendering: -o-crisp-edges;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: optimize-contrast;
-    -ms-interpolation-mode: nearest-neighbor;
+    -ms-interpolation-mode: nearest-neighbor;*/
 }
 
 @font-face {
@@ -254,7 +254,15 @@ li {
     width: 25%;
 }
 
-div.closePopup {
+.workItemDetail {
+    position:absolute;
+    width: 200px;
+    color: black;
+    background-color: white;
+    padding: 5px;
+}
+
+div.closePopup, div.closeInfo {
     text-align: center;
     float:right;
     height: 26px;
