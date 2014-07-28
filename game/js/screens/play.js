@@ -14,12 +14,9 @@ game.PlayScreen = me.ScreenObject.extend({
      *  action to perform on state change
      */
     onResetEvent: function() {
-
         // Just load the level on page load
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
-
-        this.showLegend();
 
         // this.setupShips(); when you have data aggregated from the lbapi, use this
         // otherwise, act on a purely event-driven approach
@@ -36,7 +33,6 @@ game.PlayScreen = me.ScreenObject.extend({
         
         var i = 0;
         game.startRallyShip();
-        
 
         // create a new one
         var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
@@ -227,13 +223,15 @@ game.PlayScreen = me.ScreenObject.extend({
 
     updateFeature: function(record, oid, date) {
         //console.log("update feature");
+        var endDate = record.get('ActualEndDate');
         var obj = game.OID_MAP[oid];
+        var teamShip;
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
-            var endDate = record.get('ActualEndDate');
+            
             if (!obj.targeted && endDate && moment(endDate).isBefore(moment())) {
-                var teamShip = game.getTeam(record.get('Project'));
+                teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project');
                     var children = me.game.world.getChildByProp("featureOid", oid);
@@ -274,7 +272,7 @@ game.PlayScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].record = null;
                         game.OID_MAP[oid].ship = match;
                         game.OID_MAP[oid].date = date;
-                        var teamShip = game.getTeam(record.get('Project'));
+                        teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
                             teamShip.addTarget(match);
                         }
@@ -305,7 +303,7 @@ game.PlayScreen = me.ScreenObject.extend({
         var feature = record.get('Feature');
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];
-
+        var teamShip;
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
@@ -313,7 +311,7 @@ game.PlayScreen = me.ScreenObject.extend({
             if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
                 var children = record.get('Children');
 
-                var teamShip = game.getTeam(record.get('Project'));
+                teamShip = game.getTeam(record.get('Project'));
                 var teamOid = record.get('Project');
                 if (teamShip) {
                     if (children) {
@@ -357,7 +355,7 @@ game.PlayScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].record = null;
                         game.OID_MAP[oid].ship = match;
                         game.OID_MAP[oid].date = date;
-                        var teamShip = game.getTeam(record.get('Project'));
+                        teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
                             teamShip.addTarget(match);
                         }
@@ -460,21 +458,6 @@ game.PlayScreen = me.ScreenObject.extend({
         };
 
         me.game.world.addChild(ship, this.zIndex++);
-    },
-
-    showLegend: function() {
-        function changeShip(num) {
-            var ships = $('.shipContainer');
-            if (num >= ships.length) {
-                num = 0;
-            }
-
-            $(ships[num]).fadeIn().delay(5000).fadeOut(function() {
-                 changeShip(num + 1);
-             });
-        }
-        $('.shipContainer.logo').hide();
-        changeShip(1);
     },
 
     /**

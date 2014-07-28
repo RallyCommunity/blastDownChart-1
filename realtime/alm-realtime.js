@@ -10,7 +10,7 @@ function Realtime() {
                     "request-method": "post",
                     body: { topic: projectUuid }
             });
-    }
+    };
 
     this.getSubscribeMessageByUuid = function(projectUuid) {
         return JSON.stringify({
@@ -18,13 +18,13 @@ function Realtime() {
                     "request-method": "post",
                     body: { topic: projectUuid }
             });
-    }
+    };
 
     this.getStateFieldValue = function(data, name) {
         var field = _.find(_.values(data.data.state), { name: name });
 
         return field && field.value;
-    }
+    };
 
     this.getExtCompatibleRecordData = function(data, Model, useOldValue) {
         var values = _.values(data.data.state).concat(_.values(data.data.changes));
@@ -37,7 +37,7 @@ function Realtime() {
         recordData._type = Model.typePath;
 
         return recordData;
-    }
+    };
 
     this.getTypeFromScope = function(data) {
         if(!data || !data.data || !data.data.scope) {
@@ -58,7 +58,7 @@ function Realtime() {
         };
 
         return typeMap[typeString] || typeString;
-    }
+    };
 
     this.buildRecord = function(data, callback) {
         var recordType = this.getStateFieldValue(data, 'object_type') || this.getTypeFromScope(data);
@@ -75,11 +75,11 @@ function Realtime() {
                     callback(record);
                 }
             });
-    }
+    };
 
     this.getChangedFields = function(data) {
         return _.pluck(_.values(data.data.changes), 'name');
-    }
+    };
 
     this.getMessageToPublish = function(data) {
         if (!data || !data.data || !data.data.action) {
@@ -96,14 +96,14 @@ function Realtime() {
         };
 
         return actionMap[action];
-    }
+    };
 
     this.getArgsForMessage = function(message, record, changedFields, cmp) {
         if(message === Rally.Message.objectUpdate || message === Rally.Message.objectCreate) {
             return [message, record, changedFields, cmp];
         }
         return [message, record, cmp, []];
-    }
+    };
 
     this.publishObjectChanged = function(data, cmp) {
         var message = this.getMessageToPublish(data);
@@ -116,7 +116,7 @@ function Realtime() {
                     mb.publish.apply(mb, args);
                 });
         }
-    }
+    };
 
     // this.connect = function() {
     //     console.log('realtime: connecting');
@@ -148,7 +148,7 @@ function Realtime() {
         };
 
         return connection;
-    }
-};
+    };
+}
 
 

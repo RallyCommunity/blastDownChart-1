@@ -32,9 +32,9 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     }
 
     var pendingPlacement = {
-        large: new Array(),
-        medium: new Array(),
-        small: new Array()
+        large: [],
+        medium: [],
+        small: []
     }
 
     var paddingLeft = 32;

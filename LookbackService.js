@@ -65,10 +65,10 @@ module.factory('LookbackService', function() {
     };
 
     var getChildren = function(record, type) {
-        switch(type) {
-            case "PortfolioItem/Feature":
-                return record.get('UserStories');
-            default: return record.get('Children');
+        if (type == "PortfolioItem/Feature") {
+            return record.get('UserStories');
+        } else {
+            return record.get('Children');
         }
     };
 
@@ -131,7 +131,7 @@ module.factory('LookbackService', function() {
                 featureOffset = initiativeOffset + 1;
             }
 
-            var currentObject = hierarchyMap
+            var currentObject = hierarchyMap;
 
             if (itemHierarchy.length > featureOffset) {
                 // set the feature to the oid that is in the feature position
@@ -157,7 +157,7 @@ module.factory('LookbackService', function() {
                         currentObject.children[itemHierarchy[i + 1]] = {
                             children: {},
                             type: currentType
-                        }
+                        };
                         currentObject = currentObject.children[itemHierarchy[i + 1]];
 
 
@@ -228,7 +228,7 @@ module.factory('LookbackService', function() {
         var scope = angular.element($("#root")).scope();
                 
         scope.connectRealtime(projectUUIDs); // listen for changes in realtime
-    }
+    };
 
     var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game

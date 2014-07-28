@@ -132,7 +132,7 @@ module.service('RallyDataService', function (RealtimeService) {
                                     // aggregateData.teamsPoints[object.artifact.Project].score += object.artifact.PlanEstimate || 0;
                                     // Ext.Array.push(organizedData.closedStories, object);
                                     Ext.Array.push(organizedData.closedStories, object);
-                                    console.log(state, object.artifact)
+                                    console.log(state, object.artifact);
                                 }
 
                                 if (types[types.length - 1] === "HierarchicalRequirement") {
@@ -175,7 +175,7 @@ module.service('RallyDataService', function (RealtimeService) {
                                     _.each(allProjects, function(project) {
                                         console.log(project);
                                         Ext.Array.push(projectUUIDs, project.data._refObjectUUID);
-                                        organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
+                                        organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID];
                                     });
 
                                     console.log(aggregateData.teamsPoints, organizedData.scoreboard);

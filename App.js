@@ -51,6 +51,10 @@ Ext.define('CustomApp', {
                         game.togglePlayPause();
                     });
 
+                    $("#legend").click(function() {
+                        game.showHowItWorks();
+                    });
+
                 }
             }
         }

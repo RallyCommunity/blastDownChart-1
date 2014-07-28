@@ -15,13 +15,13 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.setSelectedOption = function(option) {
-        $scope.filters.class = option;
+        $scope.filters.applyClass = option;
     };
 
     $scope.logItems = [{
         date: moment().format("MM-MM-DD-YY HH:mm"),
         note: "Space Invaders Blast Down Initialized",
-        class: 'init'
+        applyClass: 'init'
     }];
 
     $scope.realtimeStatus = 'Waiting';
@@ -36,12 +36,12 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         RealtimeService.disconnect();
         $scope.realtimeStatus = 'Disconnected';
         $scope.$digest();
-    }
+    };
 
     $scope.updateStatus = function(status) {
         $scope.realtimeStatus = status;
         $scope.$digest();
-    }
+    };
 
     game.onload();
 
@@ -57,7 +57,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         $scope.logItems.unshift({
             date: dateString,
             note: logItem,
-            class: className
+            className: className
         });
         $scope.$digest();
     };
@@ -74,7 +74,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
             $scope.scoreboard[team] = {
                 points: newPoints,
                 color: "#000000"
-            }
+            };
         }
         $scope.$digest();
     };
@@ -84,15 +84,15 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
             $scope.scoreboard[team] = {
                 points: 0,
                 color: color
-            }
+            };
             $scope.$digest();
         }
-    }
+    };
 
     $scope.getTeamColor = function(team) {
         if (team && $scope.scoreboard[team]) {
             return $scope.scoreboard[team].color;
         }
         return "white";
-    }
+    };
 }]);

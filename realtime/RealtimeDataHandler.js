@@ -54,11 +54,11 @@ function RealtimeDataHandler() {
             //console.info("trigger other");
             eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
-    }
+    };
 
     this.setEventTrigger = function(el) {
         if (el && typeof el === 'string') {
             eventTrigger = $(el);
         }
-    }
+    };
 }

@@ -53231,7 +53231,7 @@ var game = {
     audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
     play: true,
 
-    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
+    TEAM__COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
                         {name: "blue", hex: "#00A9E0"}, // cyan
                         {name: "grey", hex: "#C0C0C0"},
                         {name: "darkgold", hex: "#CF871B"},
@@ -53243,15 +53243,6 @@ var game = {
     TEAM_SHIP_COLOR_INDEX: 0,  // mod this by the length of the colors array, and choose the correct color for your team ship
 
     SPEED: 5, // Adjust this to adjust the speed of everything
-
-    // TODO new colors!
-    // #FAD200 - yellow
-    // #FF8200 - orange
-    // #DA1884 - pink
-    // #7832A5 - purple
-    // #005EB8 - dark blue
-    // #00B398 - teal
-    // #8DC63F - green
 
     // size of the game canvas
     WINDOW_WIDTH: 1024,
@@ -53423,6 +53414,22 @@ var game = {
         me.state.change(me.state.LOADING);
     },
 
+    showHowItWorks: function() {
+        $('#howItWorks').toggleClass('hidden');
+        $('#overlay').toggleClass('hidden');
+        game.pause();
+        $('.closePopup').click(function(){
+            game.closeHowItWorks();
+        });
+    },
+
+    closeHowItWorks: function() {
+        $('#howItWorks').toggleClass('hidden');
+        $('#overlay').toggleClass('hidden');
+        game.resume();
+    },
+
+
     toggleMute: function() {
         this.audioOn = !this.audioOn;
     },
@@ -53444,7 +53451,6 @@ var game = {
         // restart the enemy ships
         _.each(game.OID_MAP, function(value, key) {
             if (value.ship) {
-                console.log(value.ship.update, value.cachedUpdate);
                 value.ship.update = value.cachedUpdate;
             }
         });
@@ -53454,12 +53460,39 @@ var game = {
             value.update = value.cachedUpdate;
         });
 
+        // stop listening for clicks
+        $('canvas').click(function(e) {});
+
         this.startRallyShip();
     },
 
     pause: function() {
-        // stop updates, mask screen, stop going through queue of events
+        $('canvas').click(function(e) {
+            e.preventDefault();
+            var offset = $(this).offset();
+            var x = e.clientX - offset.left;
+            var y = event.y - offset.top + 25;
+            console.log("searching", x, y);
+            var ship = _.find(game.OID_MAP, function(value, key) {
+                if (value.ship) {
+                    var left = value.ship.pos.x;
+                    var right = left + value.ship.width;
+                    var top = value.ship.pos.y;
+                    var bottom = top + value.ship.height;
+                    console.log(left, right, top, bottom);
+                    if (x > left && x < right && y > top && y < bottom) {
+                        return value;
+                    }
+                }
+            });
 
+            if (ship) {
+                console.log(ship);
+                var popup = $("<div id='overlay'><h1>" + ship.ship.record.get("Name") + "</h1></div>");
+                $('body').append(popup);
+            }
+        });
+        // stop updates, mask screen, stop going through queue of events
         game.angularScope.eventHandler.stopEvents();
         _.each(game.OID_MAP, function(value, key) {
             if (value.ship) {
@@ -53767,7 +53800,7 @@ var game = {
      */
 
     // background
-    {name: "background", type: "image", src: "game/data/img/background-2.png"},
+    {name: "background", type: "image", src: "game/data/img/new/background/background.png"},
     
     // tileset
     {name: "sprites", type:"image", src: "game/data/sprites.png"},
@@ -53814,9 +53847,9 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     }
 
     var pendingPlacement = {
-        large: new Array(),
-        medium: new Array(),
-        small: new Array()
+        large: [],
+        medium: [],
+        small: []
     }
 
     var paddingLeft = 32;
@@ -55261,12 +55294,9 @@ game.TitleScreen = me.ScreenObject.extend({
      *  action to perform on state change
      */
     onResetEvent: function() {
-
         // Just load the level on page load
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
-
-        this.showLegend();
 
         // this.setupShips(); when you have data aggregated from the lbapi, use this
         // otherwise, act on a purely event-driven approach
@@ -55474,13 +55504,15 @@ game.TitleScreen = me.ScreenObject.extend({
 
     updateFeature: function(record, oid, date) {
         //console.log("update feature");
+        var endDate = record.get('ActualEndDate');
         var obj = game.OID_MAP[oid];
+        var teamShip;
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
-            var endDate = record.get('ActualEndDate');
+            
             if (!obj.targeted && endDate && moment(endDate).isBefore(moment())) {
-                var teamShip = game.getTeam(record.get('Project'));
+                teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project');
                     var children = me.game.world.getChildByProp("featureOid", oid);
@@ -55521,7 +55553,7 @@ game.TitleScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].record = null;
                         game.OID_MAP[oid].ship = match;
                         game.OID_MAP[oid].date = date;
-                        var teamShip = game.getTeam(record.get('Project'));
+                        teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
                             teamShip.addTarget(match);
                         }
@@ -55552,7 +55584,7 @@ game.TitleScreen = me.ScreenObject.extend({
         var feature = record.get('Feature');
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];
-
+        var teamShip;
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
@@ -55560,7 +55592,7 @@ game.TitleScreen = me.ScreenObject.extend({
             if (!obj.targeted && (state == "Completed" || state == "Accepted" || state == "Released")) {
                 var children = record.get('Children');
 
-                var teamShip = game.getTeam(record.get('Project'));
+                teamShip = game.getTeam(record.get('Project'));
                 var teamOid = record.get('Project');
                 if (teamShip) {
                     if (children) {
@@ -55604,7 +55636,7 @@ game.TitleScreen = me.ScreenObject.extend({
                         game.OID_MAP[oid].record = null;
                         game.OID_MAP[oid].ship = match;
                         game.OID_MAP[oid].date = date;
-                        var teamShip = game.getTeam(record.get('Project'));
+                        teamShip = game.getTeam(record.get('Project'));
                         if (teamShip) {
                             teamShip.addTarget(match);
                         }
@@ -55709,21 +55741,6 @@ game.TitleScreen = me.ScreenObject.extend({
         me.game.world.addChild(ship, this.zIndex++);
     },
 
-    showLegend: function() {
-        function changeShip(num) {
-            var ships = $('.shipContainer');
-            if (num >= ships.length) {
-                num = 0;
-            }
-
-            $(ships[num]).fadeIn().delay(5000).fadeOut(function() {
-                 changeShip(num + 1);
-             });
-        }
-        $('.shipContainer.logo').hide();
-        changeShip(1);
-    },
-
     /**
      *  action to perform when leaving this screen (state change)
      */
@@ -55806,6 +55823,10 @@ game.TitleScreen = me.ScreenObject.extend({
                         game.togglePlayPause();
                     });
 
+                    $("#legend").click(function() {
+                        game.showHowItWorks();
+                    });
+
                 }
             }
         }
@@ -55837,13 +55858,13 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
     };
 
     $scope.setSelectedOption = function(option) {
-        $scope.filters.class = option;
+        $scope.filters.applyClass = option;
     };
 
     $scope.logItems = [{
         date: moment().format("MM-MM-DD-YY HH:mm"),
         note: "Space Invaders Blast Down Initialized",
-        class: 'init'
+        applyClass: 'init'
     }];
 
     $scope.realtimeStatus = 'Waiting';
@@ -55858,12 +55879,12 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         RealtimeService.disconnect();
         $scope.realtimeStatus = 'Disconnected';
         $scope.$digest();
-    }
+    };
 
     $scope.updateStatus = function(status) {
         $scope.realtimeStatus = status;
         $scope.$digest();
-    }
+    };
 
     game.onload();
 
@@ -55879,7 +55900,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         $scope.logItems.unshift({
             date: dateString,
             note: logItem,
-            class: className
+            className: className
         });
         $scope.$digest();
     };
@@ -55896,7 +55917,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
             $scope.scoreboard[team] = {
                 points: newPoints,
                 color: "#000000"
-            }
+            };
         }
         $scope.$digest();
     };
@@ -55906,17 +55927,17 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
             $scope.scoreboard[team] = {
                 points: 0,
                 color: color
-            }
+            };
             $scope.$digest();
         }
-    }
+    };
 
     $scope.getTeamColor = function(team) {
         if (team && $scope.scoreboard[team]) {
             return $scope.scoreboard[team].color;
         }
         return "white";
-    }
+    };
 }]);
 
                 /**
@@ -55986,10 +56007,10 @@ module.factory('LookbackService', function() {
     };
 
     var getChildren = function(record, type) {
-        switch(type) {
-            case "PortfolioItem/Feature":
-                return record.get('UserStories');
-            default: return record.get('Children');
+        if (type == "PortfolioItem/Feature") {
+            return record.get('UserStories');
+        } else {
+            return record.get('Children');
         }
     };
 
@@ -56052,7 +56073,7 @@ module.factory('LookbackService', function() {
                 featureOffset = initiativeOffset + 1;
             }
 
-            var currentObject = hierarchyMap
+            var currentObject = hierarchyMap;
 
             if (itemHierarchy.length > featureOffset) {
                 // set the feature to the oid that is in the feature position
@@ -56078,7 +56099,7 @@ module.factory('LookbackService', function() {
                         currentObject.children[itemHierarchy[i + 1]] = {
                             children: {},
                             type: currentType
-                        }
+                        };
                         currentObject = currentObject.children[itemHierarchy[i + 1]];
 
 
@@ -56149,7 +56170,7 @@ module.factory('LookbackService', function() {
         var scope = angular.element($("#root")).scope();
                 
         scope.connectRealtime(projectUUIDs); // listen for changes in realtime
-    }
+    };
 
     var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
@@ -56386,7 +56407,7 @@ ReconnectingWebSocket.debugAll = false;
                     "request-method": "post",
                     body: { topic: projectUuid }
             });
-    }
+    };
 
     this.getSubscribeMessageByUuid = function(projectUuid) {
         return JSON.stringify({
@@ -56394,13 +56415,13 @@ ReconnectingWebSocket.debugAll = false;
                     "request-method": "post",
                     body: { topic: projectUuid }
             });
-    }
+    };
 
     this.getStateFieldValue = function(data, name) {
         var field = _.find(_.values(data.data.state), { name: name });
 
         return field && field.value;
-    }
+    };
 
     this.getExtCompatibleRecordData = function(data, Model, useOldValue) {
         var values = _.values(data.data.state).concat(_.values(data.data.changes));
@@ -56413,7 +56434,7 @@ ReconnectingWebSocket.debugAll = false;
         recordData._type = Model.typePath;
 
         return recordData;
-    }
+    };
 
     this.getTypeFromScope = function(data) {
         if(!data || !data.data || !data.data.scope) {
@@ -56434,7 +56455,7 @@ ReconnectingWebSocket.debugAll = false;
         };
 
         return typeMap[typeString] || typeString;
-    }
+    };
 
     this.buildRecord = function(data, callback) {
         var recordType = this.getStateFieldValue(data, 'object_type') || this.getTypeFromScope(data);
@@ -56451,11 +56472,11 @@ ReconnectingWebSocket.debugAll = false;
                     callback(record);
                 }
             });
-    }
+    };
 
     this.getChangedFields = function(data) {
         return _.pluck(_.values(data.data.changes), 'name');
-    }
+    };
 
     this.getMessageToPublish = function(data) {
         if (!data || !data.data || !data.data.action) {
@@ -56472,14 +56493,14 @@ ReconnectingWebSocket.debugAll = false;
         };
 
         return actionMap[action];
-    }
+    };
 
     this.getArgsForMessage = function(message, record, changedFields, cmp) {
         if(message === Rally.Message.objectUpdate || message === Rally.Message.objectCreate) {
             return [message, record, changedFields, cmp];
         }
         return [message, record, cmp, []];
-    }
+    };
 
     this.publishObjectChanged = function(data, cmp) {
         var message = this.getMessageToPublish(data);
@@ -56492,7 +56513,7 @@ ReconnectingWebSocket.debugAll = false;
                     mb.publish.apply(mb, args);
                 });
         }
-    }
+    };
 
     // this.connect = function() {
     //     console.log('realtime: connecting');
@@ -56524,8 +56545,8 @@ ReconnectingWebSocket.debugAll = false;
         };
 
         return connection;
-    }
-};
+    };
+}
 
 
 
@@ -56585,13 +56606,13 @@ ReconnectingWebSocket.debugAll = false;
             //console.info("trigger other");
             eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
-    }
+    };
 
     this.setEventTrigger = function(el) {
         if (el && typeof el === 'string') {
             eventTrigger = $(el);
         }
-    }
+    };
 }
 
                 module.factory('RealtimeService', function () {
@@ -56639,7 +56660,7 @@ var GameEventHandler = function(realtime) {
             return eventQueue.shift();
         }
         return null;
-    }
+    };
 
     $(listenTo).on("History-Completed Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
             null, null, function(event, data) {
@@ -56757,7 +56778,7 @@ var GameEventHandler = function(realtime) {
     this.Task_Recycled = function(data) {
         game.shipScreen.recycleShip(data.oid, data.date);
     };
-}
+};
                 module.service('RallyDataService', function (RealtimeService) {
     var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
         fetch: true,
@@ -56892,7 +56913,7 @@ var GameEventHandler = function(realtime) {
                                     // aggregateData.teamsPoints[object.artifact.Project].score += object.artifact.PlanEstimate || 0;
                                     // Ext.Array.push(organizedData.closedStories, object);
                                     Ext.Array.push(organizedData.closedStories, object);
-                                    console.log(state, object.artifact)
+                                    console.log(state, object.artifact);
                                 }
 
                                 if (types[types.length - 1] === "HierarchicalRequirement") {
@@ -56935,7 +56956,7 @@ var GameEventHandler = function(realtime) {
                                     _.each(allProjects, function(project) {
                                         console.log(project);
                                         Ext.Array.push(projectUUIDs, project.data._refObjectUUID);
-                                        organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID]
+                                        organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID];
                                     });
 
                                     console.log(aggregateData.teamsPoints, organizedData.scoreboard);
@@ -57066,19 +57087,11 @@ var GameEventHandler = function(realtime) {
   vertical-align: middle;
   width: 100%;
 }
-.shipContainer {
-  text-align: center;
-  display: none;
-}
 .shipContainer > img {
   display: block;
   margin-left: auto;
   margin-right: auto;
-  width: auto;
-  height: 64px;
-}
-.logo {
-  display: block;
+  max-height: 198px;
 }
 ul {
   list-style-type: none;
@@ -57162,6 +57175,60 @@ li {
 .header > .column > select {
   display: inline;
 }
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  filter: alpha(opacity=50);
+  -moz-opacity: 0.5;
+  -khtml-opacity: 0.5;
+  opacity: 0.5;
+  z-index: 10000;
+}
+#popup {
+  position: absolute;
+  width: 800px;
+  top: 0;
+  left: 50%;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-left: -400px;
+  color: black !important;
+  background-color: white;
+  z-index: 10001;
+  filter: alpha(opacity=100);
+  -moz-opacity: 1;
+  -khtml-opacity: 1;
+  opacity: 1;
+}
+#popup > img {
+  margin: auto;
+  display: block;
+  width: 25%;
+}
+div.closePopup {
+  float: right;
+  height: 26px;
+  background-color: #ED1C24;
+  border: 1px solid black;
+  cursor: pointer;
+  color: white;
+  padding-left: 10px;
+  padding-top: 4px;
+}
+div.bottomCenter {
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+h2 {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
 
     </style>
     <style type="text/css">
@@ -57189,6 +57256,37 @@ td.dataColumn {
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
     <div class="middle">
+        <div id="howItWorks" class="hidden">
+            <div id="popup">
+                <div class="closePopup">close</div>
+                <img src="game/data/img/new/blastDownBackground.png" alt="Blast Down Chart">
+                <h1>How it Works</h1>
+                <h2>What is it?</h2>
+                <p>Welcome to the Blast Down Chart - a Portfolio Item visualization for your data in Rally.  The Blast Down chart is useful for viewing the entire history of a Rally initiative, but can also be used as a fun tool to reward your efforts in realtime.</p>
+                <h2>How can we use it?</h2>
+                <p>We suggest you use it in a few ways:
+                    <ul>
+                        <li>To see the entire history of a completed work item</li>
+                        <li>To display while teams work as part of a dashboard - as they complete work in Rally, it will be destroyed in the Blast Down Chart!</li>
+                    </ul>
+                </p>
+                <h2>What do the ships mean?</h2>
+                <p>Each of the different types of ships represents a different piece of data in the Initiative you select.  If you ever wonder what a ship is, you can pause the game and click on a ship - this will bring up a window with the information for that work item.  In general, the larger the ship, the larger the work item.  Here is the exact correlation:
+                <div>Initiative</div>
+                <div>Feature</div>
+                <div>User Story</div>
+                <div>Task</div>
+                <div>Projects (Teams)</div>
+                </p>
+                <h2>What do the colors mean?</h2>
+                <p>The ships at the bottom represent the teams, and their colors correlate to the score in the scoreboard.  The ships on the screen are colored according to their realtionship - Features are assigned a color, and the stories or tasks that are parented to that feature in Rally are given the same color.</p>
+                <h2>How does scoring work?</h2>
+                <p>Scores are calcuated using story points for each story that is completed.  If a story has no points assigned, the team will get no points for completing it.  You can also switch the scoreboard to report scores in terms of the number of stories completed, if you prefer.</p>
+                <h1>We hope you enjoy this new way to visualize your data in Rally!</h1>
+                <div class="closePopup bottomCenter">close</div>
+            </div>
+        </div>
+        <div id="overlay" class="hidden"></div>
         <div id="spaceInvadersContainer">
             <div>
                 <div id="scores">
@@ -57219,27 +57317,8 @@ td.dataColumn {
                 </div>
                 <div id="legend">
                     <div class="content">
-<!--                         <div class="shipContainer logo">
-                            <img src="game/data/img/rally8bit.png">
-                        </div> -->
-                        <div class="shipContainer">
-                            Initiative
-                            <br />
-                            <img src="game/data/img/new/super/superEnemy_white.png">
-                        </div>
-                        <div class="shipContainer">
-                            Feature
-                            <br />
-                            <img src="game/data/img/new/large/largeEnemy_white.png">
-                        </div>
-                        <div class="shipContainer">
-                            User Story
-                            <img src="game/data/img/new/medium/mediumEnemy_white.png">
-                        </div>
-                        <div class="shipContainer">
-                            Task
-                            <br />
-                            <img src="game/data/img/new/small/smallEnemy_white.png">
+                        <div class="shipContainer logo">
+                            <img src="game/data/img/new/blastDownBackground.png">
                         </div>
                     </div>
                 </div>

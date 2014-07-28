@@ -1,5 +1,36 @@
 <div style="display:none;" ng-controller="dataController" id="root">
     <div class="middle">
+        <div id="howItWorks" class="hidden">
+            <div id="popup">
+                <div class="closePopup button">close</div>
+                <img src="game/data/img/new/blastDownBackground.png" alt="Blast Down Chart">
+                <h1>How it Works</h1>
+                <h2>What is it?</h2>
+                <p>Welcome to the Blast Down Chart - a Portfolio Item visualization for your data in Rally.  The Blast Down chart is useful for viewing the entire history of a Rally initiative, but can also be used as a fun tool to reward your efforts in realtime.</p>
+                <h2>How can we use it?</h2>
+                <p>We suggest you use it in a few ways:
+                    <ul>
+                        <li>To see the entire history of a completed work item</li>
+                        <li>To display while teams work as part of a dashboard - as they complete work in Rally, it will be destroyed in the Blast Down Chart!</li>
+                    </ul>
+                </p>
+                <h2>What do the ships mean?</h2>
+                <p>Each of the different types of ships represents a different piece of data in the Initiative you select.  If you ever wonder what a ship is, you can pause the game and click on a ship - this will bring up a window with the information for that work item.  In general, the larger the ship, the larger the work item.  Here is the exact correlation:
+                <div>Initiative</div>
+                <div>Feature</div>
+                <div>User Story</div>
+                <div>Task</div>
+                <div>Projects (Teams)</div>
+                </p>
+                <h2>What do the colors mean?</h2>
+                <p>The ships at the bottom represent the teams, and their colors correlate to the score in the scoreboard.  The ships on the screen are colored according to their realtionship - Features are assigned a color, and the stories or tasks that are parented to that feature in Rally are given the same color.</p>
+                <h2>How does scoring work?</h2>
+                <p>Scores are calcuated using story points for each story that is completed.  If a story has no points assigned, the team will get no points for completing it.  You can also switch the scoreboard to report scores in terms of the number of stories completed, if you prefer.</p>
+                <h1>We hope you enjoy this new way to visualize your data in Rally!</h1>
+                <div class="closePopup bottomCenter button">close</div>
+            </div>
+        </div>
+        <div id="overlay" class="hidden"></div>
         <div id="spaceInvadersContainer">
             <div>
                 <div id="scores">
@@ -30,27 +61,8 @@
                 </div>
                 <div id="legend">
                     <div class="content">
-<!--                         <div class="shipContainer logo">
-                            <img src="game/data/img/rally8bit.png">
-                        </div> -->
-                        <div class="shipContainer">
-                            Initiative
-                            <br />
-                            <img src="game/data/img/new/super/superEnemy_white.png">
-                        </div>
-                        <div class="shipContainer">
-                            Feature
-                            <br />
-                            <img src="game/data/img/new/large/largeEnemy_white.png">
-                        </div>
-                        <div class="shipContainer">
-                            User Story
-                            <img src="game/data/img/new/medium/mediumEnemy_white.png">
-                        </div>
-                        <div class="shipContainer">
-                            Task
-                            <br />
-                            <img src="game/data/img/new/small/smallEnemy_white.png">
+                        <div class="shipContainer logo">
+                            <img src="game/data/img/new/blastDownBackground.png">
                         </div>
                     </div>
                 </div>

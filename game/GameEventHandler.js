@@ -17,7 +17,7 @@ var GameEventHandler = function(realtime) {
             return eventQueue.shift();
         }
         return null;
-    }
+    };
 
     $(listenTo).on("History-Completed Task-Updated Task-Recycled Task-Created UserStory-Updated UserStory-Recycled UserStory-Created PortfolioItem/Feature-Updated PortfolioItem/Feature-Recycled PortfolioItem/Feature-Created PortfolioItem/Initiative-Updated PortfolioItem/Initiative-Recycled PortfolioItem/Initiative-Created",
             null, null, function(event, data) {
@@ -135,4 +135,4 @@ var GameEventHandler = function(realtime) {
     this.Task_Recycled = function(data) {
         game.shipScreen.recycleShip(data.oid, data.date);
     };
-}
+};

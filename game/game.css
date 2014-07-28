@@ -115,21 +115,11 @@ body {
     width: 100%;
 }
 
-.shipContainer {
-    text-align:center;
-    display: none;
-}
-
 .shipContainer > img {
     display: block;
     margin-left: auto;
     margin-right: auto;
-    width: auto;
-    height: 64px;
-}
-
-.logo {
-    display: block;
+    max-height: 198px;
 }
 
 ul {
@@ -160,9 +150,9 @@ li {
 
 #realtimeStatus {
     text-align: center;
-    -webkit-border-radius: 20px;
-    -moz-border-radius: 20px;
-    border-radius: 20px;
+    -webkit-border-radius: 2px;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
     min-height: 20px;
 }
 
@@ -240,4 +230,57 @@ li {
     -khtml-opacity: 0.5;
     opacity: 0.5;
     z-index: 10000;
+}
+
+#popup {
+    position:absolute;
+    width:800px;
+    top: 0;
+    left: 50%;
+    margin-left: -400px;
+    color: black !important;
+    background-color: white;
+    z-index: 10001;
+    filter:alpha(opacity=100);
+    -moz-opacity: 1;
+    -khtml-opacity: 1;
+    opacity: 1;
+    padding: 10px;
+}
+
+#popup > img {
+    margin: auto;
+    display: block;
+    width: 25%;
+}
+
+div.closePopup {
+    text-align: center;
+    float:right;
+    height: 26px;
+    width: 100px;
+    background-color: #ED1C24;
+    cursor:pointer;
+    color: white;
+    padding-top: 4px;
+}
+
+div.bottomCenter {
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
+.button {
+    -webkit-border-radius: 2px;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
+    margin-right: 10px;
+    float: left; 
+}
+
+h2 {
+    margin-bottom: 0;
+    padding-bottom: 0;
 }

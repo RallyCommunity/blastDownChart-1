@@ -16,15 +16,6 @@ var game = {
 
     SPEED: 5, // Adjust this to adjust the speed of everything
 
-    // TODO new colors!
-    // #FAD200 - yellow
-    // #FF8200 - orange
-    // #DA1884 - pink
-    // #7832A5 - purple
-    // #005EB8 - dark blue
-    // #00B398 - teal
-    // #8DC63F - green
-
     // size of the game canvas
     WINDOW_WIDTH: 1024,
     WINDOW_HEIGHT: 512,
@@ -191,9 +182,32 @@ var game = {
         // Load the resources.
         me.loader.preload(game.resources);
 
+        $('.closePopup').click(function(){
+            game.closeHowItWorks();
+        });
+
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
+
+
     },
+
+    showHowItWorks: function() {
+        $('#howItWorks').toggleClass('hidden');
+        $('#overlay').toggleClass('hidden');
+        if (game.POSITION_MANAGER) {
+            game.togglePlayPause();
+        }
+    },
+
+    closeHowItWorks: function() {
+        $('#howItWorks').toggleClass('hidden');
+        $('#overlay').toggleClass('hidden');
+        if (!game.play) {
+            game.resume();
+        }
+    },
+
 
     toggleMute: function() {
         this.audioOn = !this.audioOn;
@@ -224,6 +238,9 @@ var game = {
         _.each(game.TEAM_SHIPS, function(value, key) {
             value.update = value.cachedUpdate;
         });
+
+        // stop listening for clicks
+        $('canvas').click(function(e) {});
 
         this.startRallyShip();
     },
