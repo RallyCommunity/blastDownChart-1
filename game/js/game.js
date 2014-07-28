@@ -159,7 +159,7 @@ var game = {
         game.LABEL_INDEX = 0;
 
         // Initialize the video.
-        me.sys.fps = 50;
+        me.sys.fps = 45;
         me.sys.pauseOnBlur = false;
         if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true)) {
             alert("Your browser does not support HTML5 canvas.");
@@ -230,8 +230,10 @@ var game = {
     showHowItWorks: function() {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
-        if (game.POSITION_MANAGER) {
+        if (game.POSITION_MANAGER && game.play) {
+            console.log("play", game.play);
             game.togglePlayPause();
+            console.log("play", game.play);
         }
     },
 
@@ -239,54 +241,66 @@ var game = {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
         if (!game.play) {
-            game.resume();
+            game.togglePlayPause();
         }
     },
 
 
     toggleMute: function() {
+        $('#muteIcon').toggleClass('hidden');
+        $('#speakerIcon').toggleClass('hidden');
         this.audioOn = !this.audioOn;
     },
 
     togglePlayPause: function() {
-        this.play = !this.play;
-        if (!this.play) {
-            // pause the game
-            game.pause();
-        } else {
-            game.resume();
+        if (game.POSITION_MANAGER) {
+            this.play = !this.play;
+
+            if (!this.play) {
+                // pause the game
+                game.pause();
+            } else {
+
+                game.resume();
+            }
         }
     },
 
     resume: function() {
+        $('#playIcon').addClass('hidden');
+        $('#pauseIcon').removeClass('hidden');
         // unmask, restart updates, play through queue of events
         game.angularScope.eventHandler.playThrough();
 
         // restart the enemy ships
         _.each(game.OID_MAP, function(value, key) {
-            if (value.ship) {
+            if (value.ship && value.cachedUpdate) {
                 value.ship.update = value.cachedUpdate;
             }
         });
 
         // restart the player ships
         _.each(game.TEAM_SHIPS, function(value, key) {
-            value.update = value.cachedUpdate;
+            if (value.cachedUpdate) {
+                value.update = value.cachedUpdate;
+                value.setVelocity(game.SPEED, 0);
+            }
+            
         });
-
-        // stop listening for clicks
-        $('canvas').click(function(e) {});
 
         this.startRallyShip();
     },
 
     pause: function() {
+        $('#playIcon').removeClass('hidden');
+        $('#pauseIcon').addClass('hidden');
         // stop updates, mask screen, stop going through queue of events
-        game.angularScope.eventHandler.stopEvents();
+        game.angularScope.eventHandler.pauseEvents();
         _.each(game.OID_MAP, function(value, key) {
             if (value.ship) {
                 value.cachedUpdate = value.ship.update;
                 value.ship.update = function(dt) {
+                    this.mouseDown();
                     return true;
                 }
             }
@@ -432,10 +446,12 @@ var game = {
     setSpeed: function(speed) {
         game.SPEED = speed % 11;
 
-        _.each(game.TEAM_SHIPS, function(ship) {
-            ship.setVelocity(game.SPEED, 0);
-        });
-        game.angularScope.eventHandler.resetSpeed();
+        if (game.play) {
+            _.each(game.TEAM_SHIPS, function(ship) {
+                ship.setVelocity(game.SPEED, 0);
+            });
+            game.angularScope.eventHandler.resetSpeed();
+        }
     },
 
     getTeam: function(teamOid) {

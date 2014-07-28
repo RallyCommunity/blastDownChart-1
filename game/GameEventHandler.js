@@ -50,6 +50,11 @@ var GameEventHandler = function(realtime) {
         scope.disconnectRealtime();
     };
 
+    this.pauseEvents = function() {
+        clearInterval(timer);
+        timer = null;
+    };
+
     this.resetSpeed = function() {
         if (timer) {
             clearInterval(timer);
@@ -72,7 +77,6 @@ var GameEventHandler = function(realtime) {
                         return;
                     }
                     if (func && object.data) {
-                        //console.log("EVENT HANDLER - " + func);
                         func(object.data);
                     } else if (func) {
                         func();

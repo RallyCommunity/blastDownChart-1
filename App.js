@@ -41,13 +41,9 @@ Ext.define('CustomApp', {
                     injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
 
                     $('#mute').click(function() {
-                        $('#muteIcon').toggleClass('hidden');
-                        $('#speakerIcon').toggleClass('hidden');
                         game.toggleMute();
                     });
                     $('#playPause').click(function() {
-                        $('#playIcon').toggleClass('hidden');
-                        $('#pauseIcon').toggleClass('hidden');
                         game.togglePlayPause();
                     });
 

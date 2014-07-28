@@ -53231,7 +53231,7 @@ var game = {
     audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
     play: true,
 
-    TEAM__COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
+    TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
                         {name: "blue", hex: "#00A9E0"}, // cyan
                         {name: "grey", hex: "#C0C0C0"},
                         {name: "darkgold", hex: "#CF871B"},
@@ -53387,9 +53387,9 @@ var game = {
         game.LABEL_INDEX = 0;
 
         // Initialize the video.
-        me.sys.fps = 50;
+        me.sys.fps = 45;
         me.sys.pauseOnBlur = false;
-        if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true, 'auto')) {
+        if (!me.video.init("screen", game.WINDOW_WIDTH, game.WINDOW_HEIGHT, true)) {
             alert("Your browser does not support HTML5 canvas.");
             return;
         }
@@ -53410,37 +53410,85 @@ var game = {
         // Load the resources.
         me.loader.preload(game.resources);
 
+        $('.closePopup').click(function(){
+            game.closeHowItWorks();
+        });
+
+        // $('.closeInfo').click(function(){
+        //     $(this).closest('.workItemDetail').remove();
+        // });
+
+        // $('canvas').click(function(e) {
+        //     e.preventDefault();
+        //     var offset = $(this).offset();
+        //     var x = e.clientX - offset.left;
+        //     var y = event.y - offset.top;
+        //     console.log("searching", x, y);
+        //     var ship = _.find(game.OID_MAP, function(value, key) {
+        //         if (value.ship) {
+        //             var left = value.ship.pos.x;
+        //             var right = left + value.ship.width;
+        //             var top = value.ship.pos.y;
+        //             var bottom = top + value.ship.height;
+        //             console.log(left, right, top, bottom);
+        //             if (x > left && x < right && y > top && y < bottom) {
+        //                 return value;
+        //             }
+        //         }
+        //     });
+
+        //     if (ship) {
+        //         $('body').remove('.workItemDetail');
+        //         console.log(ship);
+        //         var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><h1>" + ship.ship.record.get("Name") + "</h1></div>").css({top: y, left: x, position:'absolute'});
+        //         $('body').append(info);
+
+        //         $('.closeInfo').click(function(){
+        //             $('body').remove('.workItemDetail');
+        //         });
+        //     }
+        // });
+
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
+
+
     },
 
     showHowItWorks: function() {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
-        game.pause();
-        $('.closePopup').click(function(){
-            game.closeHowItWorks();
-        });
+        if (game.POSITION_MANAGER) {
+            game.togglePlayPause();
+        }
     },
 
     closeHowItWorks: function() {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
-        game.resume();
+        if (!game.play) {
+            game.resume();
+        }
     },
 
 
     toggleMute: function() {
+        $('#muteIcon').toggleClass('hidden');
+        $('#speakerIcon').toggleClass('hidden');
         this.audioOn = !this.audioOn;
     },
 
     togglePlayPause: function() {
-        this.play = !this.play;
-        if (!this.play) {
-            // pause the game
-            game.pause();
-        } else {
-            game.resume();
+        if (game.POSITION_MANAGER) {
+            this.play = !this.play;
+            $('#playIcon').toggleClass('hidden');
+            $('#pauseIcon').toggleClass('hidden');
+            if (!this.play) {
+                // pause the game
+                game.pause();
+            } else {
+                game.resume();
+            }
         }
     },
 
@@ -53467,31 +53515,6 @@ var game = {
     },
 
     pause: function() {
-        $('canvas').click(function(e) {
-            e.preventDefault();
-            var offset = $(this).offset();
-            var x = e.clientX - offset.left;
-            var y = event.y - offset.top + 25;
-            console.log("searching", x, y);
-            var ship = _.find(game.OID_MAP, function(value, key) {
-                if (value.ship) {
-                    var left = value.ship.pos.x;
-                    var right = left + value.ship.width;
-                    var top = value.ship.pos.y;
-                    var bottom = top + value.ship.height;
-                    console.log(left, right, top, bottom);
-                    if (x > left && x < right && y > top && y < bottom) {
-                        return value;
-                    }
-                }
-            });
-
-            if (ship) {
-                console.log(ship);
-                var popup = $("<div id='overlay'><h1>" + ship.ship.record.get("Name") + "</h1></div>");
-                $('body').append(popup);
-            }
-        });
         // stop updates, mask screen, stop going through queue of events
         game.angularScope.eventHandler.stopEvents();
         _.each(game.OID_MAP, function(value, key) {
@@ -53563,6 +53586,10 @@ var game = {
 
     // Run on game resources loaded.
     "loaded" : function () {
+        me.input.registerPointerEvent("pointerdown", me.game.viewport, function (event) {
+            me.event.publish("pointerdown", [ event ]);
+        });
+
         me.state.set(me.state.MENU, new game.TitleScreen());
         me.state.set(me.state.PLAY, new game.PlayScreen());
         me.state.set(me.state.VICTORY, new game.VictoryScreen());
@@ -54717,22 +54744,44 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
     },
 
-    // // TODO
-    // draw: function(context) {
-    //     context.save();
-          
-    //     //context.clearRect(this.pos.x, this.pos.y, this.spritewidth, this.height); 
-    //     this.parent(context);    
-    //     context.globalCompositeOperation = "source-in";
+    mouseDown: function() {
+        this.renderable.flicker(750);
+        $('.workItemDetail').remove();
 
-    //     context.fillStyle="green";
-    //     context.fillRect(this.pos.x, this.pos.y, this.spritewidth, this.height);
+        var list = "<li>FormattedID: " + this.record.get("FormattedID") + "</a>" + "</li>" +
+            "<li>Name: " + this.record.get("Name") + "</li>";
+            
+        // TODO top and left positions
+        var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><ul class='detailList'>" +
+            list + "</ul></div>").css({top: 256, left: 1024, position:'absolute'});
+        $('body').append(info);
 
-    //     context.globalCompositeOperation = "source-over";
-    //     context.restore();
-    // },
+        $('.closeInfo').click(function(){
+            $('.workItemDetail').remove();
+        });
+    },
 
     update: function(dt) {
+        if (me.input.keyStatus('enter')) {
+            // check if this is me
+
+            var x = me.input.mouse.pos.x;
+            var y = me.input.mouse.pos.y; // - 208;
+            // if (this.type == game.ENEMY_ENTITY_SUPER) {
+            //     var offset = $('#screen').offset();
+            //     console.log(x, y, offset.top, offset.left);
+            // }
+            var offset = $('#screen').offset();
+            console.log("Y", y, window.innerHeight);
+            if (offset.top > 208) {
+                console.log("Y", y, y - offset.top);
+                y -= offset.top;
+            }
+            if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
+                this.mouseDown();
+            }
+        }
+
         this.numSteps++;
         if (!this.setupComplete) {
             // move in to position
@@ -54747,55 +54796,60 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             return true;
         }
 
-        var normalMovement = function(dt, theShip) {
-            if (theShip.numSteps > 6 * theShip.numPerMove) {
-                theShip.numSteps = 0;
-                theShip.moveRight = true;
-                game.aligned = true;
-            } else {
-                game.aligned = false;
-            }
-
-            if (theShip.numSteps != 0 && theShip.numSteps % theShip.numPerMove == 0) {
-                if (theShip.moveRight) {
-                    theShip.vel.x += theShip.accel.x * me.timer.tick;
-                } else {
-                    theShip.vel.x -= theShip.accel.x * me.timer.tick;
-                }
-            } else {
-                if (theShip.numSteps / theShip.numPerMove > 3) {
-                    theShip.moveRight = false;
-                }
-                theShip.vel.x = 0;
-            }
-
-            theShip.updateMovement();
-            if (theShip.vel.x != 0) {
-                // update object animation
-                theShip.parent(200);
-                return true;
-            }
-            return true;
-        };
-
 
         if (this.type == game.ENEMY_ENTITY_SUPER) {
-            return normalMovement(dt, this);
+            this.normalMovement.call(this, dt);
+            if (this.vel.x != 0) {
+                // update object animation
+                this.parent(200);
+            }
+            return true;
         }
 
         if (!this.isInSync) {
-            if (this.numSteps % this.numPerMove === 0) { // TODO increase this to make the game more choppy
+            if (this.numSteps % this.numPerMove === 0) { // increase this to make the game more choppy
                 this.vel.x = 0;
             }
             if (game.aligned) {
-                //console.log("now in sync", game.INITIATIVE_SHIP, game.INITIATIVE_SHIP.numSteps);
                 this.isInSync = true;
                 this.numSteps = 0;
             }
             return true;
         }
 
-        return normalMovement(dt, this);
+        this.normalMovement.call(this, dt);
+        if (this.vel.x != 0) {
+            // update object animation
+            this.parent(200);
+        }
+        return true;
+    },
+
+    normalMovement: function(dt) {
+        if (this.numSteps > 6 * this.numPerMove) {
+            this.numSteps = 0;
+            this.moveRight = true;
+            game.aligned = true;
+        } else {
+            game.aligned = false;
+        }
+
+        if (this.numSteps != 0 && this.numSteps % this.numPerMove == 0) {
+            if (this.moveRight) {
+                this.vel.x += this.accel.x * me.timer.tick;
+            } else {
+                this.vel.x -= this.accel.x * me.timer.tick;
+            }
+        } else {
+            if (this.numSteps / this.numPerMove > 3) {
+                this.moveRight = false;
+            }
+            this.vel.x = 0;
+        }
+
+        this.updateMovement();
+
+        return true;
     },
 
     /**
@@ -55264,6 +55318,7 @@ game.TitleScreen = me.ScreenObject.extend({
             if (action === "enter") {
                 // play something on tap / enter
                 // this will unlock audio on mobile devices
+                
                 me.state.change(me.state.PLAY);
             }
         });
@@ -55294,6 +55349,8 @@ game.TitleScreen = me.ScreenObject.extend({
      *  action to perform on state change
      */
     onResetEvent: function() {
+
+
         // Just load the level on page load
         // when data comes back fron the service, then show the ships, etc.
         me.levelDirector.loadLevel("area51");
@@ -55302,6 +55359,11 @@ game.TitleScreen = me.ScreenObject.extend({
         // otherwise, act on a purely event-driven approach
         game.farRight = game.WIDTH;
         game.shipScreen = this;
+
+        $('#controls').show();
+
+        me.input.bindKey(me.input.KEY.ENTER, "enter", true);
+        me.input.bindPointer(me.input.mouse.LEFT, me.input.KEY.ENTER);
 
         this.eventDrivenSetup();
     },
@@ -55313,7 +55375,6 @@ game.TitleScreen = me.ScreenObject.extend({
         
         var i = 0;
         game.startRallyShip();
-        
 
         // create a new one
         var team = me.pool.pull("rallyHunter", 64, game.WINDOW_HEIGHT - 64, {
@@ -55558,7 +55619,7 @@ game.TitleScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        console.log("SWAPPED!");
+                        //console.log("SWAPPED!");
                         return;
                     }
                 }
@@ -55641,13 +55702,13 @@ game.TitleScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        console.log("SWAPPED!");
+                        //console.log("SWAPPED!");
                         return;
                     } else {
-                        console.log("NO MATCH, COULD NOT SWAP");
+                        //console.log("NO MATCH, COULD NOT SWAP");
                     }
                 } else {
-                    console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
+                   // console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
                 }
                 
                 // oh well, we tried to make it more fun!
@@ -55745,6 +55806,8 @@ game.TitleScreen = me.ScreenObject.extend({
      *  action to perform when leaving this screen (state change)
      */
     onDestroyEvent: function() {
+        me.input.unbindKey(me.input.KEY.ENTER);
+        me.input.unbindPointer(me.input.mouse.LEFT);
         // remove all remaining ships
         _.each(game.OID_MAP, function(element, index, list) {
             if (element.ship) {
@@ -55813,13 +55876,9 @@ game.TitleScreen = me.ScreenObject.extend({
                     injector.get('LookbackService').connect(selectedRecord.get('ObjectID'));
 
                     $('#mute').click(function() {
-                        $('#muteIcon').toggleClass('hidden');
-                        $('#speakerIcon').toggleClass('hidden');
                         game.toggleMute();
                     });
                     $('#playPause').click(function() {
-                        $('#playIcon').toggleClass('hidden');
-                        $('#pauseIcon').toggleClass('hidden');
                         game.togglePlayPause();
                     });
 
@@ -56195,7 +56254,7 @@ module.factory('LookbackService', function() {
     return {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-                fetch: ["ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
+                fetch: ["_ref", "ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
                 hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
@@ -56204,7 +56263,7 @@ module.factory('LookbackService', function() {
                 proxy: 'rallylookbackjsonpproxy'
             });
 
-            lookbackStore.proxy.fetch = ["ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"];
+            lookbackStore.proxy.fetch = ["_ref", "ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"];
             lookbackStore.proxy.hydrate = ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"];
             lookbackStore.proxy.find = {
                 "_ItemHierarchy": itemHierarchy
@@ -56715,7 +56774,6 @@ var GameEventHandler = function(realtime) {
                         return;
                     }
                     if (func && object.data) {
-                        //console.log("EVENT HANDLER - " + func);
                         func(object.data);
                     } else if (func) {
                         func();
@@ -57006,18 +57064,18 @@ var GameEventHandler = function(realtime) {
   margin: 0;
   font-family: "Courier New", Courier, monospace;
 }
-#screen canvas {
+#screen > canvas {
   width: 1024px;
   height: 512px;
   /* Hide the gap for font descenders. */
   display: block;
   /* disable scaling interpolation */
-  image-rendering: optimizeSpeed;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -o-crisp-edges;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: optimize-contrast;
-  -ms-interpolation-mode: nearest-neighbor;
+  /*    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;*/
 }
 @font-face {
   font-family: arcadeClassic;
@@ -57115,9 +57173,9 @@ li {
 }
 #realtimeStatus {
   text-align: center;
-  -webkit-border-radius: 20px;
-  -moz-border-radius: 20px;
-  border-radius: 20px;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
   min-height: 20px;
 }
 .waiting {
@@ -57193,8 +57251,6 @@ li {
   width: 800px;
   top: 0;
   left: 50%;
-  padding-left: 10px;
-  padding-right: 10px;
   margin-left: -400px;
   color: black !important;
   background-color: white;
@@ -57203,20 +57259,36 @@ li {
   -moz-opacity: 1;
   -khtml-opacity: 1;
   opacity: 1;
+  padding: 10px;
 }
 #popup > img {
+  clear: both;
   margin: auto;
   display: block;
   width: 25%;
 }
-div.closePopup {
+#popup h1 {
+  text-align: center;
+}
+.workItemDetail {
+  position: absolute;
+  width: 200px;
+  color: black;
+  background-color: white;
+  padding: 5px;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+}
+div.closePopup,
+div.closeInfo {
+  text-align: center;
   float: right;
   height: 26px;
+  width: 100px;
   background-color: #ED1C24;
-  border: 1px solid black;
   cursor: pointer;
   color: white;
-  padding-left: 10px;
   padding-top: 4px;
 }
 div.bottomCenter {
@@ -57225,9 +57297,64 @@ div.bottomCenter {
   margin-right: auto;
   display: block;
 }
+.button {
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+  margin-right: 10px;
+  float: left;
+}
 h2 {
   margin-bottom: 0;
   padding-bottom: 0;
+}
+p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.detailList {
+  list-style-type: none;
+  padding: 0;
+}
+#aboutLegend {
+  color: white;
+  background-color: black;
+  padding: 5px;
+}
+.aboutImage {
+  float: right;
+  display: block;
+  clear: right;
+  margin: 5px;
+}
+#aboutLegend > div {
+  clear: both;
+}
+#initiativeImage {
+  background-image: url('data/img/new/super/superEnemy_white.png');
+  width: 256px;
+  height: 64px;
+}
+#featureImage {
+  background-image: url('data/img/new/large/largeEnemy_white.png');
+  width: 64px;
+  height: 32px;
+}
+#storyImage {
+  background-image: url('data/img/new/medium/mediumEnemy_white.png');
+  width: 32px;
+  height: 32px;
+}
+#taskImage {
+  background-image: url('data/img/new/small/smallEnemy_white.png');
+  width: 16px;
+  height: 16px;
+}
+#aboutLegend > hr {
+  clear: both;
+  border: 0;
+  border-bottom: 1px dashed #fff;
+  background: #000;
 }
 
     </style>
@@ -57258,32 +57385,38 @@ td.dataColumn {
     <div class="middle">
         <div id="howItWorks" class="hidden">
             <div id="popup">
-                <div class="closePopup">close</div>
+                <div class="closePopup button">close</div>
                 <img src="game/data/img/new/blastDownBackground.png" alt="Blast Down Chart">
                 <h1>How it Works</h1>
                 <h2>What is it?</h2>
-                <p>Welcome to the Blast Down Chart - a Portfolio Item visualization for your data in Rally.  The Blast Down chart is useful for viewing the entire history of a Rally initiative, but can also be used as a fun tool to reward your efforts in realtime.</p>
+                <p>The Blast Down Cart is a Portfolio Item visualization for your data in Rally.  The Blast Down chart shows the enitre history of a Rally Initiative, and is a fun tool to reward your efforts in realtime.</p>
                 <h2>How can we use it?</h2>
                 <p>We suggest you use it in a few ways:
-                    <ul>
+                    <ul list-style-type="square">
                         <li>To see the entire history of a completed work item</li>
                         <li>To display while teams work as part of a dashboard - as they complete work in Rally, it will be destroyed in the Blast Down Chart!</li>
                     </ul>
                 </p>
-                <h2>What do the ships mean?</h2>
-                <p>Each of the different types of ships represents a different piece of data in the Initiative you select.  If you ever wonder what a ship is, you can pause the game and click on a ship - this will bring up a window with the information for that work item.  In general, the larger the ship, the larger the work item.  Here is the exact correlation:
-                <div>Initiative</div>
-                <div>Feature</div>
-                <div>User Story</div>
-                <div>Task</div>
-                <div>Projects (Teams)</div>
+                <h2>What do the aliens mean?</h2>
+                <p>Each of the different types of alien ships represents a different piece of data in the Initiative you select.  If you ever wonder what an alien represents, just click on it - this will bring up a window with the information for that work item. The larger the alien, the larger the work item.  Here is the exact correlation:
+                <div id="aboutLegend">
+                    <div>Initiative<div class="aboutImage" id="initiativeImage"></div></div>
+                    <hr />
+                    <div>Feature<div class="aboutImage" id="featureImage"></div></div>
+                    <hr />
+                    <div>User Story<div class="aboutImage" id="storyImage"></div></div>
+                    <hr />
+                    <div>Task<div class="aboutImage" id="taskImage"></div></div>
+                </div>
                 </p>
-                <h2>What do the colors mean?</h2>
-                <p>The ships at the bottom represent the teams, and their colors correlate to the score in the scoreboard.  The ships on the screen are colored according to their realtionship - Features are assigned a color, and the stories or tasks that are parented to that feature in Rally are given the same color.</p>
+                <p>The aliens on the screen are colored according to their realtionship - Features are assigned a color, and the stories or tasks that are parented to that feature in Rally are given the same color.
+                </p>
+                <h2>What do the ships mean?</h2>
+                <p>The ships at the bottom represent the teams, and their colors correlate to the score in the scoreboard.</p>
                 <h2>How does scoring work?</h2>
                 <p>Scores are calcuated using story points for each story that is completed.  If a story has no points assigned, the team will get no points for completing it.  You can also switch the scoreboard to report scores in terms of the number of stories completed, if you prefer.</p>
                 <h1>We hope you enjoy this new way to visualize your data in Rally!</h1>
-                <div class="closePopup bottomCenter">close</div>
+                <div class="closePopup bottomCenter button">close</div>
             </div>
         </div>
         <div id="overlay" class="hidden"></div>
@@ -57332,35 +57465,37 @@ td.dataColumn {
                         <div id="realtimeStatus" class="{{realtimeStatus.toLowerCase()}}">
                             Realtime Status: {{realtimeStatus}}
                         </div>
-                        <div id="playPause" class="column">
-                            <img src="images/play.png" id="playIcon" class="hidden" alt="Play" title="Play Icon">
-                            <img src="images/pause.png" id="pauseIcon" alt="Pause" title="Pause Icon">
-                        </div> 
-                        <div id="mute" class="column">
-                            <img src="images/muteIcon.png" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
-                            <img src="images/speakerIcon.png" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">
-                        </div> 
-                        <div class="column">Speed:
-                            <select id="speed">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5" selected="selected">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                            </select>
-                        </div>
-                        <div class="column">Filter Log:
-                            <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
-                              <option value="">All</option>
-                              <option value="created">Created</option>
-                              <option value="completed">Completed</option>
-                              <option value="recycled">Recycled</option>
-                            </select>
+                        <div id="controls" class="hidden">
+                            <div id="playPause" class="column">
+                                <img src="images/play.png" id="playIcon" class="hidden" alt="Play" title="Play Icon">
+                                <img src="images/pause.png" id="pauseIcon" alt="Pause" title="Pause Icon">
+                            </div> 
+                            <div id="mute" class="column">
+                                <img src="images/muteIcon.png" id="muteIcon" class="hidden" alt="Mute_Icon.svg" title="Mute icon">
+                                <img src="images/speakerIcon.png" id="speakerIcon" alt="Speaker_Icon.svg" title="Unmute/speaker icon">
+                            </div> 
+                            <div class="column">Speed:
+                                <select id="speed">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5" selected="selected">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="10">10</option>
+                                </select>
+                            </div>
+                            <div class="column">Filter Log:
+                                <select ng-model="selectedOption" ng-change="setSelectedOption(selectedOption)" id="filterEvents">
+                                  <option value="">All</option>
+                                  <option value="created">Created</option>
+                                  <option value="completed">Completed</option>
+                                  <option value="recycled">Recycled</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="content">

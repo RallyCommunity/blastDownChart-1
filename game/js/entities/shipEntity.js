@@ -56,6 +56,9 @@ game.Ship = me.ObjectEntity.extend({
 
                 game.removeOidFromMap(this.objectID, true);
                 if (this.renderable) {
+                    if (this.tween) {
+                        this.tween.stop();
+                    }
                     (new me.Tween(this.renderable))
                         .to({
                             alpha: 0
@@ -71,26 +74,56 @@ game.Ship = me.ObjectEntity.extend({
     },
 
     mouseDown: function() {
-        this.renderable.flicker(750);
-        $('.workItemDetail').remove();
-        // TODO top and left positions
-        var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><h1>" + this.record.get("Name") + "</h1></div>").css({top: 256, left: 1024, position:'absolute'});
-        $('body').append(info);
+        if (me.input.keyStatus('enter')) {
+            // check if this is me
 
-        $('.closeInfo').click(function(){
-            $('.workItemDetail').remove();
-        });
+            var x = me.input.mouse.pos.x;
+            var y = me.input.mouse.pos.y; // - 208;
+            // if (this.type == game.ENEMY_ENTITY_SUPER) {
+            //     var offset = $('#screen').offset();
+            //     console.log(x, y, offset.top, offset.left);
+            // }
+            var offset = $('#screen').offset();
+            console.log("Y", y, window.innerHeight);
+            if (offset.top > 208) {
+                console.log("Y", y, y - offset.top);
+                y -= offset.top;
+            }
+            if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
+                
+                this.tween = new me.Tween(this.renderable)
+                    .to({
+                        alpha: .2
+                    }, 500);
+
+                var tween2 = new me.Tween(this.renderable)
+                    .to({
+                        alpha: 1
+                    }, 500);
+
+                this.tween.chain(tween2);
+                this.tween.start();
+                $('.workItemDetail').remove();
+
+                var list = "<li><strong>FormattedID:</strong> " + this.record.get("FormattedID") + "</a>" + "</li>" +
+                    "<li><strong>Name:</strong> " + this.record.get("Name") + "</li>";
+                    
+                // TODO top and left positions
+                var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><ul class='detailList'>" +
+                    list + "</ul></div>").css({top: $('#screen').offset().top, left: 1024, position:'absolute'});
+
+                $('body').append(info);
+                $('.workItemDetail').fadeIn();
+                $('.closeInfo').click(function(){
+                    $('.workItemDetail').remove();
+                });
+            }
+        }
+
     },
 
     update: function(dt) {
-        if (me.input.keyStatus('enter')) {
-            // check if this is me
-            var x = me.input.mouse.pos.x;
-            var y = me.input.mouse.pos.y - 208;
-            if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
-                this.mouseDown();
-            }
-        }
+        this.mouseDown();
 
         this.numSteps++;
         if (!this.setupComplete) {

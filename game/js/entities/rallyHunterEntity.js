@@ -216,6 +216,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
             console.log("going to victory screen");
+            game.angularScope.eventHandler.stopEvents();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {

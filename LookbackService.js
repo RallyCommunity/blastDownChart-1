@@ -253,7 +253,7 @@ module.factory('LookbackService', function() {
     return {
         connect: function(itemHierarchy) {
             lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-                fetch: ["ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
+                fetch: ["_ref", "ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"], //['ObjectID', '_TypeHierarchy', 'State', 'ScheduleState', ], // what are all the fields I might need?
                 hydrate: ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"],
                 pageSize: PAGE_SIZE,
                 findConfig: {
@@ -262,7 +262,7 @@ module.factory('LookbackService', function() {
                 proxy: 'rallylookbackjsonpproxy'
             });
 
-            lookbackStore.proxy.fetch = ["ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"];
+            lookbackStore.proxy.fetch = ["_ref", "ObjectID", "_VaildFrom", "_ValidTo", "Recycled", "ActualEndDate", "ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID", "Name", "Parent", "Feature", "DirectChildrenCount", "Children", "UserStories", "Tasks", "PlanEstimate", "_ItemHierarchy"];
             lookbackStore.proxy.hydrate = ["Recycled", "ScheduleState", "State", "_TypeHierarchy", "FormattedID", "Children", "UserStories", "Feature"];
             lookbackStore.proxy.find = {
                 "_ItemHierarchy": itemHierarchy

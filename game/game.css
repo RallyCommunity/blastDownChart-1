@@ -122,7 +122,7 @@ body {
     max-height: 198px;
 }
 
-ul {
+#historyLog {
     list-style-type: none;
 }
 
@@ -179,8 +179,9 @@ li {
 }
 
 #scoreboardTable > tbody > tr > td, #scoreboardTable > thead > tr > th {  
-    padding: 5px 15px;
+    padding: 5px 5px;
     text-align: center;
+    font-size: 14px;
 }
 
 #scoreboardTable > tbody > tr > td:first-child, #scoreboardTable > thead > tr > th:first-child {  
@@ -206,7 +207,7 @@ li {
     display: none;
 }
 
-.header > .column {
+#controls > .column {
     display: table-cell;
     vertical-align: middle;
     float: left;
@@ -214,7 +215,7 @@ li {
     line-height: 32px;
 }
 
-.header > .column > select {
+#controls > .column  > select {
     display: inline;
 }
 
@@ -249,17 +250,25 @@ li {
 }
 
 #popup > img {
+    clear: both;
     margin: auto;
     display: block;
     width: 25%;
 }
 
+#popup h1 {
+    text-align: center;
+}
+
 .workItemDetail {
     position:absolute;
-    width: 200px;
+    width: 256px;
     color: black;
     background-color: white;
     padding: 5px;
+    -webkit-border-radius: 2px;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
 }
 
 div.closePopup, div.closeInfo {
@@ -271,6 +280,7 @@ div.closePopup, div.closeInfo {
     cursor:pointer;
     color: white;
     padding-top: 4px;
+
 }
 
 div.bottomCenter {
@@ -291,4 +301,62 @@ div.bottomCenter {
 h2 {
     margin-bottom: 0;
     padding-bottom: 0;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.detailList {
+    clear: both;
+    padding: 0;
+}
+
+#aboutLegend {
+    color: white;
+    background-color: black;
+    padding: 5px;
+}
+
+.aboutImage {
+    float: right;
+    display: block;
+    clear: right;
+    margin: 5px;
+}
+
+#aboutLegend > div {
+    clear: both;
+}
+
+#initiativeImage {
+    background-image: url('data/img/new/super/superEnemy_white.png');
+    width: 256px;
+    height: 64px;
+}
+
+#featureImage {
+    background-image: url('data/img/new/large/largeEnemy_white.png');
+    width: 64px;
+    height: 32px;
+}
+
+#storyImage {
+    background-image: url('data/img/new/medium/mediumEnemy_white.png');
+    width: 32px;
+    height: 32px;
+}
+
+#taskImage {
+    background-image: url('data/img/new/small/smallEnemy_white.png');
+    width: 16px;
+    height: 16px;
+}
+
+#aboutLegend > hr {
+    clear: both;
+    border: 0;
+    border-bottom: 1px dashed #fff;
+    background: #000;
 }

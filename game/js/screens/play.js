@@ -25,6 +25,8 @@ game.PlayScreen = me.ScreenObject.extend({
         game.farRight = game.WIDTH;
         game.shipScreen = this;
 
+        $('#controls').show();
+
         me.input.bindKey(me.input.KEY.ENTER, "enter", true);
         me.input.bindPointer(me.input.mouse.LEFT, me.input.KEY.ENTER);
 
@@ -471,6 +473,8 @@ game.PlayScreen = me.ScreenObject.extend({
     onDestroyEvent: function() {
         me.input.unbindKey(me.input.KEY.ENTER);
         me.input.unbindPointer(me.input.mouse.LEFT);
+
+        $('#controls').hide();
         // remove all remaining ships
         _.each(game.OID_MAP, function(element, index, list) {
             if (element.ship) {
