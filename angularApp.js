@@ -45,7 +45,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     game.onload();
 
-    $scope.addLogItem = function(logItem, date, className) {
+    $scope.addLogItem = function(logItem, date, applyClass) {
         var dateString;
         if (!date) {
             dateString = moment().format("MM-MM-DD-YY HH:mm");
@@ -57,7 +57,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         $scope.logItems.unshift({
             date: dateString,
             note: logItem,
-            className: className
+            applyClass: applyClass
         });
         $scope.$digest();
     };

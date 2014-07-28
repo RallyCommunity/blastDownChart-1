@@ -53458,8 +53458,10 @@ var game = {
     showHowItWorks: function() {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
-        if (game.POSITION_MANAGER) {
+        if (game.POSITION_MANAGER && game.play) {
+            console.log("play", game.play);
             game.togglePlayPause();
+            console.log("play", game.play);
         }
     },
 
@@ -53467,7 +53469,7 @@ var game = {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
         if (!game.play) {
-            game.resume();
+            game.togglePlayPause();
         }
     },
 
@@ -53481,46 +53483,52 @@ var game = {
     togglePlayPause: function() {
         if (game.POSITION_MANAGER) {
             this.play = !this.play;
-            $('#playIcon').toggleClass('hidden');
-            $('#pauseIcon').toggleClass('hidden');
+
             if (!this.play) {
                 // pause the game
                 game.pause();
             } else {
+
                 game.resume();
             }
         }
     },
 
     resume: function() {
+        $('#playIcon').addClass('hidden');
+        $('#pauseIcon').removeClass('hidden');
         // unmask, restart updates, play through queue of events
         game.angularScope.eventHandler.playThrough();
 
         // restart the enemy ships
         _.each(game.OID_MAP, function(value, key) {
-            if (value.ship) {
+            if (value.ship && value.cachedUpdate) {
                 value.ship.update = value.cachedUpdate;
             }
         });
 
         // restart the player ships
         _.each(game.TEAM_SHIPS, function(value, key) {
-            value.update = value.cachedUpdate;
+            if (value.cachedUpdate) {
+                value.update = value.cachedUpdate;
+                value.setVelocity(game.SPEED, 0);
+            }
+            
         });
-
-        // stop listening for clicks
-        $('canvas').click(function(e) {});
 
         this.startRallyShip();
     },
 
     pause: function() {
+        $('#playIcon').removeClass('hidden');
+        $('#pauseIcon').addClass('hidden');
         // stop updates, mask screen, stop going through queue of events
-        game.angularScope.eventHandler.stopEvents();
+        game.angularScope.eventHandler.pauseEvents();
         _.each(game.OID_MAP, function(value, key) {
             if (value.ship) {
                 value.cachedUpdate = value.ship.update;
                 value.ship.update = function(dt) {
+                    this.mouseDown();
                     return true;
                 }
             }
@@ -53666,10 +53674,12 @@ var game = {
     setSpeed: function(speed) {
         game.SPEED = speed % 11;
 
-        _.each(game.TEAM_SHIPS, function(ship) {
-            ship.setVelocity(game.SPEED, 0);
-        });
-        game.angularScope.eventHandler.resetSpeed();
+        if (game.play) {
+            _.each(game.TEAM_SHIPS, function(ship) {
+                ship.setVelocity(game.SPEED, 0);
+            });
+            game.angularScope.eventHandler.resetSpeed();
+        }
     },
 
     getTeam: function(teamOid) {
@@ -54366,6 +54376,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
             console.log("going to victory screen");
+            game.angularScope.eventHandler.stopEvents();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {
@@ -54631,7 +54642,8 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target);
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            console.log("going to victory screen!")
+            console.log("going to victory screen!");
+            game.angularScope.eventHandler.resetSpeed();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {
@@ -54730,6 +54742,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
                 game.removeOidFromMap(this.objectID, true);
                 if (this.renderable) {
+                    if (this.tween) {
+                        this.tween.stop();
+                    }
                     (new me.Tween(this.renderable))
                         .to({
                             alpha: 0
@@ -54745,42 +54760,60 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
     },
 
     mouseDown: function() {
-        this.renderable.flicker(750);
-        $('.workItemDetail').remove();
+        if (me.input.keyStatus('enter')) {
+            var x = me.input.mouse.pos.x;
+            var y = me.input.mouse.pos.y;
 
-        var list = "<li>FormattedID: " + this.record.get("FormattedID") + "</a>" + "</li>" +
-            "<li>Name: " + this.record.get("Name") + "</li>";
-            
-        // TODO top and left positions
-        var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><ul class='detailList'>" +
-            list + "</ul></div>").css({top: 256, left: 1024, position:'absolute'});
-        $('body').append(info);
+            var offset = $('#screen').offset();
 
-        $('.closeInfo').click(function(){
-            $('.workItemDetail').remove();
-        });
+            if (offset.top > 208) {
+                y -= offset.top;
+            }
+
+            if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
+                
+                this.tween = new me.Tween(this.renderable)
+                    .to({
+                        alpha: .2
+                    }, 500);
+
+                var tween2 = new me.Tween(this.renderable)
+                    .to({
+                        alpha: 1
+                    }, 500);
+
+                this.tween.chain(tween2);
+                this.tween.start();
+                $('.workItemDetail').remove();
+
+                var list = "<li><strong>FormattedID:</strong> " + this.record.get("FormattedID") + "</a>" + "</li>" +
+                    "<li><strong>Name:</strong> " + this.record.get("Name") + "</li>";
+
+                var feat = this.record.get('Feature');
+                if (feat && game.OID_MAP[feat]) {
+                    if (game.OID_MAP[feat].ship) {
+                        list += "<li><strong>Feature:</strong> " + game.OID_MAP[feat].ship.record.get('Name') + "</li>";
+                    } else if (game.OID_MAP[feat].record) {
+                        list += "<li><strong>Feature:</strong> " + game.OID_MAP[feat].record.get('Name') + "</li>";
+                    }
+                }
+                    
+                // TODO top and left positions
+                var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><ul class='detailList'>" +
+                    list + "</ul></div>").css({top: $('#screen').offset().top, left: 1024, position:'absolute'});
+
+                $('body').append(info);
+                $('.workItemDetail').fadeIn();
+                $('.closeInfo').click(function(){
+                    $('.workItemDetail').remove();
+                });
+            }
+        }
+
     },
 
     update: function(dt) {
-        if (me.input.keyStatus('enter')) {
-            // check if this is me
-
-            var x = me.input.mouse.pos.x;
-            var y = me.input.mouse.pos.y; // - 208;
-            // if (this.type == game.ENEMY_ENTITY_SUPER) {
-            //     var offset = $('#screen').offset();
-            //     console.log(x, y, offset.top, offset.left);
-            // }
-            var offset = $('#screen').offset();
-            console.log("Y", y, window.innerHeight);
-            if (offset.top > 208) {
-                console.log("Y", y, y - offset.top);
-                y -= offset.top;
-            }
-            if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
-                this.mouseDown();
-            }
-        }
+        this.mouseDown();
 
         this.numSteps++;
         if (!this.setupComplete) {
@@ -55808,6 +55841,8 @@ game.TitleScreen = me.ScreenObject.extend({
     onDestroyEvent: function() {
         me.input.unbindKey(me.input.KEY.ENTER);
         me.input.unbindPointer(me.input.mouse.LEFT);
+
+        $('#controls').hide();
         // remove all remaining ships
         _.each(game.OID_MAP, function(element, index, list) {
             if (element.ship) {
@@ -55947,7 +55982,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     game.onload();
 
-    $scope.addLogItem = function(logItem, date, className) {
+    $scope.addLogItem = function(logItem, date, applyClass) {
         var dateString;
         if (!date) {
             dateString = moment().format("MM-MM-DD-YY HH:mm");
@@ -55959,7 +55994,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
         $scope.logItems.unshift({
             date: dateString,
             note: logItem,
-            className: className
+            applyClass: applyClass
         });
         $scope.$digest();
     };
@@ -56752,6 +56787,11 @@ var GameEventHandler = function(realtime) {
         scope.disconnectRealtime();
     };
 
+    this.pauseEvents = function() {
+        clearInterval(timer);
+        timer = null;
+    };
+
     this.resetSpeed = function() {
         if (timer) {
             clearInterval(timer);
@@ -57151,7 +57191,7 @@ var GameEventHandler = function(realtime) {
   margin-right: auto;
   max-height: 198px;
 }
-ul {
+#historyLog {
   list-style-type: none;
 }
 li {
@@ -57201,8 +57241,9 @@ li {
 }
 #scoreboardTable > tbody > tr > td,
 #scoreboardTable > thead > tr > th {
-  padding: 5px 15px;
+  padding: 5px 5px;
   text-align: center;
+  font-size: 14px;
 }
 #scoreboardTable > tbody > tr > td:first-child,
 #scoreboardTable > thead > tr > th:first-child {
@@ -57223,14 +57264,14 @@ li {
 .hidden {
   display: none;
 }
-.header > .column {
+#controls > .column {
   display: table-cell;
   vertical-align: middle;
   float: left;
   margin-left: 20px;
   line-height: 32px;
 }
-.header > .column > select {
+#controls > .column > select {
   display: inline;
 }
 #overlay {
@@ -57272,7 +57313,7 @@ li {
 }
 .workItemDetail {
   position: absolute;
-  width: 200px;
+  width: 256px;
   color: black;
   background-color: white;
   padding: 5px;
@@ -57313,7 +57354,7 @@ p {
   margin-bottom: 0;
 }
 .detailList {
-  list-style-type: none;
+  clear: both;
   padding: 0;
 }
 #aboutLegend {
@@ -57500,7 +57541,7 @@ td.dataColumn {
                     </div>
                     <div class="content">
                         <ul id="historyLog">
-                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.class}}">{{logItem.note}}</li>
+                          <li ng-repeat="logItem in logItems | filter:filters" class="{{logItem.applyClass}}">{{logItem.note}}</li>
                         </ul>
                     </div>
                 </div>

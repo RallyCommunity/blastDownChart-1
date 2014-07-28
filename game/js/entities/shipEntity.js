@@ -75,20 +75,15 @@ game.Ship = me.ObjectEntity.extend({
 
     mouseDown: function() {
         if (me.input.keyStatus('enter')) {
-            // check if this is me
-
             var x = me.input.mouse.pos.x;
-            var y = me.input.mouse.pos.y; // - 208;
-            // if (this.type == game.ENEMY_ENTITY_SUPER) {
-            //     var offset = $('#screen').offset();
-            //     console.log(x, y, offset.top, offset.left);
-            // }
+            var y = me.input.mouse.pos.y;
+
             var offset = $('#screen').offset();
-            console.log("Y", y, window.innerHeight);
+
             if (offset.top > 208) {
-                console.log("Y", y, y - offset.top);
                 y -= offset.top;
             }
+
             if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
                 
                 this.tween = new me.Tween(this.renderable)
@@ -107,6 +102,15 @@ game.Ship = me.ObjectEntity.extend({
 
                 var list = "<li><strong>FormattedID:</strong> " + this.record.get("FormattedID") + "</a>" + "</li>" +
                     "<li><strong>Name:</strong> " + this.record.get("Name") + "</li>";
+
+                var feat = this.record.get('Feature');
+                if (feat && game.OID_MAP[feat]) {
+                    if (game.OID_MAP[feat].ship) {
+                        list += "<li><strong>Feature:</strong> " + game.OID_MAP[feat].ship.record.get('Name') + "</li>";
+                    } else if (game.OID_MAP[feat].record) {
+                        list += "<li><strong>Feature:</strong> " + game.OID_MAP[feat].record.get('Name') + "</li>";
+                    }
+                }
                     
                 // TODO top and left positions
                 var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><ul class='detailList'>" +
