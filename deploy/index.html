@@ -10,34 +10,34 @@
         // I am keeping the extra , in there to simplify my code. If someone is actually using an old version of IE to make an app let me know.
         Rally.loadScripts(
                 [
-                      "bower_components/angular/angular.min.js",
-                      "bower_components/jquery/dist/jquery.min.js",
-                      "bower_components/moment/min/moment.min.js",
-                      "scripts/melonJS-1.0.1.js",
-                      "game/WsapiAggregator.js",
-                      "game/js/point.js",
-                      "game/js/game.js",
-                      "game/js/resources.js",
-                      "game/js/PositionManager.js",
-                      "game/js/ColorManager.js",
-                      "game/js/entities/labelEntity.js",
-                      "game/js/entities/rallyHunterEntity.js",
-                      "game/js/entities/rallyShipEntity.js",
-                      "game/js/entities/playerEntity.js",
-                      "game/js/entities/shipEntity.js",
-                      "game/js/entities/explosionEntity.js",
-                      "game/js/entities/bulletEntity.js",
-                      "game/js/screens/victory.js",
-                      "game/js/screens/title.js",
-                      "game/js/screens/play.js",
-                      "App/App.js",
-                      "App/angularApp.js",
-                      "App/LookbackService.js",
-                      "realtime/reconnecting-websocket.js",
-                      "realtime/alm-realtime.js",
-                      "realtime/RealtimeDataHandler.js",
-                      "realtime/RealTimeDataService.js",
-                      "game/GameEventHandler.js",
+                      "../bower_components/angular/angular.min.js",
+                      "../bower_components/jquery/dist/jquery.min.js",
+                      "../bower_components/moment/min/moment.min.js",
+                      "../scripts/melonJS-1.0.1.js",
+                      "../game/WsapiAggregator.js",
+                      "../game/js/point.js",
+                      "../game/js/game.js",
+                      "../game/js/resources.js",
+                      "../game/js/PositionManager.js",
+                      "../game/js/ColorManager.js",
+                      "../game/js/entities/labelEntity.js",
+                      "../game/js/entities/rallyHunterEntity.js",
+                      "../game/js/entities/rallyShipEntity.js",
+                      "../game/js/entities/playerEntity.js",
+                      "../game/js/entities/shipEntity.js",
+                      "../game/js/entities/explosionEntity.js",
+                      "../game/js/entities/bulletEntity.js",
+                      "../game/js/screens/victory.js",
+                      "../game/js/screens/title.js",
+                      "../game/js/screens/play.js",
+                      "../App/App.js",
+                      "../App/angularApp.js",
+                      "../App/LookbackService.js",
+                      "../realtime/reconnecting-websocket.js",
+                      "../realtime/alm-realtime.js",
+                      "../realtime/RealtimeDataHandler.js",
+                      "../realtime/RealTimeDataService.js",
+                      "../game/GameEventHandler.js",
                 ],
         function() {
             Rally.launchApp('CustomApp', {
@@ -46,8 +46,8 @@
         }, true);
     </script>
 
-    <link rel="stylesheet" type="text/css" href="game/game.css">
-    <link rel="stylesheet" type="text/css" href="App/app.css">
+    <link rel="stylesheet" type="text/css" href="../game/game.css">
+    <link rel="stylesheet" type="text/css" href="../App/app.css">
 </head>
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
