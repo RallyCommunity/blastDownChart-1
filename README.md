@@ -5,6 +5,15 @@ Blast Down Chart
 A data visualization for Rally Software projects inspired by Space Invaders.
 This is a Summer 2014 Intern project.
 
+## Fork this repo
+Assuming you already have the RallyAppBuilder and bower installed: 
+* `git clone https://github.com/thans/spaceInvadersBlastDown.git`
+* `cd spaceInvadersBlastDown`
+* `bower install`
+* `rab build`
+* `open App-debug.html` (you might need to allow access from files in your browser)
+
+
 ## Acknowledgements
 A special thank you to Grant Miller for helping create some awesome graphics.  Thank you to Charles and Chase for your support, criticism, and encouragement along the way.  Thanks to April Bender for helping brainstorm what this might look like and steering along the way.
 
