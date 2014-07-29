@@ -48,23 +48,6 @@ game.VictoryScreen = me.ScreenObject.extend({
         setInterval(function() {
             victory.explosions(time++);
         }, 1500);
-
-
-        
-        var victoryImg = me.loader.getImage('victoryImage');
-        // TODO
-        this.victoryImage = new me.ObjectEntity(game.WIDTH / 2 - 256, 768, {
-            image: victoryImg,
-            x: game.WIDTH / 2 - 256,
-            y: 768,
-            width: 512,
-            height: 128,
-            spritewidth: 512,
-            spriteheight: 128,
-            z: Number.POSITIVE_INFINITY
-        });
-        me.game.world.addChild(this.victoryImage, Number.POSITIVE_INFINITY);
-
      
         // add a new renderable component with the scrolling text
         me.game.world.addChild(new (me.Renderable.extend({
@@ -73,7 +56,6 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
                 this.font = new me.Font("pressStart", 32, "white", "center");
-
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
@@ -94,13 +76,32 @@ game.VictoryScreen = me.ScreenObject.extend({
              
             draw : function (context) {
                 this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
-                
             },
             onDestroyEvent : function() {
                 //just in case
                 this.scrollertween.stop();
             }
         }))(), 3);
+
+        var victoryDisplay = me.Renderable.extend({
+            // constructor
+            init : function() {
+                this.parent(new me.Vector2d(game.WINDOW_WIDTH / 2 - 256, 320), 512, 128);
+                
+                this.victoryImg = me.loader.getImage('victoryImage');
+                console.log(this.victoryImg);
+            },
+         
+            update : function (dt) {
+                return true;
+            },
+             
+            draw : function (context) {
+                context.drawImage(this.victoryImg, this.pos.x, this.pos.y);
+            }
+        });
+
+        me.game.world.addChild(new victoryDisplay(), Number.POSITIVE_INFINITY);
     },
 
     explosions: function(time) {
