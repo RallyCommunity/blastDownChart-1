@@ -71,7 +71,6 @@ var GameEventHandler = function(realtime) {
                 if (object && object.event && object.event.type) {
                     var func = handler[object.event.type.replace('/','').replace('-', '_')];
                     if (object.data && object.data.record && game.endDate && moment(object.data.record.get('_ValidFrom')).isAfter(game.endDate)) {
-                        console.log("CLEARING INTERVAL OF GAME EVENT HANDLER");
                         clearInterval(timer);
                         game.historyFinished();
                         return;
@@ -80,16 +79,10 @@ var GameEventHandler = function(realtime) {
                         func(object.data);
                     } else if (func) {
                         func();
-                    } else {
-                        console.log("no func", func);
                     }
                 }
             }, 200 / game.SPEED);
         }
-    };
-
-    this.History_Completed = function() {
-        //console.log("HISTORY COMPLETED");
     };
 
     this.PortfolioItemInitiative_Created = function(data) {

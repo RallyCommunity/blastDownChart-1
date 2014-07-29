@@ -63,11 +63,9 @@ game.PlayScreen = me.ScreenObject.extend({
     addInitiative: function(record, oid, date) {
         if (this.numInitiative < 1) {
             var offset = 32;
-            console.info("putting initiative at x: " + (game.WIDTH / 2 - game.MOTHERSHIP.width / 2) + " y: " + game.PADDING, game.WIDTH, game.MOTHERSHIP);   
             this.addEnemy(record, oid, date, "super_white", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2 + offset, game.PADDING);
             this.numInitiative = 1;
-            game.initiative = record;  
-            console.log("INITIATIVE SHIP", game.INITIATIVE_SHIP);           
+            game.initiative = record;          
         }
     },  
 
@@ -95,9 +93,7 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addStory: function(record, oid, date, pt) {
-        //console.log("add story");
         if (record.get('ObjectID') != oid) {
-            console.error("object id not equal to oid", record, oid);
             return;
         }
         if (game.OID_MAP[oid] && game.OID_MAP[oid].ship) {
@@ -132,7 +128,6 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     addTask: function(record, oid, date, pt) {
-        //console.log("add task");
         var featureOid = record.get('Feature');
         var x = 0;
         var color = game.COLOR_MANAGER.getTaskColor(featureOid);
@@ -204,7 +199,6 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateInitiative: function(record, oid, date) {
-        //console.log("update initiative");
         if (game.INITIATIVE_SHIP) {
             game.INITIATIVE_SHIP.record = record;
         }
@@ -215,7 +209,6 @@ game.PlayScreen = me.ScreenObject.extend({
             game.historyFinishedData = {
                 oid: oid
             }
-            console.log("Completed initiative at " + game.endDate);
             game.historyFinished();
         }
         
@@ -230,7 +223,6 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateFeature: function(record, oid, date) {
-        //console.log("update feature");
         var endDate = record.get('ActualEndDate');
         var obj = game.OID_MAP[oid];
         var teamShip;
@@ -304,7 +296,6 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateStory: function(record, oid, date) {
-        //console.log("update story");
         var feature = record.get('Feature');
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];

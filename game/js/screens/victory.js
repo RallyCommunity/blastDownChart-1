@@ -8,6 +8,8 @@ game.VictoryScreen = me.ScreenObject.extend({
      */
     onResetEvent : function() {
         // title screen
+        game.angularScope.addLogItem("Blast Down Completed", moment().format("MM-MM-DD-YY HH:mm"), 'init');
+
         me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('background')), 1);
 
         // Add all destruction animations
@@ -89,7 +91,6 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.parent(new me.Vector2d(game.WINDOW_WIDTH / 2 - 256, 320), 512, 128);
                 
                 this.victoryImg = me.loader.getImage('victoryImage');
-                console.log(this.victoryImg);
             },
          
             update : function (dt) {

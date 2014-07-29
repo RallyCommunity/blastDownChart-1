@@ -8,7 +8,6 @@ function RealtimeDataHandler() {
     var wsapiAggregator = new WSAPIAggregator(eventTrigger);
 
     this.handleRealtimeMessage = function(data) {
-        console.log(data);
         // do we have enough information to act on this
         if (data && data.type == 'event' && data.data && data.data.action) {
             var offset, valueOffset;
@@ -35,8 +34,6 @@ function RealtimeDataHandler() {
             } else {
                 // query wsapi for more information
                 wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
-                    console.log("got ", record);
-                    console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
                     eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
                         {
                             record: record,
@@ -48,10 +45,8 @@ function RealtimeDataHandler() {
                 });
             }
         } else if (data.status) {
-            //console.info("trigger status");
             eventTrigger.trigger('RealtimeConnection-Status', {status: data.status, date: new Date()});
         } else {
-            //console.info("trigger other");
             eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
     };

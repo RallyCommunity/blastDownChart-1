@@ -20,7 +20,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.logItems = [{
         date: moment().format("MM-MM-DD-YY HH:mm"),
-        note: "Space Invaders Blast Down Initialized",
+        note: "Blast Down Initialized",
         applyClass: 'init'
     }];
 

@@ -19,7 +19,7 @@ game.BulletEntity = me.ObjectEntity.extend({
         
         this.teamShip = settings.teamShip;
         if (!settings.teamShip) {
-            console.error('no team ship provided', settings);
+            //console.error('no team ship provided', settings);
         }
 
         this.type = game.BULLET;

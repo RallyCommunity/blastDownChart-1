@@ -53,8 +53,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft,  16 + topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
     }
 
-    console.log("available", availablePositions.medium);
-
     var nextFeatureIndex = -1;
     var initial = true;
 
@@ -195,7 +193,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             index += addBackTo.length / 2;
         }
         if (addBackTo[index]) {
-            console.error("[X][X][X][X] - this should never happen - at index " + index, addBackTo, width, x, y);
+            //console.error("[X][X][X][X] - this should never happen - at index " + index, addBackTo, width, x, y);
         } else {
             addBackTo[index] = new Point(x, y);
         }

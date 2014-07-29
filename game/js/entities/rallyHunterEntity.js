@@ -112,7 +112,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
                 this.targets.push(target);
             }
-            console.log('added target', target);
             this.indicateTarget();
             if (game.OID_MAP[target.objectID]) {
                 game.OID_MAP[target.objectID].targeted = this.team || true;
@@ -123,7 +122,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 }
             }
         } else {
-            console.log("Not added as a target", game.OID_MAP[target.objectID], target);
         }
         
     },
@@ -215,7 +213,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         var hunterShip = this;
 
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            console.log("going to victory screen");
             game.angularScope.eventHandler.stopEvents();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 

@@ -194,7 +194,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target);
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            console.log("going to victory screen!");
             game.angularScope.eventHandler.resetSpeed();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 

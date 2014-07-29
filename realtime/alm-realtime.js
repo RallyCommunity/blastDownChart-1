@@ -3,8 +3,6 @@ function Realtime() {
 
     this.getSubscribeMessage = function() {
         var projectUuid = Rally.environment.getContext().getProject()._refObjectUUID;
-        //console.log('project', Rally.environment.getContext().getProject());
-        //console.log('ProjectUuid', projectUuid);
         return JSON.stringify({
                 uri: '/_subscribe',
                     "request-method": "post",
@@ -64,7 +62,6 @@ function Realtime() {
         var recordType = this.getStateFieldValue(data, 'object_type') || this.getTypeFromScope(data);
 
         if(!recordType) {
-            console.log("failed to get the type of artifact that changed", data);
             return;
         }
         var me = this;
@@ -118,33 +115,15 @@ function Realtime() {
         }
     };
 
-    // this.connect = function() {
-    //     console.log('realtime: connecting');
-    //     var connection = new ReconnectingWebSocket(this.ENDPOINT);
-    //     var me = this;
-    //     connection.onopen = function() {
-    //         console.log("realtime: connected");
-    //         connection.send(me.getSubscribeMessage());
-    //     };
-    //     connection.onerror = function(e) {
-    //         console.log('realtime: error', arguments);
-    //     };
-
-    //     return connection;
-    // }
-
     this.connectTo = function(uuids) {
-        //console.log('realtime: connecting');
         var connection = new ReconnectingWebSocket(this.ENDPOINT);
         var me = this;
         connection.onopen = function() {
-            //console.log("realtime: connected");
             _.each(uuids, function(uuid) {
                 connection.send(me.getSubscribeMessageByUuid(uuid));
             });
         };
         connection.onerror = function(e) {
-            //console.log('realtime: error', arguments);
         };
 
         return connection;

@@ -19,7 +19,8 @@ Ext.define('CustomApp', {
                 listeners: {
                     load: function(el, records, successful, eOpts) {
                         if (!successful) {
-                            console.error(el, records, successful);
+                            //console.error(el, records, successful);
+                            alert("An error occured - please try again later");
                         }
                         Ext.getBody().unmask();
                         $('.x-mask').css("background", "none");
@@ -31,7 +32,6 @@ Ext.define('CustomApp', {
                 scope: this,
                 artifactchosen: function(picker, selectedRecord) {
                     Ext.getBody().mask("Loading");
-                    console.log("Selected", selectedRecord);
 
                     var injector = angular.bootstrap(document.body, ['angularBlastdown']);
                     var scope = angular.element(document.body).scope();

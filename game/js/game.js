@@ -200,9 +200,7 @@ var game = {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
         if (game.POSITION_MANAGER && game.play) {
-            console.log("play", game.play);
             game.togglePlayPause();
-            console.log("play", game.play);
         }
     },
 
@@ -260,12 +258,6 @@ var game = {
                             this.mouseDown();
                         }
                         return true;
-                    }
-                }
-
-                if (oneItem.objectID) {
-                    if (!game.OID_MAP[oneItem.objectID] && !oneItem.tween) {
-                        console.error("missing oid", oneItem.objectID, oneItem);
                     }
                 }
             });
@@ -389,7 +381,6 @@ var game = {
 
     historyFinished: function() {
         if (game.endDate) {
-            console.log("Initiative was completed!");
             var obj = game.OID_MAP[game.historyFinishedData.oid];
             if (obj && obj.ship) {
                 var ship = obj.ship;
@@ -402,19 +393,9 @@ var game = {
         }
     },
 
-    // Pre: game.OID_MAP[oid] exists
-    // getRecord: function(oid) {
-    //     if (game.OID_MAP[oid].ship) {
-    //         record = game.OID_MAP[oid].ship.record;
-    //     } else {    
-    //         record = game.OID_MAP.record;
-    //     }
-    // },
 
     removeOidFromMap: function(oid, recycled) {
         if (game.OID_MAP[oid]) {
-            //var record = this.getRecord(oid);
-            //recycled ? game.OID_MAP.recycled[oid] = record : game.OID_MAP.completed[oid] = record;
             delete game.OID_MAP[oid];
         }
     },

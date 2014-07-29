@@ -33659,33 +33659,6 @@ return jQuery;
         });
     }
 }
-                $(document).ready(function() {
-    $('.unselected').click(function() {
-        $(this).parent().find('.selected').removeClass('selected').addClass('unselected');
-        $(this).removeClass('unselected').addClass('selected');
-        console.log($(this).text());
-        if ($(this).text() === "History") {
-            $('#historyLog').show();
-            $('#realtimeLog').hide();
-        } else {
-            $('#realtimeLog').show();
-            $('#historyLog').hide();
-        }
-
-        $('.unselected').click(function() {
-            $(this).parent().find('.selected').removeClass('selected').addClass('unselected');
-            $(this).removeClass('unselected').addClass('selected');
-            if ($(this).text() === "History") {
-                $('#historyLog').show();
-                $('#realtimeLog').hide();
-            } else {
-                $('#realtimeLog').show();
-                $('#historyLog').hide();
-            }
-        });
-    });
-});
-
                 /**
  * @license MelonJS Game Engine
  * @copyright (C) 2011 - 2014 Olivier Biot, Jason Oster, Aaron McLeod
@@ -53256,16 +53229,11 @@ var game = {
     ENEMY_ENTITY_SUPER:  99, // super enemy type
     RALLY_SHIP_ENTITY: 91,
     EXPLOSION_TYPE: 17,
-
-    SHOW_LABEL: true,
-
+    TEAM_SHIP: 88,     // player type
+    BULLET: 77,     // bullet type
     RALLY_HUNTER: 55,
 
     shootingAttempts: 10,
-
-    TEAM_SHIP: 88,     // player type
-    BULLET: 77,     // bullet type
-    EXPLOSION: 66,  // explosion type
 
     // boolean - can the player shoot?
     canShoot: {},
@@ -53384,6 +53352,9 @@ var game = {
             new Point(0, game.WINDOW_HEIGHT - 68),
         ];
 
+        game.ALL_ENTITY_TYPES = [this.ENEMY_ENTITY_SMALL, this.ENEMY_ENTITY_MEDIUM, this.ENEMY_ENTITY_LARGE, this.ENEMY_ENTITY_SUPER,
+                                    this.RALLY_SHIP_ENTITY, this.EXPLOSION_TYPE, this.RALLY_HUNTER, this.TEAM_SHIP, this.BULLET];
+
         game.LABEL_INDEX = 0;
 
         // Initialize the video.
@@ -53413,41 +53384,6 @@ var game = {
         $('.closePopup').click(function(){
             game.closeHowItWorks();
         });
-
-        // $('.closeInfo').click(function(){
-        //     $(this).closest('.workItemDetail').remove();
-        // });
-
-        // $('canvas').click(function(e) {
-        //     e.preventDefault();
-        //     var offset = $(this).offset();
-        //     var x = e.clientX - offset.left;
-        //     var y = event.y - offset.top;
-        //     console.log("searching", x, y);
-        //     var ship = _.find(game.OID_MAP, function(value, key) {
-        //         if (value.ship) {
-        //             var left = value.ship.pos.x;
-        //             var right = left + value.ship.width;
-        //             var top = value.ship.pos.y;
-        //             var bottom = top + value.ship.height;
-        //             console.log(left, right, top, bottom);
-        //             if (x > left && x < right && y > top && y < bottom) {
-        //                 return value;
-        //             }
-        //         }
-        //     });
-
-        //     if (ship) {
-        //         $('body').remove('.workItemDetail');
-        //         console.log(ship);
-        //         var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><h1>" + ship.ship.record.get("Name") + "</h1></div>").css({top: y, left: x, position:'absolute'});
-        //         $('body').append(info);
-
-        //         $('.closeInfo').click(function(){
-        //             $('body').remove('.workItemDetail');
-        //         });
-        //     }
-        // });
 
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
@@ -53506,23 +53442,47 @@ var game = {
         // unmask, restart updates, play through queue of events
         game.angularScope.eventHandler.playThrough();
 
-        // restart the enemy ships
-        _.each(game.OID_MAP, function(value, key) {
-            if (value.ship && value.cachedUpdate) {
-                value.ship.update = value.cachedUpdate;
-            }
-        });
-
-        // restart the player ships
-        _.each(game.TEAM_SHIPS, function(value, key) {
-            if (value.cachedUpdate) {
-                value.update = value.cachedUpdate;
-                value.setVelocity(game.SPEED, 0);
-            }
-            
+        _.each(this.ALL_ENTITY_TYPES, function(entity) {
+            game.resumeEntity(entity);
         });
 
         this.startRallyShip();
+    },
+
+    pauseEntity: function(type) {
+        var displayed = me.game.world.getChildByProp('type', type);
+
+        if (displayed) {
+            _.each(displayed, function(oneItem) {
+                if (oneItem.update) {
+                    oneItem.cachedUpdate = oneItem.update;
+                    oneItem.update = function(dt) {
+                        if (this.mouseDown) {
+                            this.mouseDown();
+                        }
+                        return true;
+                    }
+                }
+
+                if (oneItem.objectID) {
+                    if (!game.OID_MAP[oneItem.objectID] && !oneItem.tween) {
+                        console.error("missing oid", oneItem.objectID, oneItem);
+                    }
+                }
+            });
+        }
+    },
+
+    resumeEntity: function(type) {
+        var displayed = me.game.world.getChildByProp('type', type);
+
+        if (displayed) {
+            _.each(displayed, function(oneItem) {
+                if (oneItem.cachedUpdate) {
+                    oneItem.update = oneItem.cachedUpdate;
+                }
+            });
+        }
     },
 
     pause: function() {
@@ -53530,26 +53490,10 @@ var game = {
         $('#pauseIcon').addClass('hidden');
         // stop updates, mask screen, stop going through queue of events
         game.angularScope.eventHandler.pauseEvents();
-        _.each(game.OID_MAP, function(value, key) {
-            if (value.ship) {
-                value.cachedUpdate = value.ship.update;
-                value.ship.update = function(dt) {
-                    this.mouseDown();
-                    return true;
-                }
-            }
-        });
 
-        // stop the player ships
-        _.each(game.TEAM_SHIPS, function(value, key) {
-            value.cachedUpdate = value.update;
-            value.update = function(dt) {
-                return true;
-            }
+        _.each(this.ALL_ENTITY_TYPES, function(entity) {
+            game.pauseEntity(entity);
         });
-
-        // stop the rally ship
-        this.stopRallyShip();
     },
 
     startRallyShip: function() {
@@ -53558,7 +53502,7 @@ var game = {
                 game.rallyShipOnScreen.update = game.rallyShipOnScreen.cachedUpdate;
             }
             game.rallyShipInterval = setInterval(function() {
-                if (!game.rallyShipOnScreen) {
+                if (!game.rallyShipOnScreen && game.play) {
                     game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
                         height: game.RALLY_SHIP.height,
                         image: 'rallyShip',
@@ -53640,9 +53584,9 @@ var game = {
         });
 
         Ext.getBody().unmask();
+        game.showHowItWorks();
+        $("html, body").animate({scrollTop: 10}); // so click handlers work properly - strange quirk
     },
-
-
 
     historyFinished: function() {
         if (game.endDate) {
@@ -54045,12 +53989,13 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         }
 
         // find index in the array to add this open slot to
-        var index = Math.floor(x / width);
+        var index = Math.floor((x - paddingLeft) / width);
+
         if (addBackTo[index] && width != shipWidth.large) {
             index += addBackTo.length / 2;
         }
         if (addBackTo[index]) {
-            console.error("[X][X][X][X] - this should never happen - at index " + index, addBackTo, width, x, y);
+            //console.error("[X][X][X][X] - this should never happen - at index " + index, addBackTo, width, x, y);
         } else {
             addBackTo[index] = new Point(x, y);
         }
@@ -54742,7 +54687,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             // fade off the screen instead of flying off
             // have to remove it from data structures immediately in case they are restored
             game.log.addItem(this.record.get('Name') + " recycled", this.date, 'recycled');
-            if (!(game.OID_MAP[this.objectID] && game.OID_MAP[this.objectID].targeted)) {
+            if ((game.OID_MAP[this.objectID] && !game.OID_MAP[this.objectID].targeted)) {
 
                 game.POSITION_MANAGER.addAvailablePosition(this.spritewidth, this.startingX, this.startingY);
 
@@ -54772,8 +54717,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
             var offset = $('#screen').offset();
 
-            if (offset.top > 208) {
-                y -= offset.top;
+
+            if (this.type == game.ENEMY_ENTITY_SUPER) {
+                console.log("click", x, y, offset.left, offset.top);
             }
 
             if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
@@ -55019,7 +54965,16 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                     this.addExplosions(4, 5, res.obj.width / 2, res.obj.height, new Point(res.obj.pos.x, res.obj.pos.y));
                 } else {
-                    var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.pos.y, {
+
+                    var x = res.obj.pos.x;
+                    var y = res.obj.pos.y;
+
+                    if (duplicate) {
+                        x += 32;
+                        y += 16;
+                    }
+
+                    var explosion = me.pool.pull("explosion", x,  y, {
                         image: image,
                         spriteheight: height,
                         spritewidth: width,
@@ -55031,7 +54986,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                     me.game.world.addChild(explosion, Number.POSITIVE_INFINITY);
 
                     if (duplicate) {
-                        me.game.world.addChild(me.pool.pull("explosion", res.obj.pos.x + width, res.obj.pos.y, {
+                        me.game.world.addChild(me.pool.pull("explosion", x + width, y, {
                             image: image,
                             spriteheight: height,
                             spritewidth: width,
@@ -55044,7 +54999,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 
                 if (game.OID_MAP[res.obj.objectID]) {
                     // this slot is now open - but only if it still exists in the oid map (could have been recycled first)
-                    game.POSITION_MANAGER.addAvailablePosition(res.obj.spritewidth || res.obj.width, res.obj.startingX, res.obj.startingY);
+                    game.POSITION_MANAGER.addAvailablePosition(res.obj.width, res.obj.startingX, res.obj.startingY);
                     game.removeOidFromMap(res.obj.objectID, false);
                 }
 
@@ -55181,23 +55136,6 @@ game.VictoryScreen = me.ScreenObject.extend({
         setInterval(function() {
             victory.explosions(time++);
         }, 1500);
-
-
-        
-        var victoryImg = me.loader.getImage('victoryImage');
-        // TODO
-        this.victoryImage = new me.ObjectEntity(game.WIDTH / 2 - 256, 768, {
-            image: victoryImg,
-            x: game.WIDTH / 2 - 256,
-            y: 768,
-            width: 512,
-            height: 128,
-            spritewidth: 512,
-            spriteheight: 128,
-            z: Number.POSITIVE_INFINITY
-        });
-        me.game.world.addChild(this.victoryImage, Number.POSITIVE_INFINITY);
-
      
         // add a new renderable component with the scrolling text
         me.game.world.addChild(new (me.Renderable.extend({
@@ -55206,7 +55144,6 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.parent(new me.Vector2d(0, 0), me.game.viewport.width, me.game.viewport.height);
                 // font for the scrolling text
                 this.font = new me.Font("pressStart", 32, "white", "center");
-
                  // a tween to animate the arrow
                 this.scrollertween = new me.Tween(this).to({scrollerpos: -600}, 3000).onComplete(this.scrollover.bind(this)).start();
          
@@ -55227,13 +55164,32 @@ game.VictoryScreen = me.ScreenObject.extend({
              
             draw : function (context) {
                 this.font.draw(context, this.scroller, this.scrollerpos, game.WINDOW_HEIGHT / 2);
-                
             },
             onDestroyEvent : function() {
                 //just in case
                 this.scrollertween.stop();
             }
         }))(), 3);
+
+        var victoryDisplay = me.Renderable.extend({
+            // constructor
+            init : function() {
+                this.parent(new me.Vector2d(game.WINDOW_WIDTH / 2 - 256, 320), 512, 128);
+                
+                this.victoryImg = me.loader.getImage('victoryImage');
+                console.log(this.victoryImg);
+            },
+         
+            update : function (dt) {
+                return true;
+            },
+             
+            draw : function (context) {
+                context.drawImage(this.victoryImg, this.pos.x, this.pos.y);
+            }
+        });
+
+        me.game.world.addChild(new victoryDisplay(), Number.POSITIVE_INFINITY);
     },
 
     explosions: function(time) {
@@ -55436,11 +55392,9 @@ game.TitleScreen = me.ScreenObject.extend({
     addInitiative: function(record, oid, date) {
         if (this.numInitiative < 1) {
             var offset = 32;
-            console.info("putting initiative at x: " + (game.WIDTH / 2 - game.MOTHERSHIP.width / 2) + " y: " + game.PADDING, game.WIDTH, game.MOTHERSHIP);   
             this.addEnemy(record, oid, date, "super_white", game.ENEMY_ENTITY_SUPER, game.MOTHERSHIP.height, game.MOTHERSHIP.width, game.WIDTH / 2 - game.MOTHERSHIP.width / 2 + offset, game.PADDING);
             this.numInitiative = 1;
-            game.initiative = record;  
-            console.log("INITIATIVE SHIP", game.INITIATIVE_SHIP);           
+            game.initiative = record;          
         }
     },  
 
@@ -55468,9 +55422,7 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     addStory: function(record, oid, date, pt) {
-        //console.log("add story");
         if (record.get('ObjectID') != oid) {
-            console.error("object id not equal to oid", record, oid);
             return;
         }
         if (game.OID_MAP[oid] && game.OID_MAP[oid].ship) {
@@ -55505,7 +55457,6 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     addTask: function(record, oid, date, pt) {
-        //console.log("add task");
         var featureOid = record.get('Feature');
         var x = 0;
         var color = game.COLOR_MANAGER.getTaskColor(featureOid);
@@ -55577,7 +55528,6 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     updateInitiative: function(record, oid, date) {
-        //console.log("update initiative");
         if (game.INITIATIVE_SHIP) {
             game.INITIATIVE_SHIP.record = record;
         }
@@ -55588,7 +55538,6 @@ game.TitleScreen = me.ScreenObject.extend({
             game.historyFinishedData = {
                 oid: oid
             }
-            console.log("Completed initiative at " + game.endDate);
             game.historyFinished();
         }
         
@@ -55603,7 +55552,6 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     updateFeature: function(record, oid, date) {
-        //console.log("update feature");
         var endDate = record.get('ActualEndDate');
         var obj = game.OID_MAP[oid];
         var teamShip;
@@ -55658,19 +55606,16 @@ game.TitleScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        //console.log("SWAPPED!");
                         return;
                     }
                 }
                 // oh well, we tried to make it more fun!
 
-                ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-                ////
 
                 game.removeOidFromMap(oid, false);
             } else {
@@ -55680,7 +55625,6 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     updateStory: function(record, oid, date) {
-        //console.log("update story");
         var feature = record.get('Feature');
         var state = record.get('ScheduleState');
         var obj = game.OID_MAP[oid];
@@ -55741,24 +55685,17 @@ game.TitleScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        //console.log("SWAPPED!");
                         return;
-                    } else {
-                        //console.log("NO MATCH, COULD NOT SWAP");
                     }
-                } else {
-                   // console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
                 }
                 
                 // oh well, we tried to make it more fun!
 
-                ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-                ////
 
                 game.removeOidFromMap(oid, false);
             } else {
@@ -55788,14 +55725,11 @@ game.TitleScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if (shouldAddTarget(record)) {
-
-                ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-                ////
 
                 game.removeOidFromMap(oid, false);
             } else {
@@ -56203,7 +56137,7 @@ module.factory('LookbackService', function() {
                         currentObject = currentObject.children[itemHierarchy[i + 1]];
                     } else {
                         if (itemHierarchy[i + 1] == initiativeOid) {
-                            console.error("added initiative as a child of itself");
+                            //console.error("added initiative as a child of itself");
                         }
                         // handle creation event
                         currentObject.children[itemHierarchy[i + 1]] = {
@@ -56510,8 +56444,6 @@ ReconnectingWebSocket.debugAll = false;
 
     this.getSubscribeMessage = function() {
         var projectUuid = Rally.environment.getContext().getProject()._refObjectUUID;
-        //console.log('project', Rally.environment.getContext().getProject());
-        //console.log('ProjectUuid', projectUuid);
         return JSON.stringify({
                 uri: '/_subscribe',
                     "request-method": "post",
@@ -56571,7 +56503,6 @@ ReconnectingWebSocket.debugAll = false;
         var recordType = this.getStateFieldValue(data, 'object_type') || this.getTypeFromScope(data);
 
         if(!recordType) {
-            console.log("failed to get the type of artifact that changed", data);
             return;
         }
         var me = this;
@@ -56625,33 +56556,15 @@ ReconnectingWebSocket.debugAll = false;
         }
     };
 
-    // this.connect = function() {
-    //     console.log('realtime: connecting');
-    //     var connection = new ReconnectingWebSocket(this.ENDPOINT);
-    //     var me = this;
-    //     connection.onopen = function() {
-    //         console.log("realtime: connected");
-    //         connection.send(me.getSubscribeMessage());
-    //     };
-    //     connection.onerror = function(e) {
-    //         console.log('realtime: error', arguments);
-    //     };
-
-    //     return connection;
-    // }
-
     this.connectTo = function(uuids) {
-        //console.log('realtime: connecting');
         var connection = new ReconnectingWebSocket(this.ENDPOINT);
         var me = this;
         connection.onopen = function() {
-            //console.log("realtime: connected");
             _.each(uuids, function(uuid) {
                 connection.send(me.getSubscribeMessageByUuid(uuid));
             });
         };
         connection.onerror = function(e) {
-            //console.log('realtime: error', arguments);
         };
 
         return connection;
@@ -56670,7 +56583,6 @@ ReconnectingWebSocket.debugAll = false;
     var wsapiAggregator = new WSAPIAggregator(eventTrigger);
 
     this.handleRealtimeMessage = function(data) {
-        console.log(data);
         // do we have enough information to act on this
         if (data && data.type == 'event' && data.data && data.data.action) {
             var offset, valueOffset;
@@ -56697,8 +56609,6 @@ ReconnectingWebSocket.debugAll = false;
             } else {
                 // query wsapi for more information
                 wsapiAggregator.getWorkItem(data.data[offset][oidUUID][valueOffset], data.data[offset][typeUUID][valueOffset], function(record) {
-                    console.log("got ", record);
-                    console.info("Triggering: " + data.data[offset][typeUUID][valueOffset] + "-" +data.data.action);
                     eventTrigger.trigger(data.data[offset][typeUUID][valueOffset] + "-" + data.data.action,
                         {
                             record: record,
@@ -56710,10 +56620,8 @@ ReconnectingWebSocket.debugAll = false;
                 });
             }
         } else if (data.status) {
-            //console.info("trigger status");
             eventTrigger.trigger('RealtimeConnection-Status', {status: data.status, date: new Date()});
         } else {
-            //console.info("trigger other");
             eventTrigger.trigger('RealtimeConnection-Other', {data: data, date: new Date()});
         }
     };
@@ -56731,7 +56639,6 @@ ReconnectingWebSocket.debugAll = false;
         var websocket;
         return {
             disconnect: function() {
-                //console.log("closing web socket");
                 if (websocket) {
                     websocket.close();
                 }
@@ -56739,7 +56646,6 @@ ReconnectingWebSocket.debugAll = false;
 
             connect: function(uuids) {
                 websocket = realtime.connectTo(uuids);
-                //console.log(realtime);
 
                 websocket.onmessage = Ext.bind(function(e) {
                     var data = JSON.parse(e.data);
@@ -56824,7 +56730,6 @@ var GameEventHandler = function(realtime) {
                 if (object && object.event && object.event.type) {
                     var func = handler[object.event.type.replace('/','').replace('-', '_')];
                     if (object.data && object.data.record && game.endDate && moment(object.data.record.get('_ValidFrom')).isAfter(game.endDate)) {
-                        console.log("CLEARING INTERVAL OF GAME EVENT HANDLER");
                         clearInterval(timer);
                         game.historyFinished();
                         return;
@@ -56833,16 +56738,10 @@ var GameEventHandler = function(realtime) {
                         func(object.data);
                     } else if (func) {
                         func();
-                    } else {
-                        console.log("no func", func);
                     }
                 }
             }, 200 / game.SPEED);
         }
-    };
-
-    this.History_Completed = function() {
-        //console.log("HISTORY COMPLETED");
     };
 
     this.PortfolioItemInitiative_Created = function(data) {

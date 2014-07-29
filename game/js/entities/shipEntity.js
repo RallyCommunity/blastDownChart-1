@@ -80,11 +80,6 @@ game.Ship = me.ObjectEntity.extend({
 
             var offset = $('#screen').offset();
 
-
-            if (this.type == game.ENEMY_ENTITY_SUPER) {
-                console.log("click", x, y, offset.left, offset.top);
-            }
-
             if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
                 
                 this.tween = new me.Tween(this.renderable)

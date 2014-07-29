@@ -151,7 +151,7 @@ module.factory('LookbackService', function() {
                         currentObject = currentObject.children[itemHierarchy[i + 1]];
                     } else {
                         if (itemHierarchy[i + 1] == initiativeOid) {
-                            console.error("added initiative as a child of itself");
+                            //console.error("added initiative as a child of itself");
                         }
                         // handle creation event
                         currentObject.children[itemHierarchy[i + 1]] = {
