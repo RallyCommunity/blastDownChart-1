@@ -10,5 +10,8 @@ node_modules
 .DS_Store
 bower_components
 
+App-debug.html
+deploy/
+
 #emacs files
 *~

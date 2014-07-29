@@ -33,6 +33,6 @@ function ColorManager(featureImagePrefix, storyImagePrefix, taskImagePrefix) {
 
     this.getTaskColor = function(featureOid) {
         return taskPrefix + "" + getColor(featureOid);
-    }
+    };
 
 }

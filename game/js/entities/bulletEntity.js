@@ -68,14 +68,14 @@ game.BulletEntity = me.ObjectEntity.extend({
             var duplicate = false;
             var superDestroyed;
             if (res.obj.type == game.ENEMY_ENTITY_MEDIUM || res.obj.type == game.ENEMY_ENTITY_SUPER) {
-                image = "explosionLarge"
+                image = "explosionLarge";
                 height = 32;
                 width = 32;
             } else if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
                 image = "explosionLarge";
                 duplicate = true;
             } else if (res.obj.type == game.ENEMY_ENTITY_SMALL) {
-                image = "explosionSmall"
+                image = "explosionSmall";
                 height = 16;   
                 width = 16;
             } else if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
@@ -142,7 +142,7 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 me.game.world.removeChild(res.obj);
                
-                var labelText = res.obj.record.get('FormattedID') + ": " + res.obj.record.get('Name')
+                var labelText = res.obj.record.get('FormattedID') + ": " + res.obj.record.get('Name');
                 if (res.obj.type == game.ENEMY_ENTITY_LARGE && game.lastLabel != labelText) {
                     var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
                     if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {

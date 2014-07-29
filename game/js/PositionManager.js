@@ -12,9 +12,9 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         large: largeShip.height,
         medium: mediumShip.height,
         small: smallShip.height
-    }
+    };
 
-    var topOffset = topOffset;
+    var verticalOffset = topOffset;
 
     // initialize all available positions
     var numLarge = Math.floor(width / shipWidth.large);
@@ -29,13 +29,13 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         large: new Array(NUM_LARGE_PER_LINE),
         medium: new Array(numMedium * 2),
         small: new Array(numSmall * 2)
-    }
+    };
 
     var pendingPlacement = {
         large: [],
         medium: [],
         small: []
-    }
+    };
 
     var paddingLeft = 32;
 
@@ -43,27 +43,28 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
 
     var i = 0;
     for (i = 0; i < availablePositions.large.length; i++) {
-        availablePositions.large[i] = new Point(i * shipWidth.large + paddingLeft, topOffset);
+        availablePositions.large[i] = new Point(i * shipWidth.large + paddingLeft, verticalOffset);
     }
 
     for (i = 0; i < availablePositions.medium.length; i++) {
-        availablePositions.medium[i] = new Point((i % numMedium) * shipWidth.medium + paddingLeft,  8 + topOffset + shipHeight.large + shipHeight.medium * Math.floor(i/numMedium));   
+        availablePositions.medium[i] = new Point((i % numMedium) * shipWidth.medium + paddingLeft,  8 + verticalOffset + shipHeight.large + shipHeight.medium * Math.floor(i/numMedium));   
     }
     for (i = 0; i < availablePositions.small.length; i++) {
-        availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft,  16 + topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
+        availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft,  16 + verticalOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
     }
 
     var nextFeatureIndex = -1;
     var initial = true;
 
     this.getFeaturePosition = function() {
+        var temp;
         if (numLarge > 0 && initial) {
             nextFeatureIndex += 2;
             if (nextFeatureIndex >= availablePositions.large.length) {
                 nextFeatureIndex = 0;
             }
             numLarge--;
-            var temp = availablePositions.large[nextFeatureIndex];
+            temp = availablePositions.large[nextFeatureIndex];
             delete availablePositions.large[nextFeatureIndex];
             return temp;
         } else {
@@ -75,10 +76,10 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
                     break;
                 }
             }
-            if (index = -1) {
+            if (index == -1) {
                 return null;
             } else {
-                var temp = availablePositions.large[index];
+                temp = availablePositions.large[index];
                 delete availablePositions.large[index];
                 return temp;
             }
@@ -88,7 +89,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
     var getRandomPosition = function(positionArray) {
         // just grab the first available position
         for (var i = 0; i < positionArray.length; i++) {
-            var temp = positionArray[i]
+            var temp = positionArray[i];
             if (temp) {
                 delete positionArray[i];
                 return temp;
@@ -108,11 +109,11 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         var high = (featureIndex + 1) * 2 + 1;
         var highCap = Math.min(maxPerLine, high);
         var max = Math.min(high + maxPerLine + 1, array.length);
-
+        var temp;
         var idx;
         for (idx = low; idx < highCap; idx++) {
             if (array[idx]) {
-                var temp = array[idx];
+                temp = array[idx];
                 delete array[idx];
                 return temp;
             }
@@ -120,14 +121,14 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
 
         for (idx = low + NUM_MEDIUM_PER_LINE; idx < max; idx++) {
             if (array[idx]) {
-                var temp = array[idx];
+                temp = array[idx];
                 delete array[idx];
                 return temp;
             }
         }
 
         return getRandomPosition(array); // for now, just dont show a ship under this feature
-    }
+    };
 
     this.getStoryPosition = function(featureX) {
         return getPosition(availablePositions.medium, NUM_MEDIUM_PER_LINE, featureX);
@@ -231,9 +232,9 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             return false;
         }
         return false;
-    }
+    };
 
     this.removePending = function(oid) {
-        !removeFromArr(oid, pendingPlacement.large) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
+        if (!removeFromArr(oid, pendingPlacement.large) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small)) {}
     };
 }

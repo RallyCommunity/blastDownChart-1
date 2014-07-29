@@ -208,7 +208,7 @@ game.PlayScreen = me.ScreenObject.extend({
             game.endDate = moment(endDate);
             game.historyFinishedData = {
                 oid: oid
-            }
+            };
             game.historyFinished();
         }
         

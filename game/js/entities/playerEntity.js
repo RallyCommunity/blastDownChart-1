@@ -186,7 +186,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
                 game.OID_MAP[target.objectID] = {
                     targeted: this.team || true,
                     ship: target
-                }
+                };
             }
         } else {
         }
@@ -214,7 +214,7 @@ game.PlayerEntity = me.ObjectEntity.extend({
                 LARGE: [],
                 MEDIUM: [],
                 SMALL: []
-            }
+            };
 
             me.state.change(me.state.VICTORY);
         }

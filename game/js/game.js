@@ -149,7 +149,7 @@ var game = {
             new Point(0, game.WINDOW_HEIGHT - 140),
             new Point(0, game.WINDOW_HEIGHT - 116),
             new Point(0, game.WINDOW_HEIGHT - 92),
-            new Point(0, game.WINDOW_HEIGHT - 68),
+            new Point(0, game.WINDOW_HEIGHT - 68)
         ];
 
         game.ALL_ENTITY_TYPES = [this.ENEMY_ENTITY_SMALL, this.ENEMY_ENTITY_MEDIUM, this.ENEMY_ENTITY_LARGE, this.ENEMY_ENTITY_SUPER,
@@ -259,7 +259,7 @@ var game = {
                             this.mouseDown();
                         }
                         return true;
-                    }
+                    };
                 }
             });
         }
@@ -316,22 +316,10 @@ var game = {
             game.rallyShipOnScreen.cachedUpdate = game.rallyShipOnScreen.update;
             game.rallyShipOnScreen.update = function(dt) {
                 return true;
-            }
+            };
         }
         clearInterval(game.rallyShipInterval);
         game.rallyShipInterval = null;
-    },
-
-    getImageFromSvg : function(rawSVG) {
-        var svg = new Blob([rawSVG], {type:"image/svg+xml;charset=utf-8"});
-        var domURL = self.URL || self.webkitURL || self;
-        var url = domURL.createObjectURL(svg);
-
-        /// create Image
-        var img = new Image;
-
-        img.src = url;
-        return img;
     },
 
     // Run on game resources loaded.

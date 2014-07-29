@@ -23,7 +23,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.ship = this;
         this.update = function(dt) {
             return hunterShip.normalMovement(dt);
-        }
+        };
     },
 
     // update position
@@ -119,7 +119,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 game.OID_MAP[target.objectID] = {
                     targeted: this.team || true,
                     ship: target
-                }
+                };
             }
         } else {
         }
@@ -132,7 +132,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         var tween;
         tween = new me.Tween(this.renderable)
             .to({
-                alpha: .2
+                alpha: 0.2
             }, flicker);
 
         var tween2 = new me.Tween(this.renderable)
@@ -144,7 +144,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         var targetTween;
         targetTween = new me.Tween(this.targets[0].renderable)
             .to({
-                alpha: .2
+                alpha: 0.2
             }, flicker);
         var targetTween2 = new me.Tween(this.targets[0].renderable)
             .to({
@@ -192,11 +192,11 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             } else {
                 var hunter = this;
                 this.update = function(dt) {
-                    hunter.normalMovement(dt)
-                }
+                    hunter.normalMovement(dt);
+                };
             }
             return true;
-        }
+        };
 
     },
 
@@ -221,7 +221,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 LARGE: [],
                 MEDIUM: [],
                 SMALL: []
-            }
+            };
 
             me.state.change(me.state.VICTORY);
         }
@@ -229,7 +229,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         if (this.targets.length > 0) {
             this.update = function(dt) {
                 hunterShip.normalMovement(dt);
-            }
+            };
             this.indicateTarget();
         }
     },

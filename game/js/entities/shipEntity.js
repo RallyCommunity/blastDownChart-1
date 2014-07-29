@@ -86,7 +86,7 @@ game.Ship = me.ObjectEntity.extend({
                 
                 this.tween = new me.Tween(this.renderable)
                     .to({
-                        alpha: .2
+                        alpha: 0.2
                     }, 500);
 
                 var tween2 = new me.Tween(this.renderable)
@@ -143,7 +143,7 @@ game.Ship = me.ObjectEntity.extend({
 
         if (this.type == game.ENEMY_ENTITY_SUPER) {
             this.normalMovement.call(this, dt);
-            if (this.vel.x != 0) {
+            if (this.vel.x !== 0) {
                 // update object animation
                 this.parent(200);
             }
@@ -162,7 +162,7 @@ game.Ship = me.ObjectEntity.extend({
         }
 
         this.normalMovement.call(this, dt);
-        if (this.vel.x != 0) {
+        if (this.vel.x !== 0) {
             // update object animation
             this.parent(200);
         }
@@ -178,7 +178,7 @@ game.Ship = me.ObjectEntity.extend({
             game.aligned = false;
         }
 
-        if (this.numSteps != 0 && this.numSteps % this.numPerMove == 0) {
+        if (this.numSteps !== 0 && this.numSteps % this.numPerMove === 0) {
             if (this.moveRight) {
                 this.vel.x += this.accel.x * me.timer.tick;
             } else {
