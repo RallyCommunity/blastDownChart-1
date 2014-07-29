@@ -50,7 +50,7 @@ game.Ship = me.ObjectEntity.extend({
             // fade off the screen instead of flying off
             // have to remove it from data structures immediately in case they are restored
             game.log.addItem(this.record.get('Name') + " recycled", this.date, 'recycled');
-            if (!(game.OID_MAP[this.objectID] && game.OID_MAP[this.objectID].targeted)) {
+            if ((game.OID_MAP[this.objectID] && !game.OID_MAP[this.objectID].targeted)) {
 
                 game.POSITION_MANAGER.addAvailablePosition(this.spritewidth, this.startingX, this.startingY);
 

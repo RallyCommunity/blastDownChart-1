@@ -262,6 +262,12 @@ var game = {
                         return true;
                     }
                 }
+
+                if (oneItem.objectID) {
+                    if (!game.OID_MAP[oneItem.objectID] && !oneItem.tween) {
+                        console.error("missing oid", oneItem.objectID, oneItem);
+                    }
+                }
             });
         }
     },

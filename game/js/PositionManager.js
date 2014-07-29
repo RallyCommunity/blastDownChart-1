@@ -53,6 +53,8 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         availablePositions.small[i] = new Point((i % numSmall) * shipWidth.small + paddingLeft,  16 + topOffset+ shipHeight.large + shipHeight.medium * 2 + shipHeight.small * Math.floor(i/numSmall));
     }
 
+    console.log("available", availablePositions.medium);
+
     var nextFeatureIndex = -1;
     var initial = true;
 
@@ -187,7 +189,8 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         }
 
         // find index in the array to add this open slot to
-        var index = Math.floor(x / width);
+        var index = Math.floor((x - paddingLeft) / width);
+
         if (addBackTo[index] && width != shipWidth.large) {
             index += addBackTo.length / 2;
         }

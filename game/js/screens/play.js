@@ -285,19 +285,16 @@ game.PlayScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        //console.log("SWAPPED!");
                         return;
                     }
                 }
                 // oh well, we tried to make it more fun!
 
-                ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-                ////
 
                 game.removeOidFromMap(oid, false);
             } else {
@@ -368,24 +365,17 @@ game.PlayScreen = me.ScreenObject.extend({
                             teamShip.addTarget(match);
                         }
 
-                        //console.log("SWAPPED!");
                         return;
-                    } else {
-                        //console.log("NO MATCH, COULD NOT SWAP");
                     }
-                } else {
-                   // console.log("NONE POSSIBLE, COULD NOT SWAP", possibleShips);
                 }
                 
                 // oh well, we tried to make it more fun!
 
-                ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-                ////
 
                 game.removeOidFromMap(oid, false);
             } else {
@@ -415,14 +405,11 @@ game.PlayScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if (shouldAddTarget(record)) {
-
-                ////
                 var projectName = game.PROJECT_MAPPING[record.get('Project')];
                 var pointsEarned = record.get('PlanEstimate');
                 var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
                 game.log.addCompletedItem(record, projectName, pointsEarned, time);
                 game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-                ////
 
                 game.removeOidFromMap(oid, false);
             } else {
