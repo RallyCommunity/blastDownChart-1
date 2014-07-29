@@ -10,12 +10,11 @@
         // I am keeping the extra , in there to simplify my code. If someone is actually using an old version of IE to make an app let me know.
         Rally.loadScripts(
                 [
-                      "moment.js",
-                      "angular.js",
-                      "jquery.js",
+                      "scripts/moment.js",
+                      "scripts/angular.js",
+                      "scripts/jquery.js",
                       "game/WsapiAggregator.js",
-                      "game/lib/melonJS-1.0.1.js",
-                      "game/lib/plugins/debugPanel.js",
+                      "scripts/melonJS-1.0.1.js",
                       "game/js/point.js",
                       "game/js/game.js",
                       "game/js/resources.js",
@@ -39,7 +38,6 @@
                       "realtime/RealtimeDataHandler.js",
                       "realtime/RealTimeDataService.js",
                       "game/GameEventHandler.js",
-                      "DataService.js",
                 ],
         function() {
             Rally.launchApp('CustomApp', {

@@ -226,10 +226,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             }
             if (removeIdx >= 0) {
                 arr.splice(removeIdx, 1);
-                // TODO dont delete this from the oid map!
-                // if (game.OID_MAP[oid]) {
-                //     del game.OID_MAP[oid];
-                // }
                 return true;
             }
             return false;

@@ -209,7 +209,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        this.removePotentialTarget(target); // TODO inefficient
+        this.removePotentialTarget(target);
         var hunterShip = this;
 
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!

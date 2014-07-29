@@ -138,9 +138,12 @@ game.BulletEntity = me.ObjectEntity.extend({
 
                 var teamColor = game.scoreboard.getTeamColor(res.obj.record.get('Project'));
 
-               
+                this.teamShip.removeTarget(res.obj);
 
-                if (res.obj.type == game.ENEMY_ENTITY_LARGE) {
+                me.game.world.removeChild(res.obj);
+               
+                var labelText = res.obj.record.get('FormattedID') + ": " + res.obj.record.get('Name')
+                if (res.obj.type == game.ENEMY_ENTITY_LARGE && game.lastLabel != labelText) {
                     var labelPosition = game.LABEL_POSITONS[game.LABEL_INDEX++];
                     if (game.LABEL_INDEX >= game.LABEL_POSITONS.length) {
                         game.LABEL_INDEX = 0;
@@ -148,16 +151,14 @@ game.BulletEntity = me.ObjectEntity.extend({
                     var label = me.pool.pull("label", labelPosition.x, labelPosition.y, {
                         height: 32,
                         width: 128,
-                        formattedId: res.obj.record.get('FormattedID') + ": " + res.obj.record.get('Name'),
+                        formattedId: labelText,
                         color: teamColor
                     });
+
+                    game.lastLabel = labelText;
                     me.game.world.addChild(label, Number.POSITIVE_INFINITY);
                 }
-
-                this.teamShip.removeTarget(res.obj);
-
-                me.game.world.removeChild(res.obj);
-                return true;
+                return false;
             }
             //else if (image && !this.shootDown && !res.obj.isDestructable()) {} // let it pass through for now, target could be above us
 

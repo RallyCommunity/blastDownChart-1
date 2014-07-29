@@ -139,7 +139,7 @@ module.factory('LookbackService', function() {
                     setOffset(itemHierarchy);
                 }
                 if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
-                    record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
+                    record.data.Feature = itemHierarchy[featureOffset];
                 }
                 
             }
@@ -163,7 +163,7 @@ module.factory('LookbackService', function() {
 
                         if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                             // set the feature to the oid that is in the feature position
-                            record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
+                            record.data.Feature = itemHierarchy[featureOffset];
                         }
                         creationEvent(currentType, record, currentOid);
 
@@ -232,7 +232,6 @@ module.factory('LookbackService', function() {
 
     var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
-        // TODO optimize if possible, what about customers that have a lot of projects
         Ext.create('Rally.data.WsapiDataStore', {
             model: 'Project',
             fetch: ['Name', 'ObjectID'],

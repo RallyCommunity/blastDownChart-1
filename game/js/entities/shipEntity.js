@@ -68,7 +68,9 @@ game.Ship = me.ObjectEntity.extend({
                         }).bind(this))
                         .start();
                 }
-            } // else it is currently targeted, dont fade.  Just log that it was recycled.
+            } else if (game.OID_MAP[this.objectID] && game.TEAM_SHIPS[game.OID_MAP[this.objectID].targeted]) {
+                game.removeOidFromMap(this.objectID, true);   
+            }
         };
 
     },

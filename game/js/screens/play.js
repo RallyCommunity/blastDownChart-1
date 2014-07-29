@@ -222,6 +222,54 @@ game.PlayScreen = me.ScreenObject.extend({
         }
     },
 
+    swapShips: function(record, oid, date, type) {
+        var possibleShips = me.game.world.getChildByProp('type', type);
+        if (possibleShips && possibleShips.length > 0) {
+            var match = _.find(possibleShips, function(oneShip) {
+                if (game.OID_MAP[oneShip] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
+                    return oneShip;
+                }
+            });
+
+            if (match) {
+                // swap records
+                var temp = game.OID_MAP[oid];
+
+                // update the displayed in the oid map
+                game.OID_MAP[match.objectID].record = match.record;
+                game.OID_MAP[match.objectID].date = match.date;
+                game.OID_MAP[match.objectID].ship = null;
+                game.OID_MAP[match.objectID] = temp;
+
+                // update the ship
+                match.objectID = oid;
+                match.date = date;
+                match.record = record;
+
+                // update this in the oidmap
+                game.OID_MAP[oid].record = null;
+                game.OID_MAP[oid].ship = match;
+                game.OID_MAP[oid].date = date;
+                teamShip = game.getTeam(record.get('Project'));
+                if (teamShip) {
+                    teamShip.addTarget(match.ship);
+                }
+
+                return true;
+            }
+        }
+        // oh well, we tried to make it more fun!
+
+        var projectName = game.PROJECT_MAPPING[record.get('Project')];
+        var pointsEarned = record.get('PlanEstimate');
+        var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+        game.log.addCompletedItem(record, projectName, pointsEarned, time);
+        game.scoreboard.addPoints(record.get('Project'), pointsEarned);
+
+        game.removeOidFromMap(oid, false);
+        return false;
+    },
+
     updateFeature: function(record, oid, date) {
         var endDate = record.get('ActualEndDate');
         var obj = game.OID_MAP[oid];
@@ -245,50 +293,7 @@ game.PlayScreen = me.ScreenObject.extend({
         } else if (obj && obj.record) {
             if (endDate && moment(endDate).isBefore(moment())) {
                 // see if you can swap this record with one that is currently on the screen
-                var possibleShips = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_LARGE);
-                if (possibleShips && possibleShips.length > 0) {
-                    var match = _.find(possibleShips, function(oneShip) {
-                        if (game.OID_MAP[oneShip] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
-                            return oneShip;
-                        }
-                    });
-
-                    if (match) {
-                        // swap records
-                        var temp = game.OID_MAP[oid];
-
-                        // update the displayed in the oid map
-                        game.OID_MAP[match.objectID].record = match.record;
-                        game.OID_MAP[match.objectID].date = match.date;
-                        game.OID_MAP[match.objectID].ship = null;
-                        game.OID_MAP[match.objectID] = temp;
-
-                        // update the ship
-                        match.objectID = oid;
-                        match.date = date;
-                        match.record = record;
-
-                        // update this in the oidmap
-                        game.OID_MAP[oid].record = null;
-                        game.OID_MAP[oid].ship = match;
-                        game.OID_MAP[oid].date = date;
-                        teamShip = game.getTeam(record.get('Project'));
-                        if (teamShip) {
-                            teamShip.addTarget(match);
-                        }
-
-                        return;
-                    }
-                }
-                // oh well, we tried to make it more fun!
-
-                var projectName = game.PROJECT_MAPPING[record.get('Project')];
-                var pointsEarned = record.get('PlanEstimate');
-                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
-                game.log.addCompletedItem(record, projectName, pointsEarned, time);
-                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-
-                game.removeOidFromMap(oid, false);
+                this.swapShips(record, oid, date, game.ENEMY_ENTITY_LARGE);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -315,9 +320,8 @@ game.PlayScreen = me.ScreenObject.extend({
                             var childShip = game.OID_MAP[child];
                             if (childShip && childShip.ship) {
                                 childShip.team = teamOid;
-                                teamShip.addTarget(childShip);
+                                teamShip.addTarget(childShip.ship);
                             }
-                            // TODO also check pending ships?
                         });
                     }
                     ship.team = teamOid;
@@ -326,49 +330,7 @@ game.PlayScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if ((state == "Completed" || state == "Accepted" || state == "Released")) {
-
-                var possibleShips = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_MEDIUM);
-                if (possibleShips && possibleShips.length > 0) {
-                    var match = _.find(possibleShips, function(oneShip) {
-                        if (game.OID_MAP[oneShip.objectID] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
-                            return oneShip;
-                        }
-                    });
-
-                    if (match) {
-                        // update the displayed in the oid map
-                        game.OID_MAP[match.objectID].record = match.record;
-                        game.OID_MAP[match.objectID].date = match.date;
-                        game.OID_MAP[match.objectID].ship = null;
-                        game.OID_MAP[match.objectID].swapped = oid;
-
-                        // update the ship
-                        match.objectID = oid;
-                        match.date = date;
-                        match.record = record;
-
-                        // update this in the oidmap
-                        game.OID_MAP[oid].record = null;
-                        game.OID_MAP[oid].ship = match;
-                        game.OID_MAP[oid].date = date;
-                        teamShip = game.getTeam(record.get('Project'));
-                        if (teamShip) {
-                            teamShip.addTarget(match);
-                        }
-
-                        return;
-                    }
-                }
-                
-                // oh well, we tried to make it more fun!
-
-                var projectName = game.PROJECT_MAPPING[record.get('Project')];
-                var pointsEarned = record.get('PlanEstimate');
-                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
-                game.log.addCompletedItem(record, projectName, pointsEarned, time);
-                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-
-                game.removeOidFromMap(oid, false);
+                this.swapShips(record, oid, date, game.ENEMY_ENTITY_MEDIUM);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -376,33 +338,21 @@ game.PlayScreen = me.ScreenObject.extend({
     },
 
     updateTask: function(record, oid, date) {
-        // TODO swap if not shown - we have yet to see a situation where this would matter, but maybe they use a tonnnn or tasks
-        this.updateShip(record, oid, date, function(rec) {
-            return rec.get('State') == "Completed";
-        });
-    },
-
-    updateShip: function(record, oid, date, shouldAddTarget) {
+        // swap if not shown
         var obj = game.OID_MAP[oid];
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
-            if (!obj.targeted && shouldAddTarget(record)) {
+            if (!obj.targeted && record.get('State') == "Completed") {
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
-                    ship.team = record.get('Project')
+                    ship.team = record.get('Project');
                     teamShip.addTarget(ship);
                 }
             }
         } else if (obj && obj.record) {
-            if (shouldAddTarget(record)) {
-                var projectName = game.PROJECT_MAPPING[record.get('Project')];
-                var pointsEarned = record.get('PlanEstimate');
-                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
-                game.log.addCompletedItem(record, projectName, pointsEarned, time);
-                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-
-                game.removeOidFromMap(oid, false);
+            if (record.get('State') == "Completed") {
+                this.swapShips(record, oid, date, game.ENEMY_ENTITY_LARGE);
             } else {
                 game.OID_MAP[oid].record = record;
             }

@@ -7,12 +7,11 @@ game.PlayerEntity = me.ObjectEntity.extend({
         this.gravity = 0.0;
         this.setVelocity(game.SPEED + 2, 0);
         
-        this.type = game.PLAYER;
+        this.type = game.TEAM_SHIP;
         
         this.targets = [];
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
         this.numSteps = 0;
         this.team = settings.team || null;
@@ -20,12 +19,26 @@ game.PlayerEntity = me.ObjectEntity.extend({
 
     // update position
     update: function(dt) {
-        this.hunting--;
 
         // Is there a target to destroy?
-        if (this.targets.length !== 0 && this.hunting < 0) {
-            if (!game.OID_MAP[this.targets[0].objectID] || this.shots >= 5 || this.numSteps >= 300) {
-                // move on to the next target
+        if (this.targets.length !== 0) {
+            if (this.shots >= game.shootingAttempts - 1 && game.OID_MAP[this.targets[0].objectID] && game.OID_MAP[this.targets[0].objectID].ship) {
+                if (this.secondEffort) {
+                    this.secondEffort = false;
+                    this.shots = 0;
+                    this.numSteps = 0;
+                    this.targets.shift();
+                    return true;
+                } else {
+                    this.secondEffort = true;
+                    this.pos.x = (game.OID_MAP[this.targets[0].objectID].ship.pos.x + (game.OID_MAP[this.targets[0].objectID].ship.width / 2)) - (this.width / 2);
+                    this.shots = game.shootingAttempts - 3;
+                    this.updateMovement();
+                    return true;
+                }
+            }
+            if (!game.OID_MAP[this.targets[0].objectID] || !game.OID_MAP[this.targets[0].objectID].ship || this.numSteps >= (1700 / game.SPEED)) {
+                // move on to the next targets
                 this.shots = 0;
                 this.numSteps = 0;
                 this.targets.shift();
@@ -163,8 +176,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
                     }
                 });
                 this.targets.push(target);
-                // TODO dont sort the queue by entity type
-                
             } else {
                 // keep track of a queue of targets
                 this.targets.push(target);
@@ -186,27 +197,27 @@ game.PlayerEntity = me.ObjectEntity.extend({
      * Removes the target that was destroyed if it matches the players top target
      * @param target the target to remove
      */
-     // TODO if it is recycled, leave it as a target!
     removeTarget: function(target) {
         this.shots = 0;
         this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target);
+        var hunterShip = this;
+
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            game.angularScope.eventHandler.resetSpeed();
+            game.angularScope.eventHandler.stopEvents();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
-                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+                LARGE: [],
+                MEDIUM: [],
+                SMALL: []
             }
 
             me.state.change(me.state.VICTORY);
         }
-        this.hunting = 0;
     },
 
     removePotentialTarget: function(target) {
@@ -223,7 +234,6 @@ game.PlayerEntity = me.ObjectEntity.extend({
             this.targets.splice(index, 1);
         }
     },
-
     setDelay: function(delay) {
         this.delay = delay;
     },

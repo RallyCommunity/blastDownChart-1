@@ -4,12 +4,11 @@
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0rc3",
    "javascript": [
-      "moment.js",
-      "angular.js",
-      "jquery.js",
+      "scripts/moment.js",
+      "scripts/angular.js",
+      "scripts/jquery.js",
       "game/WsapiAggregator.js",
-      "game/lib/melonJS-1.0.1.js",
-      "game/lib/plugins/debugPanel.js",
+      "scripts/melonJS-1.0.1.js",
       "game/js/point.js",
       "game/js/game.js",
       "game/js/resources.js",
@@ -32,8 +31,7 @@
       "realtime/alm-realtime.js",
       "realtime/RealtimeDataHandler.js",
       "realtime/RealTimeDataService.js",
-      "game/GameEventHandler.js",
-      "DataService.js"
+      "game/GameEventHandler.js"
    ],
    "html": [
       "body.html"

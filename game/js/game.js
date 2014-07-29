@@ -1,7 +1,7 @@
 /* Game namespace */
 var game = {
-    audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
-    play: true,
+    audioOn: true,
+    play: true, // state of the game: playing or paused?
 
     TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
                         {name: "blue", hex: "#00A9E0"}, // cyan
@@ -23,16 +23,17 @@ var game = {
     PADDING: 64,
     WIDTH: 960,
 
-    ENEMY_ENTITY_SMALL:  96, // small enemy type
-    ENEMY_ENTITY_MEDIUM: 97, // "medium enemy type",     ENEMY_ENTITY_LARGE:  98, // large enemy type
-    ENEMY_ENTITY_SUPER:  99, // super enemy type
+    ENEMY_ENTITY_SMALL:  96,    // small enemy type
+    ENEMY_ENTITY_MEDIUM: 97,    // medium enemy type
+    ENEMY_ENTITY_LARGE:  98,    // large enemy type
+    ENEMY_ENTITY_SUPER:  99,    // super enemy type
     RALLY_SHIP_ENTITY: 91,
     EXPLOSION_TYPE: 17,
-    TEAM_SHIP: 88,     // player type
-    BULLET: 77,     // bullet type
+    TEAM_SHIP: 88,              // player type
+    BULLET: 77,                 // bullet type
     RALLY_HUNTER: 55,
 
-    shootingAttempts: 10,
+    shootingAttempts: 5,
 
     // boolean - can the player shoot?
     canShoot: {},
@@ -43,8 +44,6 @@ var game = {
     PENDING_REMOVE: [],
 
     OID_MAP: {
-        recycled: {},
-        completed: {}
     }, // map OID -> record/ship
 
     AVAILABLE_POSITIONS: {},
@@ -56,8 +55,6 @@ var game = {
         width: 256,
         height: 64
     },
-
-    SPECIAL_TEAM: 1,
 
     FEATURE_SHIP: {
         width: 64,
@@ -78,6 +75,9 @@ var game = {
         width: 128,
         height: 64
     },
+
+    // Rally Hunter Entity
+    SPECIAL_TEAM: 1,
 
     // track the score
     data : {
@@ -144,6 +144,7 @@ var game = {
     // Run on page load.
     "onload" : function () {
         game.LABEL_POSITONS = [
+            new Point(0, game.WINDOW_HEIGHT - 188),
             new Point(0, game.WINDOW_HEIGHT - 164),
             new Point(0, game.WINDOW_HEIGHT - 140),
             new Point(0, game.WINDOW_HEIGHT - 116),
@@ -172,7 +173,7 @@ var game = {
         }
 
         // Initialize the audio.
-        me.audio.init("wav"); // TODO other formats
+        me.audio.init("wav");
 
         // Set a callback to run when loading is complete.
         me.loader.onload = this.loaded.bind(this);
@@ -394,7 +395,7 @@ var game = {
     },
 
 
-    removeOidFromMap: function(oid, recycled) {
+    removeOidFromMap: function(oid, recycle) {
         if (game.OID_MAP[oid]) {
             delete game.OID_MAP[oid];
         }
@@ -426,7 +427,7 @@ var game = {
                 width: 32,
                 height: 64,
                 z: Number.POSITIVE_INFINITY,
-                type: game.PLAYER,
+                type: game.TEAM_SHIP,
                 team: teamOid
             });
 

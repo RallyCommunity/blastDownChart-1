@@ -1,4 +1,4 @@
-// Manages open ship positions and pending records
+// Manages the relationship between ships and their colors
 
 function ColorManager(featureImagePrefix, storyImagePrefix, taskImagePrefix) {
     var FEATURE_SHIP_COLORS = ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",

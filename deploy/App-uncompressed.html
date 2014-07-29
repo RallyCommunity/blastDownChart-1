@@ -52794,415 +52794,14 @@ me.DroptargetEntity = (function (Entity, Event) {
     /*---------------------------------------------------------*/
 })(window);
 
-                /*
- * MelonJS Game Engine
- * Copyright (C) 2011 - 2013, Olivier BIOT
- * http://www.melonjs.org
- *
- * a simple debug panel plugin
- * usage : me.plugin.register(debugPanel, "debug");
- *
- * you can then use me.plugin.debug.show() or me.plugin.debug.hide()
- * to show or hide the panel, or press respectively the "S" and "H" keys.
- *
- * note :
- * Heap Memory information is available under Chrome when using
- * the "--enable-memory-info" parameter to launch Chrome
- */
-
-(function($) {
-
-	// ensure that me.debug is defined
-	me.debug = me.debug || {};
-
-	/**
-	 * @class
-	 * @public
-	 * @extends me.plugin.Base
-	 * @memberOf me
-	 * @constructor
-	 */
-	debugPanel = me.plugin.Base.extend(
-	/** @scope me.debug.Panel.prototype */
-	{
-
-		// Object "Game Unique Identifier"
-		GUID : null,
-
-		// to hold the debug options
-		// clickable rect area
-		area : {},
-
-		// panel position and size
-		rect : null,
-
-		// for z ordering
-		// make it ridiculously high
-		z : Infinity,
-
-		// visibility flag
-		visible : false,
-
-		// frame update time in ms
-		frameUpdateTime : 0,
-
-		// frame draw time in ms
-		frameDrawTime : 0,
-
-		// minimum melonJS version expected
-		version : "1.0.1",
-
-		/** @private */
-		init : function(showKey, hideKey) {
-			// call the parent constructor
-			this.parent();
-
-			this.rect = new me.Rect(new me.Vector2d(0, 0), me.video.getWidth(), 35);
-
-			// set the object GUID value
-			this.GUID = "debug-" + me.utils.createGUID();
-
-			// set the object entity name
-			this.name = "me.debugPanel";
-
-			// persistent
-			this.isPersistent = true;
-
-			// a floating object
-			this.floating = true;
-
-			// renderable
-			this.isRenderable = true;
-
-			// always update, even when not visible
-			this.alwaysUpdate = true;
-            // create a default font, with fixed char width
-            var s = 10;
-            this.mod = 1;
-            if(me.game.viewport.width < 500) {
-                s = 7;
-                this.mod = 0.7;
-            }
-            this.font = new me.Font('courier', s, 'white');
-
-			// clickable areas
-			this.area.renderHitBox = new me.Rect(new me.Vector2d(160,5),15,15);
-      this.area.renderVelocity = new me.Rect(new me.Vector2d(165,18),15,15);
-
-      this.area.renderDirty = new me.Rect(new me.Vector2d(270,5),15,15);
-      this.area.renderCollisionMap = new me.Rect(new me.Vector2d(270,18),15,15);
-            // some internal string/length
-            this.help_str      = "(s)how/(h)ide";
-            this.help_str_len = this.font.measureText(me.video.getSystemContext(), this.help_str).width;
-            this.fps_str_len = this.font.measureText(me.video.getSystemContext(), "00/00 fps").width;
-            this.memoryPositionX = this.font.measureText(me.video.getSystemContext(), "Draw   : ").width * 2.2 + 310 * this.mod;
-
-			// some internal string/length
-			this.help_str	  = "(s)how/(h)ide";
-			this.help_str_len = this.font.measureText(me.video.getSystemContext(), this.help_str).width;
-			this.fps_str_len = this.font.measureText(me.video.getSystemContext(), "00/00 fps").width;
-
-			// enable the FPS counter
-			me.debug.displayFPS = true;
-
-			// bind the "S" and "H" keys
-			me.input.bindKey(showKey || me.input.KEY.S, "show", false, false);
-			me.input.bindKey(hideKey || me.input.KEY.H, "hide", false, false);
-            
-            // add some keyboard shortcuts
-            var self = this;
-            this.keyHandler = me.event.subscribe(me.event.KEYDOWN, function (action, keyCode, edge) {
-                if (action === "show") {
-                    self.show();
-                } else if (action === "hide") {
-                    self.hide();
-                }
-            });
-            
-            // re-apply panel settings on level changes
-            this.levelHandler = me.event.subscribe(me.event.LEVEL_LOADED, function () {
-                var layer = me.game.currentLevel.getLayerByName("collision");
-                if (layer) {
-                    layer.setOpacity((me.debug.renderCollisionMap===true)?1:0);
-                }
-            });
-
-			// memory heap sample points
-			this.samples = [];
-
-			//patch patch patch !
-			this.patchSystemFn();
-
-			// make it visible
-			this.show();
-		},
-
-
-		/**
-		 * patch system fn to draw debug information
-		 */
-		patchSystemFn : function() {
-
-			// add a few new debug flag (if not yet defined)
-			me.debug.renderHitBox = me.debug.renderHitBox || false;
-			me.debug.renderVelocity = me.debug.renderVelocity || false;
-			me.debug.renderCollisionMap = me.debug.renderCollisionMap || false;
-			var _this = this;
-			// patch timer.js
-			me.plugin.patch(me.timer, "update", function (time) {
-				// call the original me.timer.update function
-				this.parent(time);
-
-				// call the FPS counter
-				me.timer.countFPS();
-			});
-
-			// patch me.game.update
-			me.plugin.patch(me.game, 'update', function(time) {
-				var frameUpdateStartTime = window.performance.now();
-
-				this.parent(time);
-
-				// calculate the update time
-				_this.frameUpdateTime = window.performance.now() - frameUpdateStartTime;
-			});
-
-			// patch me.game.draw
-			me.plugin.patch(me.game, 'draw', function() {
-				var frameDrawStartTime = window.performance.now();
-
-				this.parent();
-
-				// calculate the drawing time
-				_this.frameDrawTime = window.performance.now() - frameDrawStartTime;
-			});
-
-			// patch sprite.js
-			me.plugin.patch(me.SpriteObject, "draw", function (context) {
-				// call the original me.SpriteObject function
-				this.parent(context);
-
-				// draw the sprite rectangle
-				if (me.debug.renderHitBox) {
-					context.strokeStyle =  "green";
-					context.strokeRect(this.left, this.top, this.width, this.height);
-				}
-			});
-
-			// patch entities.js
-			me.plugin.patch(me.ObjectEntity, "draw", function (context) {
-				// call the original me.game.draw function
-				this.parent(context);
-
-				// check if debug mode is enabled
-				if (me.debug.renderHitBox && this.shapes.length) {
-
-                    // translate to the object position
-                    var translateX = this.pos.x ;
-                    var translateY = this.pos.y ;
-
-                    context.translate(translateX, translateY);
-
-                    // draw the original shape
-                    this.getShape().draw(context, "red");
-             		if (this.getShape().shapeType!=="Rectangle") {
-             			// draw the corresponding bounding box
-	                    this.getShape().getBounds().draw(context, "red");
-                    }
-
-                    context.translate(-translateX, -translateY);
-
-                }
-
-                if (me.debug.renderVelocity) {
-                    // draw entity current velocity
-                    var x = ~~(this.pos.x + this.hWidth);
-                    var y = ~~(this.pos.y + this.hHeight);
-
-                    context.strokeStyle = "blue";
-                    context.lineWidth = 1;
-                    context.beginPath();
-                    context.moveTo(x, y);
-                    context.lineTo(
-                        x + ~~(this.vel.x * this.hWidth),
-                        y + ~~(this.vel.y * this.hHeight)
-                    );
-                    context.stroke();
-                }
-            });
-        },
-
-        /**
-         * show the debug panel
-         */
-        show : function() {
-            if (!this.visible) {
-                // register a mouse event for the checkboxes
-                me.input.registerPointerEvent('pointerdown', this.rect, this.onClick.bind(this), true);
-                // add the debug panel to the game world
-                me.game.world.addChild(this, Infinity);
-                // mark it as visible
-                this.visible = true;
-            }
-        },
-
-        /**
-         * hide the debug panel
-         */
-        hide : function() {
-            if (this.visible) {
-                // release the mouse event for the checkboxes
-                me.input.releasePointerEvent('pointerdown', this.rect);
-                // remove the debug panel from the game world
-                me.game.world.removeChild(this);
-                // mark it as invisible
-                this.visible = false;
-            }
-        },
-
-
-        /** @private */
-        update : function() {
-            if (me.input.isKeyPressed('show')) {
-                this.show();
-            }
-            else if (me.input.isKeyPressed('hide')) {
-                this.hide();
-            }
-            return true;
-        },
-
-        /**
-         * @private
-         */
-        getBounds : function() {
-            return this.rect;
-        },
-
-        /** @private */
-        onClick : function(e)  {
-            // check the clickable areas
-            if (this.area.renderHitBox.containsPoint(e.gameX, e.gameY)) {
-                me.debug.renderHitBox = !me.debug.renderHitBox;
-            }
-            else if (this.area.renderCollisionMap.containsPoint(e.gameX, e.gameY)) {
-                var layer = me.game.currentLevel.getLayerByName("collision");
-                if (layer) {
-                    if (layer.getOpacity() === 0) {
-                        layer.setOpacity(1);
-                        me.debug.renderCollisionMap = true;
-                    } else {
-                        layer.setOpacity(0);
-                        me.debug.renderCollisionMap = false;
-                    }
-                }
-            } else if (this.area.renderVelocity.containsPoint(e.gameX, e.gameY)) {
-                // does nothing for now, since velocity is
-                // rendered together with hitboxes (is a global debug flag required?)
-                me.debug.renderVelocity = !me.debug.renderVelocity;
-            }
-            // force repaint
-            me.game.repaint();
-        },
-
-        /** @private */
-        drawMemoryGraph : function (context, endX) {
-            if (window.performance && window.performance.memory) {
-                var usedHeap  = Number.prototype.round(window.performance.memory.usedJSHeapSize/1048576, 2);
-                var totalHeap =  Number.prototype.round(window.performance.memory.totalJSHeapSize/1048576, 2);
-                var len = endX - this.memoryPositionX;
-
-                // remove the first item
-                this.samples.shift();
-                // add a new sample (25 is the height of the graph)
-                this.samples[len] = (usedHeap / totalHeap)  * 25;
-
-                // draw the graph
-                for (var x = len; x >= 0; x--) {
-                    var where = endX - (len - x);
-                    context.beginPath();
-                    context.strokeStyle = "lightblue";
-                    context.moveTo(where, 30 * this.mod);
-                    context.lineTo(where, (30 - (this.samples[x] || 0)) * this.mod);
-                    context.stroke();
-                }
-                // display the current value
-                this.font.draw(context, "Heap : " + usedHeap + '/' + totalHeap + ' MB', this.memoryPositionX, 5 * this.mod);
-            } else {
-                // Heap Memory information not available
-                this.font.draw(context, "Heap : ??/?? MB", this.memoryPositionX, 5 * this.mod);
-            }
-        },
-
-        /** @private */
-        draw : function(context) {
-            context.save();
-
-            // draw the panel
-            context.globalAlpha = 0.5;
-            context.fillStyle = "black";
-            context.fillRect(this.rect.left,  this.rect.top,
-                             this.rect.width, this.rect.height);
-            context.globalAlpha = 1.0;
-
-            // # entities / draw
-            this.font.draw(context, "#objects : " + me.game.world.children.length, 5 * this.mod, 5 * this.mod);
-            this.font.draw(context, "#draws   : " + me.game.world.drawCount, 5 * this.mod, 18 * this.mod);
-
-            // debug checkboxes
-            this.font.draw(context, "?hitbox   ["+ (me.debug.renderHitBox?"x":" ") +"]",     100 * this.mod, 5 * this.mod);
-            this.font.draw(context, "?velocity ["+ (me.debug.renderVelocity?"x":" ") +"]",     100 * this.mod, 18 * this.mod);
-
-            this.font.draw(context, "?dirtyRect  [ ]",    200 * this.mod, 5 * this.mod);
-            this.font.draw(context, "?col. layer ["+ (me.debug.renderCollisionMap?"x":" ") +"]", 200 * this.mod, 18 * this.mod);
-
-            // draw the update duration
-            this.font.draw(context, "Update : " + this.frameUpdateTime.toFixed(2) + " ms", 310 * this.mod, 5 * this.mod);
-            // draw the draw duration
-            this.font.draw(context, "Draw   : " + (this.frameDrawTime).toFixed(2) + " ms", 310 * this.mod, 18 * this.mod);
-
-            // draw the memory heap usage
-            var endX = this.rect.width - 25;
-            this.drawMemoryGraph(context, endX - this.help_str_len);
-
-            // some help string
-            this.font.draw(context, this.help_str, endX - this.help_str_len, 18 * this.mod);
-
-            //fps counter
-            var fps_str = "" + me.timer.fps + "/"    + me.sys.fps + " fps";
-            this.font.draw(context, fps_str, this.rect.width - this.fps_str_len - 5, 5 * this.mod);
-
-            context.restore();
-
-        },
-
-        /** @private */
-        onDestroyEvent : function() {
-            // hide the panel
-            this.hide();
-            // unbind keys event
-            me.input.unbindKey(me.input.KEY.S);
-            me.input.unbindKey(me.input.KEY.H);
-            me.event.unsubscribe(this.keyHandler);
-            me.event.unsubscribe(this.levelHandler);
-        }
-
-
-    });
-
-    /*---------------------------------------------------------*/
-    // END END END
-    /*---------------------------------------------------------*/
-})(window);
-
                 function Point(x, y) {
     this.x = x;
     this.y = y;
 }
                 /* Game namespace */
 var game = {
-    audioOn: false, // TODO turn back on. turn sounds off for debugging so I can listen to music :)
-    play: true,
+    audioOn: true,
+    play: true, // state of the game: playing or paused?
 
     TEAM_SHIP_COLORS: [ {name: "red", hex: "#ED1C24"},  // rally red
                         {name: "blue", hex: "#00A9E0"}, // cyan
@@ -53224,13 +52823,14 @@ var game = {
     PADDING: 64,
     WIDTH: 960,
 
-    ENEMY_ENTITY_SMALL:  96, // small enemy type
-    ENEMY_ENTITY_MEDIUM: 97, // "medium enemy type",     ENEMY_ENTITY_LARGE:  98, // large enemy type
-    ENEMY_ENTITY_SUPER:  99, // super enemy type
+    ENEMY_ENTITY_SMALL:  96,    // small enemy type
+    ENEMY_ENTITY_MEDIUM: 97,    // medium enemy type
+    ENEMY_ENTITY_LARGE:  98,    // large enemy type
+    ENEMY_ENTITY_SUPER:  99,    // super enemy type
     RALLY_SHIP_ENTITY: 91,
     EXPLOSION_TYPE: 17,
-    TEAM_SHIP: 88,     // player type
-    BULLET: 77,     // bullet type
+    TEAM_SHIP: 88,              // player type
+    BULLET: 77,                 // bullet type
     RALLY_HUNTER: 55,
 
     shootingAttempts: 10,
@@ -53258,8 +52858,6 @@ var game = {
         height: 64
     },
 
-    SPECIAL_TEAM: 1,
-
     FEATURE_SHIP: {
         width: 64,
         height: 32
@@ -53279,6 +52877,9 @@ var game = {
         width: 128,
         height: 64
     },
+
+    // Rally Hunter Entity
+    SPECIAL_TEAM: 1,
 
     // track the score
     data : {
@@ -53373,7 +52974,7 @@ var game = {
         }
 
         // Initialize the audio.
-        me.audio.init("wav"); // TODO other formats
+        me.audio.init("wav");
 
         // Set a callback to run when loading is complete.
         me.loader.onload = this.loaded.bind(this);
@@ -53401,9 +53002,7 @@ var game = {
         $('#howItWorks').toggleClass('hidden');
         $('#overlay').toggleClass('hidden');
         if (game.POSITION_MANAGER && game.play) {
-            console.log("play", game.play);
             game.togglePlayPause();
-            console.log("play", game.play);
         }
     },
 
@@ -53461,12 +53060,6 @@ var game = {
                             this.mouseDown();
                         }
                         return true;
-                    }
-                }
-
-                if (oneItem.objectID) {
-                    if (!game.OID_MAP[oneItem.objectID] && !oneItem.tween) {
-                        console.error("missing oid", oneItem.objectID, oneItem);
                     }
                 }
             });
@@ -53590,7 +53183,6 @@ var game = {
 
     historyFinished: function() {
         if (game.endDate) {
-            console.log("Initiative was completed!");
             var obj = game.OID_MAP[game.historyFinishedData.oid];
             if (obj && obj.ship) {
                 var ship = obj.ship;
@@ -53603,19 +53195,9 @@ var game = {
         }
     },
 
-    // Pre: game.OID_MAP[oid] exists
-    // getRecord: function(oid) {
-    //     if (game.OID_MAP[oid].ship) {
-    //         record = game.OID_MAP[oid].ship.record;
-    //     } else {    
-    //         record = game.OID_MAP.record;
-    //     }
-    // },
 
     removeOidFromMap: function(oid, recycled) {
         if (game.OID_MAP[oid]) {
-            //var record = this.getRecord(oid);
-            //recycled ? game.OID_MAP.recycled[oid] = record : game.OID_MAP.completed[oid] = record;
             delete game.OID_MAP[oid];
         }
     },
@@ -54028,10 +53610,6 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
             }
             if (removeIdx >= 0) {
                 arr.splice(removeIdx, 1);
-                // TODO dont delete this from the oid map!
-                // if (game.OID_MAP[oid]) {
-                //     del game.OID_MAP[oid];
-                // }
                 return true;
             }
             return false;
@@ -54043,7 +53621,7 @@ function PositionManager(screenWidth, largeShip, mediumShip, smallShip, topOffse
         !removeFromArr(oid, pendingPlacement.large) && !removeFromArr(oid, pendingPlacement.medium) && removeFromArr(oid, pendingPlacement.small);
     };
 }
-                // Manages open ship positions and pending records
+                // Manages the relationship between ships and their colors
 
 function ColorManager(featureImagePrefix, storyImagePrefix, taskImagePrefix) {
     var FEATURE_SHIP_COLORS = ["blue", "brick", "darkgold", "darkgreen", "gold", "green", "lime",
@@ -54223,7 +53801,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
                 this.targets.push(target);
             }
-            console.log('added target', target);
             this.indicateTarget();
             if (game.OID_MAP[target.objectID]) {
                 game.OID_MAP[target.objectID].targeted = this.team || true;
@@ -54234,7 +53811,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 }
             }
         } else {
-            console.log("Not added as a target", game.OID_MAP[target.objectID], target);
         }
         
     },
@@ -54322,11 +53898,10 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
-        this.removePotentialTarget(target); // TODO inefficient
+        this.removePotentialTarget(target);
         var hunterShip = this;
 
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            console.log("going to victory screen");
             game.angularScope.eventHandler.stopEvents();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
@@ -54411,7 +53986,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         this.targets = [];
         this.stepNum = 0;
         this.steps = 0;
-        this.hunting = 0; // set this to enable delayed history execution
         this.shots = 0;
         this.numSteps = 0;
         this.team = settings.team || null;
@@ -54419,10 +53993,9 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
 
     // update position
     update: function(dt) {
-        this.hunting--;
 
         // Is there a target to destroy?
-        if (this.targets.length !== 0 && this.hunting < 0) {
+        if (this.targets.length !== 0) {
             if (!game.OID_MAP[this.targets[0].objectID] || this.shots >= 5 || this.numSteps >= 300) {
                 // move on to the next target
                 this.shots = 0;
@@ -54562,8 +54135,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                     }
                 });
                 this.targets.push(target);
-                // TODO dont sort the queue by entity type
-                
             } else {
                 // keep track of a queue of targets
                 this.targets.push(target);
@@ -54585,28 +54156,27 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
      * Removes the target that was destroyed if it matches the players top target
      * @param target the target to remove
      */
-     // TODO if it is recycled, leave it as a target!
     removeTarget: function(target) {
         this.shots = 0;
         this.numSteps = 0;
         game.cleanupOld();
         var destroyed = this.targets.shift(); // shifts the array 1 position to the left
         this.removePotentialTarget(target);
+        var hunterShip = this;
+
         if (destroyed && destroyed.type && destroyed.type == game.ENEMY_ENTITY_SUPER) { // completed the initiative!
-            console.log("going to victory screen!");
-            game.angularScope.eventHandler.resetSpeed();
+            game.angularScope.eventHandler.stopEvents();
             game.END_SCROLLER = game.INITIATIVE_SHIP.record.get('Name') + " COMPLETED";
 
             game.VICTORY_ANIMATIONS = {
                 SUPER: new Point(destroyed.pos.x + destroyed.width / 2, destroyed.pos.y + destroyed.height / 2),
-                LARGE: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                MEDIUM: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))],
-                SMALL: [new Point(Math.random() * (game.WINDOW_WIDTH - 50), Math.random() * (game.WINDOW_HEIGHT - 50))]
+                LARGE: [],
+                MEDIUM: [],
+                SMALL: []
             }
 
             me.state.change(me.state.VICTORY);
         }
-        this.hunting = 0;
     },
 
     removePotentialTarget: function(target) {
@@ -54623,7 +54193,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             this.targets.splice(index, 1);
         }
     },
-
     setDelay: function(delay) {
         this.delay = delay;
     },
@@ -54716,11 +54285,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
             var y = me.input.mouse.pos.y;
 
             var offset = $('#screen').offset();
-
-
-            if (this.type == game.ENEMY_ENTITY_SUPER) {
-                console.log("click", x, y, offset.left, offset.top);
-            }
 
             if (x > this.pos.x && x < this.pos.x + this.width && y > this.pos.y && y < this.pos.y + this.height) {
                 
@@ -54892,7 +54456,7 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
         
         this.teamShip = settings.teamShip;
         if (!settings.teamShip) {
-            console.error('no team ship provided', settings);
+            //console.error('no team ship provided', settings);
         }
 
         this.type = game.BULLET;
@@ -55096,6 +54660,8 @@ game.VictoryScreen = me.ScreenObject.extend({
      */
     onResetEvent : function() {
         // title screen
+        game.angularScope.addLogItem("Blast Down Completed", moment().format("MM-MM-DD-YY HH:mm"), 'init');
+
         me.game.world.addChild(new me.SpriteObject(0, 0, me.loader.getImage('background')), 1);
 
         // Add all destruction animations
@@ -55177,7 +54743,6 @@ game.VictoryScreen = me.ScreenObject.extend({
                 this.parent(new me.Vector2d(game.WINDOW_WIDTH / 2 - 256, 320), 512, 128);
                 
                 this.victoryImg = me.loader.getImage('victoryImage');
-                console.log(this.victoryImg);
             },
          
             update : function (dt) {
@@ -55551,6 +55116,54 @@ game.TitleScreen = me.ScreenObject.extend({
         }
     },
 
+    swapShips: function(record, oid, date, type) {
+        var possibleShips = me.game.world.getChildByProp('type', type);
+        if (possibleShips && possibleShips.length > 0) {
+            var match = _.find(possibleShips, function(oneShip) {
+                if (game.OID_MAP[oneShip] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
+                    return oneShip;
+                }
+            });
+
+            if (match) {
+                // swap records
+                var temp = game.OID_MAP[oid];
+
+                // update the displayed in the oid map
+                game.OID_MAP[match.objectID].record = match.record;
+                game.OID_MAP[match.objectID].date = match.date;
+                game.OID_MAP[match.objectID].ship = null;
+                game.OID_MAP[match.objectID] = temp;
+
+                // update the ship
+                match.objectID = oid;
+                match.date = date;
+                match.record = record;
+
+                // update this in the oidmap
+                game.OID_MAP[oid].record = null;
+                game.OID_MAP[oid].ship = match;
+                game.OID_MAP[oid].date = date;
+                teamShip = game.getTeam(record.get('Project'));
+                if (teamShip) {
+                    teamShip.addTarget(match);
+                }
+
+                return true;
+            }
+        }
+        // oh well, we tried to make it more fun!
+
+        var projectName = game.PROJECT_MAPPING[record.get('Project')];
+        var pointsEarned = record.get('PlanEstimate');
+        var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
+        game.log.addCompletedItem(record, projectName, pointsEarned, time);
+        game.scoreboard.addPoints(record.get('Project'), pointsEarned);
+
+        game.removeOidFromMap(oid, false);
+        return false;
+    },
+
     updateFeature: function(record, oid, date) {
         var endDate = record.get('ActualEndDate');
         var obj = game.OID_MAP[oid];
@@ -55574,50 +55187,7 @@ game.TitleScreen = me.ScreenObject.extend({
         } else if (obj && obj.record) {
             if (endDate && moment(endDate).isBefore(moment())) {
                 // see if you can swap this record with one that is currently on the screen
-                var possibleShips = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_LARGE);
-                if (possibleShips && possibleShips.length > 0) {
-                    var match = _.find(possibleShips, function(oneShip) {
-                        if (game.OID_MAP[oneShip] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
-                            return oneShip;
-                        }
-                    });
-
-                    if (match) {
-                        // swap records
-                        var temp = game.OID_MAP[oid];
-
-                        // update the displayed in the oid map
-                        game.OID_MAP[match.objectID].record = match.record;
-                        game.OID_MAP[match.objectID].date = match.date;
-                        game.OID_MAP[match.objectID].ship = null;
-                        game.OID_MAP[match.objectID] = temp;
-
-                        // update the ship
-                        match.objectID = oid;
-                        match.date = date;
-                        match.record = record;
-
-                        // update this in the oidmap
-                        game.OID_MAP[oid].record = null;
-                        game.OID_MAP[oid].ship = match;
-                        game.OID_MAP[oid].date = date;
-                        teamShip = game.getTeam(record.get('Project'));
-                        if (teamShip) {
-                            teamShip.addTarget(match);
-                        }
-
-                        return;
-                    }
-                }
-                // oh well, we tried to make it more fun!
-
-                var projectName = game.PROJECT_MAPPING[record.get('Project')];
-                var pointsEarned = record.get('PlanEstimate');
-                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
-                game.log.addCompletedItem(record, projectName, pointsEarned, time);
-                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-
-                game.removeOidFromMap(oid, false);
+                this.swapShips(record, oid, date, game.ENEMY_ENTITY_LARGE);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -55646,7 +55216,6 @@ game.TitleScreen = me.ScreenObject.extend({
                                 childShip.team = teamOid;
                                 teamShip.addTarget(childShip);
                             }
-                            // TODO also check pending ships?
                         });
                     }
                     ship.team = teamOid;
@@ -55655,49 +55224,7 @@ game.TitleScreen = me.ScreenObject.extend({
             }
         } else if (obj && obj.record) {
             if ((state == "Completed" || state == "Accepted" || state == "Released")) {
-
-                var possibleShips = me.game.world.getChildByProp('type', game.ENEMY_ENTITY_MEDIUM);
-                if (possibleShips && possibleShips.length > 0) {
-                    var match = _.find(possibleShips, function(oneShip) {
-                        if (game.OID_MAP[oneShip.objectID] && !game.OID_MAP[oneShip.objectID].targeted && game.OID_MAP[oneShip.objectID].ship)  {
-                            return oneShip;
-                        }
-                    });
-
-                    if (match) {
-                        // update the displayed in the oid map
-                        game.OID_MAP[match.objectID].record = match.record;
-                        game.OID_MAP[match.objectID].date = match.date;
-                        game.OID_MAP[match.objectID].ship = null;
-                        game.OID_MAP[match.objectID].swapped = oid;
-
-                        // update the ship
-                        match.objectID = oid;
-                        match.date = date;
-                        match.record = record;
-
-                        // update this in the oidmap
-                        game.OID_MAP[oid].record = null;
-                        game.OID_MAP[oid].ship = match;
-                        game.OID_MAP[oid].date = date;
-                        teamShip = game.getTeam(record.get('Project'));
-                        if (teamShip) {
-                            teamShip.addTarget(match);
-                        }
-
-                        return;
-                    }
-                }
-                
-                // oh well, we tried to make it more fun!
-
-                var projectName = game.PROJECT_MAPPING[record.get('Project')];
-                var pointsEarned = record.get('PlanEstimate');
-                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
-                game.log.addCompletedItem(record, projectName, pointsEarned, time);
-                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-
-                game.removeOidFromMap(oid, false);
+                this.swapShips(record, oid, date, game.ENEMY_ENTITY_MEDIUM);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -55705,18 +55232,12 @@ game.TitleScreen = me.ScreenObject.extend({
     },
 
     updateTask: function(record, oid, date) {
-        // TODO swap if not shown - we have yet to see a situation where this would matter, but maybe they use a tonnnn or tasks
-        this.updateShip(record, oid, date, function(rec) {
-            return rec.get('State') == "Completed";
-        });
-    },
-
-    updateShip: function(record, oid, date, shouldAddTarget) {
+        // swap if not shown
         var obj = game.OID_MAP[oid];
         if (obj && obj.ship) {
             var ship = obj.ship;
             ship.record = record;
-            if (!obj.targeted && shouldAddTarget(record)) {
+            if (!obj.targeted && rec.get('State') == "Completed") {
                 var teamShip = game.getTeam(record.get('Project'));
                 if (teamShip) {
                     ship.team = record.get('Project')
@@ -55724,14 +55245,8 @@ game.TitleScreen = me.ScreenObject.extend({
                 }
             }
         } else if (obj && obj.record) {
-            if (shouldAddTarget(record)) {
-                var projectName = game.PROJECT_MAPPING[record.get('Project')];
-                var pointsEarned = record.get('PlanEstimate');
-                var time = moment(date).format("MM-DD-YY HH:mm", 'completed');
-                game.log.addCompletedItem(record, projectName, pointsEarned, time);
-                game.scoreboard.addPoints(record.get('Project'), pointsEarned);
-
-                game.removeOidFromMap(oid, false);
+            if (rec.get('State') == "Completed") {
+                this.swapShips(record, oid, date, game.ENEMY_ENTITY_LARGE);
             } else {
                 game.OID_MAP[oid].record = record;
             }
@@ -55829,7 +55344,8 @@ game.TitleScreen = me.ScreenObject.extend({
                 listeners: {
                     load: function(el, records, successful, eOpts) {
                         if (!successful) {
-                            console.error(el, records, successful);
+                            //console.error(el, records, successful);
+                            alert("An error occured - please try again later");
                         }
                         Ext.getBody().unmask();
                         $('.x-mask').css("background", "none");
@@ -55841,7 +55357,6 @@ game.TitleScreen = me.ScreenObject.extend({
                 scope: this,
                 artifactchosen: function(picker, selectedRecord) {
                     Ext.getBody().mask("Loading");
-                    console.log("Selected", selectedRecord);
 
                     var injector = angular.bootstrap(document.body, ['angularBlastdown']);
                     var scope = angular.element(document.body).scope();
@@ -55905,7 +55420,7 @@ module.controller('dataController', ['$scope', 'RealtimeService', 'LookbackServi
 
     $scope.logItems = [{
         date: moment().format("MM-MM-DD-YY HH:mm"),
-        note: "Space Invaders Blast Down Initialized",
+        note: "Blast Down Initialized",
         applyClass: 'init'
     }];
 
@@ -56125,7 +55640,7 @@ module.factory('LookbackService', function() {
                     setOffset(itemHierarchy);
                 }
                 if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
-                    record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
+                    record.data.Feature = itemHierarchy[featureOffset];
                 }
                 
             }
@@ -56149,7 +55664,7 @@ module.factory('LookbackService', function() {
 
                         if (itemHierarchy.length > featureOffset && (currentType == 'HierarchicalRequirement' || currentType == "Task")) {
                             // set the feature to the oid that is in the feature position
-                            record.data.Feature = itemHierarchy[featureOffset]; // should be fine TODO sanity check
+                            record.data.Feature = itemHierarchy[featureOffset];
                         }
                         creationEvent(currentType, record, currentOid);
 
@@ -56218,7 +55733,6 @@ module.factory('LookbackService', function() {
 
     var getProjects = function(callbackFn) {
         // Get project UUIDs and connect to realtime, then reveal the game
-        // TODO optimize if possible, what about customers that have a lot of projects
         Ext.create('Rally.data.WsapiDataStore', {
             model: 'Project',
             fetch: ['Name', 'ObjectID'],
@@ -56792,205 +56306,6 @@ var GameEventHandler = function(realtime) {
         game.shipScreen.recycleShip(data.oid, data.date);
     };
 };
-                module.service('RallyDataService', function (RealtimeService) {
-    var lookbackStore = Ext.create('Rally.data.lookback.SnapshotStore', {
-        fetch: true,
-        hydrate: ["ScheduleState", "State", "_TypeHierarchy", "Project", "FormattedID"],
-        findConfig: {
-            "_ItemHierarchy": GLOBAL.ObjectID,
-            "__At": "current"
-        }
-    });
-
-    return {
-        getData: function (connect, callbackData) {
-            lookbackStore.load({
-                scope: this,
-                callback: function (records, operation, success) {
-                    // aggreate data first, then organize it
-                    aggregateData = {
-                        initiative: {},
-                        features: {},
-                        storiesAndDefects: {},
-                        parentless: [],
-                        teamsPoints: {}
-                    };
-
-                    var tasks = [];
-                    _.each(records, function (artifact) {
-                        var types = artifact.raw._TypeHierarchy;
-                        console.log(artifact);
-                        switch (types[types.length - 1]) {
-                        case "Defect":
-                            aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
-                                artifact: artifact.raw,
-                                children: []
-                            };
-                            break;
-                        case "HierarchicalRequirement":
-                            aggregateData.storiesAndDefects[artifact.data.ObjectID] = {
-                                artifact: artifact.raw,
-                                children: [],
-                                completedTasks: []
-                            };
-                            break;
-                        case "PortfolioItem/Feature":
-                            aggregateData.features[artifact.data.ObjectID] = {
-                                feature: artifact.raw,
-                                children: [],
-                                completedTasks: []
-                            };
-                            break;
-                        case "Task":
-                            Ext.Array.push(tasks, artifact.raw);                            
-                            break;
-                        default: // ignore
-                        }
-                    });
-
-                    // organizedData
-                    //   |
-                    //   +-->Initiative
-                    //   +-->Features
-                    //   |   |
-                    //   |   +-->Stories/Defects
-                    //   |       |
-                    //   |       +-->Tasks
-                    //   |
-                    //   +-->ClosedStories
-                    var organizedData = {
-                        initiative: {},
-                        features: [],
-                        closedStories: [],
-                        scoreboard: {}
-                    };
-
-                    console.log(angular.element(document.body).scope().initiative);
-
-                    Ext.create('Rally.data.WsapiDataStore', {
-                        model: 'PortfolioItem/Initiative',
-                        fetch: true,
-                        limit: Infinity,
-                        context: {
-                            workspace: Rally.util.Ref.getRelativeUri(),
-                            project: null
-                        },
-                        filters: [{
-                            property: 'ObjectID',
-                            value: GLOBAL.ObjectID
-                        }]
-                    }).load({
-                        scope: this,
-                        callback: function (records, operation, success) {
-                            console.error("GOT INITIATIVE", records);
-                            if (records && records.length > 0) {
-                                organizedData.initiative = records[0].data;
-
-                            } else {
-                                organizedData.initiative = GLOBAL;
-                            }
-                            var projects = [];
-
-                            // Add tasks as children of their associated story/defect
-                            _.each(tasks, function (task) {
-                                var parent = task.WorkProduct;
-
-                                if (aggregateData.storiesAndDefects[parent]) {
-                                    // add it to the list of children
-                                    if (task.State == "Completed") {
-                                        Ext.Array.push(aggregateData.storiesAndDefects[parent].completedTasks, task);
-                                    } else {
-                                        console.log("task not complete", task);
-                                        Ext.Array.push(aggregateData.storiesAndDefects[parent].children, task);
-                                    }
-                                } // else not parented to a story/defect
-                            });
-
-                            // Add stories and tasks as children of their feature
-                            _.each(aggregateData.storiesAndDefects, function (object, oid) {
-                                var parent;
-                                var types = object.artifact._TypeHierarchy;
-
-                                Ext.Array.include(projects, object.artifact.Project);
-
-                                if (!aggregateData.teamsPoints[object.artifact.Project]) {
-                                    aggregateData.teamsPoints[object.artifact.Project] = {
-                                        score: 0,
-                                        lives: 5
-                                    };
-                                }
-
-                                var state = object.artifact.ScheduleState;
-
-                                if (state == "Completed" || state == "Accepted" || state == "Released") {
-                                    // aggregateData.teamsPoints[object.artifact.Project].score += object.artifact.PlanEstimate || 0;
-                                    // Ext.Array.push(organizedData.closedStories, object);
-                                    Ext.Array.push(organizedData.closedStories, object);
-                                    console.log(state, object.artifact);
-                                }
-
-                                if (types[types.length - 1] === "HierarchicalRequirement") {
-                                    // stories have an associated PortfolioItem/Feature
-                                    parent = object.artifact.PortfolioItem;
-                                } else {
-                                    // defects associate with a story or defect that will parent to a Feature
-                                    var requirement = aggregateData.storiesAndDefects[object.artifact.Requirement];
-                                    if (requirement) {
-                                        parent = requirement.artifact.PortfolioItem;
-                                    } // else no parent requirement
-                                }
-
-                                if (aggregateData.features[parent]) {
-                                    // add it to the list of children
-                                    Ext.Array.push(aggregateData.features[parent].children, object);
-                                } // else not parented to a feature
-                            });
-
-                            // TODO optimize if possible
-                            Ext.create('Rally.data.WsapiDataStore', {
-                                model: 'Project',
-                                fetch: ['Name', 'ObjectID'],
-                                limit: Infinity,
-                                context: {
-                                    workspace: Rally.util.Ref.getRelativeUri(),
-                                    project: null
-                                }
-                            }).load({
-                                scope: this,
-                                callback: function (records, operation, success) {
-                                    projectUUIDs = [];
-                                    var allProjects = [];
-                                    _.each(records, function (record) {
-                                        if (_.indexOf(projects, record.get('ObjectID')) >= 0) {
-                                            Ext.Array.push(allProjects, record);
-                                        }
-                                    });
-
-                                    _.each(allProjects, function(project) {
-                                        console.log(project);
-                                        Ext.Array.push(projectUUIDs, project.data._refObjectUUID);
-                                        organizedData.scoreboard[project.data.Name] = aggregateData.teamsPoints[project.data.ObjectID];
-                                    });
-
-                                    console.log(aggregateData.teamsPoints, organizedData.scoreboard);
-                                    organizedData.features = _.toArray(aggregateData.features);
-                                    //organizedData.initiative = GLOBAL;
-                                    
-                                    var scope = angular.element($("#root")).scope();
-                                    scope.realtimeConnection = function () {
-                                        RealtimeService.connect(projectUUIDs);
-                                    };
-                                    scope.realtimeConnection(); // listen for changes in realtime
-                                    //callbackData(organizedData);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    };
-});
 
             Rally.launchApp('CustomApp', {
                 name:"Blast Down Chart",
