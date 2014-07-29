@@ -92,7 +92,16 @@ game.BulletEntity = me.ObjectEntity.extend({
                 if (res.obj.type == game.ENEMY_ENTITY_SUPER) {
                     this.addExplosions(4, 5, res.obj.width / 2, res.obj.height, new Point(res.obj.pos.x, res.obj.pos.y));
                 } else {
-                    var explosion = me.pool.pull("explosion", res.obj.pos.x, res.obj.pos.y, {
+
+                    var x = res.obj.pos.x;
+                    var y = res.obj.pos.y;
+
+                    if (duplicate) {
+                        x += 32;
+                        y += 16;
+                    }
+
+                    var explosion = me.pool.pull("explosion", x,  y, {
                         image: image,
                         spriteheight: height,
                         spritewidth: width,
@@ -104,7 +113,7 @@ game.BulletEntity = me.ObjectEntity.extend({
                     me.game.world.addChild(explosion, Number.POSITIVE_INFINITY);
 
                     if (duplicate) {
-                        me.game.world.addChild(me.pool.pull("explosion", res.obj.pos.x + width, res.obj.pos.y, {
+                        me.game.world.addChild(me.pool.pull("explosion", x + width, y, {
                             image: image,
                             spriteheight: height,
                             spritewidth: width,

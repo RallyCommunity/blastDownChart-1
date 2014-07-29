@@ -28,16 +28,11 @@ var game = {
     ENEMY_ENTITY_SUPER:  99, // super enemy type
     RALLY_SHIP_ENTITY: 91,
     EXPLOSION_TYPE: 17,
-
-    SHOW_LABEL: true,
-
+    TEAM_SHIP: 88,     // player type
+    BULLET: 77,     // bullet type
     RALLY_HUNTER: 55,
 
     shootingAttempts: 10,
-
-    TEAM_SHIP: 88,     // player type
-    BULLET: 77,     // bullet type
-    EXPLOSION: 66,  // explosion type
 
     // boolean - can the player shoot?
     canShoot: {},
@@ -156,6 +151,9 @@ var game = {
             new Point(0, game.WINDOW_HEIGHT - 68),
         ];
 
+        game.ALL_ENTITY_TYPES = [this.ENEMY_ENTITY_SMALL, this.ENEMY_ENTITY_MEDIUM, this.ENEMY_ENTITY_LARGE, this.ENEMY_ENTITY_SUPER,
+                                    this.RALLY_SHIP_ENTITY, this.EXPLOSION_TYPE, this.RALLY_HUNTER, this.TEAM_SHIP, this.BULLET];
+
         game.LABEL_INDEX = 0;
 
         // Initialize the video.
@@ -185,41 +183,6 @@ var game = {
         $('.closePopup').click(function(){
             game.closeHowItWorks();
         });
-
-        // $('.closeInfo').click(function(){
-        //     $(this).closest('.workItemDetail').remove();
-        // });
-
-        // $('canvas').click(function(e) {
-        //     e.preventDefault();
-        //     var offset = $(this).offset();
-        //     var x = e.clientX - offset.left;
-        //     var y = event.y - offset.top;
-        //     console.log("searching", x, y);
-        //     var ship = _.find(game.OID_MAP, function(value, key) {
-        //         if (value.ship) {
-        //             var left = value.ship.pos.x;
-        //             var right = left + value.ship.width;
-        //             var top = value.ship.pos.y;
-        //             var bottom = top + value.ship.height;
-        //             console.log(left, right, top, bottom);
-        //             if (x > left && x < right && y > top && y < bottom) {
-        //                 return value;
-        //             }
-        //         }
-        //     });
-
-        //     if (ship) {
-        //         $('body').remove('.workItemDetail');
-        //         console.log(ship);
-        //         var info = $("<div class='workItemDetail'><div class='closeInfo button'>close</div><h1>" + ship.ship.record.get("Name") + "</h1></div>").css({top: y, left: x, position:'absolute'});
-        //         $('body').append(info);
-
-        //         $('.closeInfo').click(function(){
-        //             $('body').remove('.workItemDetail');
-        //         });
-        //     }
-        // });
 
         // Initialize melonJS and display a loading screen.
         me.state.change(me.state.LOADING);
@@ -278,23 +241,41 @@ var game = {
         // unmask, restart updates, play through queue of events
         game.angularScope.eventHandler.playThrough();
 
-        // restart the enemy ships
-        _.each(game.OID_MAP, function(value, key) {
-            if (value.ship && value.cachedUpdate) {
-                value.ship.update = value.cachedUpdate;
-            }
-        });
-
-        // restart the player ships
-        _.each(game.TEAM_SHIPS, function(value, key) {
-            if (value.cachedUpdate) {
-                value.update = value.cachedUpdate;
-                value.setVelocity(game.SPEED, 0);
-            }
-            
+        _.each(this.ALL_ENTITY_TYPES, function(entity) {
+            game.resumeEntity(entity);
         });
 
         this.startRallyShip();
+    },
+
+    pauseEntity: function(type) {
+        var displayed = me.game.world.getChildByProp('type', type);
+
+        if (displayed) {
+            _.each(displayed, function(oneItem) {
+                if (oneItem.update) {
+                    oneItem.cachedUpdate = oneItem.update;
+                    oneItem.update = function(dt) {
+                        if (this.mouseDown) {
+                            this.mouseDown();
+                        }
+                        return true;
+                    }
+                }
+            });
+        }
+    },
+
+    resumeEntity: function(type) {
+        var displayed = me.game.world.getChildByProp('type', type);
+
+        if (displayed) {
+            _.each(displayed, function(oneItem) {
+                if (oneItem.cachedUpdate) {
+                    oneItem.update = oneItem.cachedUpdate;
+                }
+            });
+        }
     },
 
     pause: function() {
@@ -302,26 +283,10 @@ var game = {
         $('#pauseIcon').addClass('hidden');
         // stop updates, mask screen, stop going through queue of events
         game.angularScope.eventHandler.pauseEvents();
-        _.each(game.OID_MAP, function(value, key) {
-            if (value.ship) {
-                value.cachedUpdate = value.ship.update;
-                value.ship.update = function(dt) {
-                    this.mouseDown();
-                    return true;
-                }
-            }
-        });
 
-        // stop the player ships
-        _.each(game.TEAM_SHIPS, function(value, key) {
-            value.cachedUpdate = value.update;
-            value.update = function(dt) {
-                return true;
-            }
+        _.each(this.ALL_ENTITY_TYPES, function(entity) {
+            game.pauseEntity(entity);
         });
-
-        // stop the rally ship
-        this.stopRallyShip();
     },
 
     startRallyShip: function() {
@@ -330,7 +295,7 @@ var game = {
                 game.rallyShipOnScreen.update = game.rallyShipOnScreen.cachedUpdate;
             }
             game.rallyShipInterval = setInterval(function() {
-                if (!game.rallyShipOnScreen) {
+                if (!game.rallyShipOnScreen && game.play) {
                     game.rallyShipOnScreen = me.pool.pull("rallyShip", -game.RALLY_SHIP.width + 1, 1, {
                         height: game.RALLY_SHIP.height,
                         image: 'rallyShip',
@@ -412,9 +377,9 @@ var game = {
         });
 
         Ext.getBody().unmask();
+        game.showHowItWorks();
+        $("html, body").animate({scrollTop: 10}); // so click handlers work properly - strange quirk
     },
-
-
 
     historyFinished: function() {
         if (game.endDate) {

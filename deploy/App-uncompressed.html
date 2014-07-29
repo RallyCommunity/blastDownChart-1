@@ -54815,7 +54815,6 @@ game.RallyHunterEntity = me.ObjectEntity.extend({
                 });
             }
         }
-
     },
 
     update: function(dt) {
@@ -57281,7 +57280,8 @@ li {
 .hidden {
   display: none;
 }
-#controls {
+#controls,
+#howItWorksButton {
   margin-top: 5px;
 }
 #controls > .column {
@@ -57436,7 +57436,10 @@ p {
   -moz-border-radius: 2px;
   border-radius: 2px;
   color: black;
-  background-color: green;
+  background-color: white;
+  font-style: bold;
+  text-align: center;
+  cursor: pointer;
 }
 
     </style>
@@ -57465,43 +57468,6 @@ td.dataColumn {
 <body>
     <div style="display:none;" ng-controller="dataController" id="root">
     <div class="middle">
-        <div id="howItWorks" class="hidden">
-            <div id="popup">
-                <div class="closePopup button">close</div>
-                <img src="game/data/img/new/blastDownBackground.png" alt="Blast Down Chart">
-                <h1>How it Works</h1>
-                <h2>What is it?</h2>
-                <p>The Blast Down Cart is a Portfolio Item visualization for your data in Rally.  The Blast Down chart shows the enitre history of a Rally Initiative, and is a fun tool to reward your efforts in realtime.</p>
-                <h2>How can we use it?</h2>
-                <p>We suggest you use it in a few ways:
-                    <ul list-style-type="square">
-                        <li>To see the entire history of a completed work item</li>
-                        <li>To display while teams work as part of a dashboard - as they complete work in Rally, it will be destroyed in the Blast Down Chart!</li>
-                    </ul>
-                </p>
-                <h2>What do the aliens mean?</h2>
-                <p>Each of the different types of alien ships represents a different piece of data in the Initiative you select.  If you ever wonder what an alien represents, just click on it - this will bring up a window with the information for that work item. The larger the alien, the larger the work item.  Here is the exact correlation:
-                <div id="aboutLegend">
-                    <div>Initiative<div class="aboutImage" id="initiativeImage"></div></div>
-                    <hr />
-                    <div>Feature<div class="aboutImage" id="featureImage"></div></div>
-                    <hr />
-                    <div>User Story<div class="aboutImage" id="storyImage"></div></div>
-                    <hr />
-                    <div>Task<div class="aboutImage" id="taskImage"></div></div>
-                </div>
-                </p>
-                <p>The aliens on the screen are colored according to their realtionship - Features are assigned a color, and the stories or tasks that are parented to that feature in Rally are given the same color.
-                </p>
-                <h2>What do the ships mean?</h2>
-                <p>The ships at the bottom represent the teams, and their colors correlate to the score in the scoreboard.</p>
-                <h2>How does scoring work?</h2>
-                <p>Scores are calcuated using story points for each story that is completed.  If a story has no points assigned, the team will get no points for completing it.  You can also switch the scoreboard to report scores in terms of the number of stories completed, if you prefer.</p>
-                <h1>We hope you enjoy this new way to visualize your data in Rally!</h1>
-                <div class="closePopup bottomCenter button">close</div>
-            </div>
-        </div>
-        <div id="overlay" class="hidden"></div>
         <div id="spaceInvadersContainer">
             <div>
                 <div id="scores">
@@ -57602,5 +57568,42 @@ td.dataColumn {
         </div>
     </div>
 </div>
+        <div id="howItWorks" class="hidden">
+            <div id="popup">
+                <div class="closePopup button">close</div>
+                <img src="game/data/img/new/blastDownBackground.png" alt="Blast Down Chart">
+                <h1>How it Works</h1>
+                <h2>What is it?</h2>
+                <p>The Blast Down Cart is a Portfolio Item visualization for your data in Rally.  The Blast Down chart shows the enitre history of a Rally Initiative, and is a fun tool to reward your efforts in realtime.</p>
+                <h2>How can we use it?</h2>
+                <p>We suggest you use it in a few ways:
+                    <ul list-style-type="square">
+                        <li>To see the entire history of a completed work item</li>
+                        <li>To display while teams work as part of a dashboard - as they complete work in Rally, it will be destroyed in the Blast Down Chart!</li>
+                    </ul>
+                </p>
+                <h2>What do the aliens mean?</h2>
+                <p>Each of the different types of alien ships represents a different piece of data in the Initiative you select.  If you ever wonder what an alien represents, just click on it - this will bring up a window with the information for that work item. The larger the alien, the larger the work item.  Here is the exact correlation:
+                <div id="aboutLegend">
+                    <div>Initiative<div class="aboutImage" id="initiativeImage"></div></div>
+                    <hr />
+                    <div>Feature<div class="aboutImage" id="featureImage"></div></div>
+                    <hr />
+                    <div>User Story<div class="aboutImage" id="storyImage"></div></div>
+                    <hr />
+                    <div>Task<div class="aboutImage" id="taskImage"></div></div>
+                </div>
+                </p>
+                <p>The aliens on the screen are colored according to their realtionship - Features are assigned a color, and the stories or tasks that are parented to that feature in Rally are given the same color.
+                </p>
+                <h2>What do the ships mean?</h2>
+                <p>The ships at the bottom represent the teams, and their colors correlate to the score in the scoreboard.</p>
+                <h2>How does scoring work?</h2>
+                <p>Scores are calcuated using story points for each story that is completed.  If a story has no points assigned, the team will get no points for completing it.  You can also switch the scoreboard to report scores in terms of the number of stories completed, if you prefer.</p>
+                <h1>We hope you enjoy this new way to visualize your data in Rally!</h1>
+                <div class="closePopup bottomCenter button">close</div>
+            </div>
+        </div>
+        <div id="overlay" class="hidden"></div>
 </body>
 </html>
