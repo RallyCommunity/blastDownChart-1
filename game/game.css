@@ -34,14 +34,10 @@ body {
     -ms-interpolation-mode: nearest-neighbor;*/
 }
 
-@font-face {
-    font-family: arcadeClassic;
-    src: url(data/font/ARCADECLASSIC.ttf);
-}
 
 @font-face {
     font-family: pressStart;
-    src: url(data/font/prstartk.ttf);
+    src: url(../game/data/font/prstartk.ttf);
 }
 
 #scores {
@@ -335,25 +331,25 @@ p {
 }
 
 #initiativeImage {
-    background-image: url('data/img/new/super/superEnemy_white.png');
+    background-image: url('../game/data/img/new/super/superEnemy_white.png');
     width: 256px;
     height: 64px;
 }
 
 #featureImage {
-    background-image: url('data/img/new/large/largeEnemy_white.png');
+    background-image: url('../game/data/img/new/large/largeEnemy_white.png');
     width: 64px;
     height: 32px;
 }
 
 #storyImage {
-    background-image: url('data/img/new/medium/mediumEnemy_white.png');
+    background-image: url('../game/data/img/new/medium/mediumEnemy_white.png');
     width: 32px;
     height: 32px;
 }
 
 #taskImage {
-    background-image: url('data/img/new/small/smallEnemy_white.png');
+    background-image: url('../game/data/img/new/small/smallEnemy_white.png');
     width: 16px;
     height: 16px;
 }
