@@ -5,7 +5,7 @@
 .x-body {
     min-height: 720px; /* min 720p */
     min-width: 1280px;
-    background-image: url('game/data/img/new/blastDownBackground.png');
+    background-image: url('../game/data/img/new/blastDownBackground.png');
     background-repeat: no-repeat;
     background-position: center;
     background-color: white;
