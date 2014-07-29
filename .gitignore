@@ -8,7 +8,6 @@ App-local.html
 .c9revisions
 node_modules
 .DS_Store
-bower_components
 
 #emacs files
 *~
