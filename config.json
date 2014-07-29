@@ -24,9 +24,9 @@
       "game/js/screens/victory.js",
       "game/js/screens/title.js",
       "game/js/screens/play.js",
-      "App.js",
-      "angularApp.js",
-      "LookbackService.js",
+      "App/App.js",
+      "App/angularApp.js",
+      "App/LookbackService.js",
       "realtime/reconnecting-websocket.js",
       "realtime/alm-realtime.js",
       "realtime/RealtimeDataHandler.js",
@@ -34,10 +34,10 @@
       "game/GameEventHandler.js"
    ],
    "html": [
-      "body.html"
+      "App/body.html"
    ],
    "css": [
       "game/game.css",
-      "app.css"
+      "App/app.css"
    ]
 }
